@@ -1,0 +1,13 @@
+.root {
+    -fx-font-family: "Arial";
+    -fx-background-color: #f5f7fb;
+}
+
+.label {
+    -fx-font-size: 14px;
+}
+
+.title-label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
