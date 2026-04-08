@@ -13,3 +13,10 @@ Thumbs.db
 
 # File biên dịch
 *.class
+
+# Log files
+*.log
+
+# Package files
+*.jar
+*.war
