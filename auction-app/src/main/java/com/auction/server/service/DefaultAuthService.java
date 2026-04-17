@@ -52,5 +52,5 @@ public class DefaultAuthService implements AuthService {
     @Override
     public boolean usernameExists(String username) {
         return userDao.findByUsername(username).isPresent(); //isPresent() sẽ trả về true nếu tìm thấy, false nếu không thấy
-    }
+    } 
 }

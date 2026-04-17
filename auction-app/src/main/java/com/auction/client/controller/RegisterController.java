@@ -64,4 +64,4 @@ public class RegisterController {
         alert.setContentText(content);
         alert.showAndWait();
     }
-}
+} 

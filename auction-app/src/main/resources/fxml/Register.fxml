@@ -19,4 +19,4 @@
     
     <Button text="Đăng Ký" onAction="#onRegisterClicked" prefWidth="250"/>
     <Button text="Quay lại Đăng nhập" onAction="#onBackToLoginClicked" prefWidth="250"/>
-</VBox>
+</VBox> 

@@ -59,4 +59,4 @@ public class LoginController {
         alert.setContentText(content);
         alert.showAndWait();
     }
-}
+} 

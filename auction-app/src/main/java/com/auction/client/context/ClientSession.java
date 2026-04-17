@@ -30,4 +30,4 @@ public final class ClientSession {
     public static String getSelectedAuctionId() {
         return selectedAuctionId;
     }
-}
+} 

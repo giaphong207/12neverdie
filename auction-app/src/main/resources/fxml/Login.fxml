@@ -17,4 +17,4 @@
     
     <Button text="Đăng Nhập" onAction="#onLoginClicked" prefWidth="250"/>
     <Button text="Chưa có tài khoản? Đăng ký ngay" onAction="#onOpenRegisterClicked" prefWidth="250"/>
-</VBox>
+</VBox> 
