@@ -3,13 +3,16 @@ package com.auction.shared.model;
 import java.io.Serializable;
 
 public class User implements Serializable {
-    private static final long serialVersionUID = 1L;
-
     private String id;
     private String username;
     private String password;
     private Role role;
 
+    // Constructor rỗng (Rất cần thiết khi đọc/ghi file)
+    public User() {
+    }
+
+    // Constructor đầy đủ
     public User(String id, String username, String password, Role role) {
         this.id = id;
         this.username = username;

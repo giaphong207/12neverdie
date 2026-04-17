@@ -1,12 +1,14 @@
 package com.auction.server.dao;
 
+import com.auction.shared.model.User;
 import java.util.List;
 import java.util.Optional;
 
-import com.auction.shared.model.User;
-
 public interface UserDao {
-    Optional<User> findByUsername(String username);
+    
     List<User> findAll();
+    Optional<User> findById(String id);
+    Optional<User> findByUsername(String username);
     void save(User user);
+    
 }
