@@ -1,12 +1,14 @@
-# 🔨 Hệ Thống Đấu Giá Trực Tuyến (Online Auction System)
+# Hệ Thống Đấu Giá Trực Tuyến (Online Auction System)
 Bài tập lớn môn Lập trình nâng cao - Nhóm 12
 
-## ⚙️ Yêu cầu hệ thống (Prerequisites)
-- **Java SDK:** Phiên bản 25
-- **Build Tool:** Maven 3.8+
-- **Database:** (Sẽ cập nhật sau)
+## Yêu cầu hệ thống
+* **Java Version:** JDK 25 (Bắt buộc để đồng bộ với CI/CD)
+* **Build Tool:** Maven 3.9.14
+* **IDE:** - VS Code: Cài bộ "Extension Pack for Java" của Microsoft/Red Hat.
+    ** - IntelliJ: Nhớ vào *Project Structure* chỉnh SDK về Java 25.
 
-## 🚀 Hướng dẫn chạy dự án (How to run)
-1. Clone code về máy:
+## Cách chạy ứng dụng
+1. Di chuyển vào thư mục dự án:
    ```bash
-   git clone [Link-GitHub-Của-Nhóm-Sẽ-Điền-Sau]
+   cd online-auction-system/auction-app
+   
