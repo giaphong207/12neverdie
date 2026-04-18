@@ -5,8 +5,11 @@ import java.util.UUID;
 
 import com.auction.server.dao.FileUserDao;
 import com.auction.server.dao.UserDao;
+import com.auction.shared.model.Admin;
+import com.auction.shared.model.Bidder;
 import com.auction.shared.model.Role;
-import com.auction.shared.model.User; //Dùng để tạo ID ngẫu nhiên
+import com.auction.shared.model.Seller;
+import com.auction.shared.model.User;
 
 public class DefaultAuthService implements AuthService {
 
@@ -35,13 +38,27 @@ public class DefaultAuthService implements AuthService {
     public User register(String username, String password, Role role) {
         //Kiểm tra trùng tên
         if (usernameExists(username)) {
-            return null; // Đã tồn tại -> Đăng ký thất bại
+            return null; //Đã tồn tại -> Đăng ký thất bại
         }
         
-        //Tạo ID ngẫu nhiên cho User mới
+        //Tạo ID ngẫu nhiên cho user mới
         String newId = UUID.randomUUID().toString();
-     
-        User newUser = new User(newId, username, password, role);
+        User newUser = null;
+
+        //Khởi tạo đối tượng dựa vào Role
+        switch (role) {
+            case ADMIN:
+                newUser = new Admin(newId, username, password);
+                break;
+            case BIDDER:
+                newUser = new Bidder(newId, username, password);
+                break;
+            case SELLER:
+                newUser = new Seller(newId, username, password);
+                break;
+            default:
+                throw new IllegalArgumentException("Không tìm thấy class con hỗ trợ cho vai trò: " + role);
+        }
         
         //Nhờ DAO lưu xuống file
         userDao.save(newUser);

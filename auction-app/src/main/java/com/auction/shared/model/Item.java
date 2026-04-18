@@ -8,7 +8,7 @@ public abstract class Item implements Serializable {
     private String name;
     private String description;
     private long startPrice;
-    private category;
+    private ItemType type;
     protected Item(String id, String sellerId, String name, String description, long startPrice, ItemType type) {
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("Phải có ID");
