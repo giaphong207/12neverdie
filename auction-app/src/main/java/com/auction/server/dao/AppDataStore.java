@@ -1,10 +1,10 @@
 package com.auction.server.dao;
 
-import com.auction.shared.model.User; // Import đúng đường dẫn trong project của bạn
-// import com.auction.shared.model.Item; // (Sau này TV2 tạo xong Item thì bạn bỏ dấu comment đi)
-import java.io.Serializable;
+import java.io.Serializable; // Import đúng đường dẫn trong project của bạn
 import java.util.ArrayList;
 import java.util.List;
+
+import com.auction.shared.model.User;
 
 public class AppDataStore implements Serializable {
     private static final long serialVersionUID = 1L;
