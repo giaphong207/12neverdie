@@ -1,5 +1,6 @@
 package com.auction.client.controller;
 
+import com.auction.client.context.ClientSession;
 import com.auction.client.util.SceneNavigator;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -19,6 +20,20 @@ public class AuctionListController {
     }
 
     public void onViewDetail() {
+        String selected = auctionListView.getSelectionModel().getSelectedItem();
+
+        if (selected == null) {
+            return;
+        }
+
+        if (selected.startsWith("Auction 1")) {
+            ClientSession.setSelectedAuctionId("MOCK-AUCTION-001");
+        } else if (selected.startsWith("Auction 2")) {
+            ClientSession.setSelectedAuctionId("MOCK-AUCTION-002");
+        } else if (selected.startsWith("Auction 3")) {
+            ClientSession.setSelectedAuctionId("MOCK-AUCTION-003");
+        }
+
         SceneNavigator.switchScene("/fxml/AuctionDetail.fxml");
     }
 
