@@ -14,8 +14,15 @@ public class FileUserDao implements UserDao {
 
     @Override
     public Optional<User> findById(String id) {
-        // Tạm thời để return Optional.empty() vì class User của TV2 chưa code thuộc tính ID
-        return Optional.empty();
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        return DataManager.getInstance()
+                .getStore()
+                .getUsers()
+                .stream()
+                .filter(user -> id.equals(user.getId()))
+                .findFirst();
     }
 
     @Override

@@ -1,10 +1,14 @@
 package com.auction.server.dao;
 
 import com.auction.shared.model.Item;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class FileItemDao implements ItemDao {
+    private final List<Item> items = new ArrayList<>();
+
     @Override
     public List<Item> findAll() {
         return DataManager.getInstance().getStore().getItems();
@@ -12,10 +16,14 @@ public class FileItemDao implements ItemDao {
 
     @Override
     public Optional<Item> findById(String id) {
-        // Tạm thời return empty nếu Item chưa có hàm getId()
         return findAll().stream().filter(i -> id.equals(i.getId())).findFirst();
     }
-
+    @Override
+    public List<Item> findBySellerId(String sellerId) {
+        return items.stream()
+                .filter(item -> item.getSellerId().equals(sellerId))
+                .toList();
+    }
     @Override
     public void save(Item item) {
         AppDataStore store = DataManager.getInstance().getStore();
