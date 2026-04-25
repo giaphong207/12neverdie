@@ -7,7 +7,7 @@ import java.util.List;
 
 public class DefaultItemService implements ItemService{
     private final ItemDao itemDao;
-    public DefaultAuctionService(ItemDao itemDao){
+    public DefaultItemService(ItemDao itemDao){
         this.itemDao = itemDao;
     }
     @Override
