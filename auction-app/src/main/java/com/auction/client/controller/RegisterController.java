@@ -52,8 +52,22 @@ public class RegisterController {
     }
 
     @FXML
-    public void onBackToLoginClicked() {
-        //TODO: Chuyển về màn hình Login
+    public void onBackToLoginClicked(javafx.event.ActionEvent event) {
+        //Chuyển về màn hình Login.fxml
+        try {
+            //Tải lại file giao diện Đăng nhập
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
+            javafx.scene.Parent root = loader.load();
+            
+            //Lấy cửa sổ hiện tại và đổi cảnh
+            javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new javafx.scene.Scene(root));
+            stage.setTitle("Đăng nhập hệ thống");
+            stage.show();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         System.out.println("Quay lại màn hình đăng nhập...");
     }
 

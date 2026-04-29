@@ -17,6 +17,6 @@
     
     <ComboBox fx:id="cbRole" promptText="Chọn vai trò của bạn" maxWidth="250"/>
     
-    <Button text="Đăng Ký" onAction="#onRegisterClicked" prefWidth="250"/>
+    <Button text="Đăng ký" onAction="#onRegisterClicked" prefWidth="250"/>
     <Button text="Quay lại Đăng nhập" onAction="#onBackToLoginClicked" prefWidth="250"/>
 </VBox>
