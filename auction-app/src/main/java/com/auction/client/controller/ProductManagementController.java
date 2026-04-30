@@ -21,6 +21,9 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 
+import com.auction.client.util.AlertUtils;
+import com.auction.shared.exception.AppException;
+
 public class ProductManagementController {
 
     @FXML
@@ -88,61 +91,81 @@ public class ProductManagementController {
     }
 
     public void loadSellerProducts() {
-        User currentUser = ClientSession.getCurrentUser();
+        try {
+            User currentUser = ClientSession.getCurrentUser();
 
-        if (currentUser == null) {
-            showAlert("Chưa đăng nhập");
-            return;
+            if (currentUser == null) {
+                AlertUtils.showWarning("Chưa đăng nhập", "Bạn cần đăng nhập để xem sản phẩm");
+                return;
+            }
+
+            String sellerId = currentUser.getId();
+            List<Item> items = itemService.getItemsBySeller(sellerId);
+
+            tblItems.setItems(FXCollections.observableArrayList(items));
+        } catch (AppException ex) {
+            AlertUtils.showError("Lỗi tải sản phẩm", ex.getMessage());
         }
-
-        String sellerId = currentUser.getId();
-        List<Item> items = itemService.getItemsBySeller(sellerId);
-
-        tblItems.setItems(FXCollections.observableArrayList(items));
     }
 
     @FXML
     public void onAddClicked() {
-        if (!validateForm()) {
-            return;
+        try {
+            Item item = buildItemFromForm();
+
+            itemService.addItem(item);
+
+            loadSellerProducts();
+            clearForm();
+
+            AlertUtils.showInfo("Thành công", "Đã thêm sản phẩm");
+        } catch (NumberFormatException ex) {
+            AlertUtils.showError("Lỗi nhập liệu", "Giá khởi điểm phải là số");
+        } catch (AppException ex) {
+            AlertUtils.showError("Lỗi sản phẩm", ex.getMessage());
         }
-
-        Item item = buildItemFromForm();
-        itemService.addItem(item);
-
-        loadSellerProducts();
-        clearForm();
     }
 
     @FXML
     public void onUpdateClicked() {
-        if (selectedItem == null) {
-            showAlert("Bạn chưa chọn sản phẩm để sửa");
-            return;
+        try {
+            if (selectedItem == null) {
+                AlertUtils.showWarning("Chưa chọn sản phẩm", "Bạn chưa chọn sản phẩm để sửa");
+                return;
+            }
+
+            Item updatedItem = buildItemFromFormWithId(selectedItem.getId());
+
+            itemService.updateItem(updatedItem);
+
+            loadSellerProducts();
+            clearForm();
+
+            AlertUtils.showInfo("Thành công", "Đã cập nhật sản phẩm");
+        } catch (NumberFormatException ex) {
+            AlertUtils.showError("Lỗi nhập liệu", "Giá khởi điểm phải là số");
+        } catch (AppException ex) {
+            AlertUtils.showError("Lỗi sản phẩm", ex.getMessage());
         }
-
-        if (!validateForm()) {
-            return;
-        }
-
-        Item updatedItem = buildItemFromFormWithId(selectedItem.getId());
-        itemService.updateItem(updatedItem);
-
-        loadSellerProducts();
-        clearForm();
     }
 
     @FXML
     public void onDeleteClicked() {
-        if (selectedItem == null) {
-            showAlert("Bạn chưa chọn sản phẩm để xoá");
-            return;
+        try {
+            if (selectedItem == null) {
+                AlertUtils.showWarning("Chưa chọn sản phẩm", "Bạn chưa chọn sản phẩm để xoá");
+                return;
+            }
+
+            itemService.deleteItem(selectedItem.getId());
+
+            loadSellerProducts();
+            clearForm();
+
+            AlertUtils.showInfo("Thành công", "Đã xoá sản phẩm");
+        } catch (AppException ex) {
+            AlertUtils.showError("Lỗi sản phẩm", ex.getMessage());
         }
-
-        itemService.deleteItem(selectedItem.getId());
-
-        loadSellerProducts();
-        clearForm();
     }
 
     @FXML
@@ -174,41 +197,6 @@ public class ProductManagementController {
         );
     }
 
-    private boolean validateForm() {
-        if (txtName.getText() == null || txtName.getText().isBlank()) {
-            showAlert("Tên sản phẩm không được rỗng");
-            return false;
-        }
-
-        if (txtDescription.getText() == null || txtDescription.getText().isBlank()) {
-            showAlert("Mô tả không được rỗng");
-            return false;
-        }
-
-        if (txtStartPrice.getText() == null || txtStartPrice.getText().isBlank()) {
-            showAlert("Giá khởi điểm không được rỗng");
-            return false;
-        }
-
-        try {
-            double price = Double.parseDouble(txtStartPrice.getText().trim());
-            if (price <= 0) {
-                showAlert("Giá khởi điểm phải lớn hơn 0");
-                return false;
-            }
-        } catch (NumberFormatException e) {
-            showAlert("Giá khởi điểm phải là số");
-            return false;
-        }
-
-        if (cbItemType.getValue() == null) {
-            showAlert("Bạn chưa chọn loại sản phẩm");
-            return false;
-        }
-
-        return true;
-    }
-
     private void fillForm(Item item) {
         txtName.setText(item.getName());
         txtDescription.setText(item.getDescription());
@@ -224,14 +212,6 @@ public class ProductManagementController {
         txtDescription.clear();
         txtStartPrice.clear();
         cbItemType.setValue(null);
-    }
-
-    private void showAlert(String message) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle("Thông báo");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 }
 
