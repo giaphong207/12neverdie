@@ -15,6 +15,6 @@
     <TextField fx:id="txtUsername" promptText="Tên đăng nhập" maxWidth="250"/>
     <PasswordField fx:id="txtPassword" promptText="Mật khẩu" maxWidth="250"/>
     
-    <Button text="Đăng Nhập" onAction="#onLoginClicked" prefWidth="250"/>
-    <Button text="Chưa có tài khoản? Đăng ký ngay" onAction="#onOpenRegisterClicked" prefWidth="250"/>
+    <Button text="Đăng nhập" onAction="#onLoginClicked" prefWidth="250"/>
+    <Button text="Đăng ký" onAction="#onOpenRegisterClicked" prefWidth="250"/>
 </VBox>
