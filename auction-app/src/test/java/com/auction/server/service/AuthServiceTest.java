@@ -25,7 +25,8 @@ public class AuthServiceTest {
     @Test
     public void shouldLoginSuccessWithValidCredentials() {
         //Arrange: Đăng ký user trước
-        authService.register("testuser", "password123", Role.BIDDER);
+        User registered = authService.register("testuser", "password123", Role.BIDDER); //check register thành công trước
+        assertNotNull(registered, "Register phải thành công");
 
         //Act: Đăng nhập
         User user = authService.login("testuser", "password123");
