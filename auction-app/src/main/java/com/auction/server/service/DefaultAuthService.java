@@ -18,6 +18,7 @@ public class DefaultAuthService implements AuthService {
 
     public DefaultAuthService() {
         this.userDao = new FileUserDao();
+        seedAdmin();
     }
 
     @Override
@@ -69,5 +70,16 @@ public class DefaultAuthService implements AuthService {
     @Override
     public boolean usernameExists(String username) {
         return userDao.findByUsername(username).isPresent(); //isPresent() sẽ trả về true nếu tìm thấy, false nếu không thấy
+    }
+
+    private void seedAdmin() {
+        if (!usernameExists("admin")) {
+            User adminUser = new Admin(
+                UUID.randomUUID().toString(),
+                "admin", //username cố định
+                "admin123" //password cố định
+            );
+            userDao.save(adminUser);
+        }
     }
 }
