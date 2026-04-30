@@ -20,3 +20,6 @@ Thumbs.db
 # Package files
 *.jar
 *.war
+
+# Dữ liệu thử nghiệm cá nhân 
+*.dat
