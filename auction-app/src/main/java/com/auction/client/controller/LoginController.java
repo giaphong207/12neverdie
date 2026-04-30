@@ -45,11 +45,14 @@ public class LoginController {
                 
                 //Kiểm tra Quyền để chỉ định đúng file giao diện
                 if (user.getRole() == Role.SELLER) {
-                    fxmlPath = "/fxml/SellerDashboard.fxml";
+                    fxmlPath = "/fxml/ProductManagement.fxml";
                     title = "Hệ thống Đấu giá - Người Bán";
                 } else if (user.getRole() == Role.BIDDER) {
-                    fxmlPath = "/fxml/BidderDashboard.fxml";
+                    fxmlPath = "/fxml/AuctionList.fxml";
                     title = "Hệ thống Đấu giá - Người Mua";
+                } else if (user.getRole() == Role.ADMIN) {
+                    fxmlPath = "/fxml/AdminPlaceholder.fxml"; // Thêm màn hình cho ADMIN
+                    title = "Hệ thống Đấu giá - Quản trị viên";
                 }
 
                 //Tải file giao diện tương ứng
@@ -64,7 +67,9 @@ public class LoginController {
                 
             } catch (Exception e) {
                 e.printStackTrace();
-                showAlert(Alert.AlertType.ERROR, "Lỗi hệ thống", "Không thể mở màn hình chính! Vui lòng kiểm tra lại file FXML.");
+                //Thông báo nếu quên chưa tạo file FXML mới
+                showAlert(Alert.AlertType.ERROR, "Lỗi hệ thống", 
+                    "Chưa tìm thấy file: " + (user.getRole() == Role.SELLER ? "ProductManagement.fxml" : "AuctionList.fxml"));
             }
 
             System.out.println("Chuyển sang màn hình của: " + user.getRole());
