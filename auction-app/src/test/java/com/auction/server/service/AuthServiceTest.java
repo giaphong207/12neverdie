@@ -1,5 +1,7 @@
 package com.auction.server.service;
 
+import java.io.File;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -8,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.auction.server.dao.DataManager;
 import com.auction.shared.model.Role;
 import com.auction.shared.model.User;
 
@@ -16,6 +19,19 @@ public class AuthServiceTest {
 
     @BeforeEach
     public void setUp() {
+        //Xóa file database cũ trước mỗi test
+        File dataFile = new File("data/database.dat");
+        if (dataFile.exists()) {
+            dataFile.delete();
+        }
+        //RESET singleton DataManager
+        try {
+            java.lang.reflect.Field instanceField = DataManager.class.getDeclaredField("instance");
+            instanceField.setAccessible(true);
+            instanceField.set(null, null);  // ← Set instance = null để reload
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         //Khởi tạo AuthService trước mỗi test
         authService = new DefaultAuthService();
     }
