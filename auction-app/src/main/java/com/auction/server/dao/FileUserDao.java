@@ -1,41 +1,63 @@
 package com.auction.server.dao;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.auction.shared.config.AppConfig;
 import com.auction.shared.model.User;
 
 public class FileUserDao implements UserDao {
-    
-    @Override
-    public List<User> findAll() {
-        return DataManager.getInstance().getStore().getUsers();
+    private final String filePath;
+
+    public FileUserDao() {
+        this.filePath = AppConfig.DATA_FILE;
+        ensureDataDirExists();
     }
 
-    @Override
-    public Optional<User> findById(String id) {
-        // Tạm thời để return Optional.empty() vì class User của TV2 chưa code thuộc tính ID
-        return Optional.empty();
+    private void ensureDataDirExists() {
+        File dir = new File("data");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
     }
 
     @Override
     public Optional<User> findByUsername(String username) {
-        // làm chức năng Đăng Nhập
         return findAll().stream()
                 .filter(u -> u.getUsername().equals(username))
                 .findFirst();
     }
 
     @Override
+    public List<User> findAll() {
+        File file = new File(filePath);
+        if (!file.exists()) return new ArrayList<>();
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            Object obj = ois.readObject();
+            if (obj instanceof List<?>) {
+                return (List<User>) obj;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
+    @Override
     public void save(User user) {
-        AppDataStore store = DataManager.getInstance().getStore();
-        List<User> users = store.getUsers();
-        
-        // Cập nhật: xóa user cũ nếu trùng ID 
-        users.removeIf(u -> u.getId() != null && u.getId().equals(user.getId()));
-        
+        List<User> users = findAll();
+        users.removeIf(u -> u.getId().equals(user.getId()));
         users.add(user);
-        store.setUsers(users);
-        DataManager.getInstance().save(store);
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath))) {
+            oos.writeObject(users);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
