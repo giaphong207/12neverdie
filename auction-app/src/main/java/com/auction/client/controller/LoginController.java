@@ -51,7 +51,7 @@ public class LoginController {
                     fxmlPath = "/fxml/AuctionList.fxml";
                     title = "Hệ thống Đấu giá - Người Mua";
                 } else if (user.getRole() == Role.ADMIN) {
-                    fxmlPath = "/fxml/AdminPlaceholder.fxml"; // Thêm màn hình cho ADMIN
+                    fxmlPath = "/fxml/AdminDashboard.fxml"; // Thêm màn hình cho ADMIN
                     title = "Hệ thống Đấu giá - Quản trị viên";
                 }
 
