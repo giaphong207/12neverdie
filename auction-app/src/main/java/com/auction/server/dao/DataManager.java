@@ -78,14 +78,24 @@ public final class DataManager {
 
         // 3. Khởi tạo 2-3 Phiên đấu giá liên kết chặt chẽ với Item và Seller vừa tạo
         Auction a1 = new Auction(
-                "A001", item1.getId(), seller1.getId(), 20000000L, 500000L,
+                "A001",
+                item1.getId(),
+                seller1.getId(),
+                20000000L,
+                500000L,
                 AuctionStatus.RUNNING,
+                LocalDateTime.now().minusHours(1),
                 LocalDateTime.now().plusDays(2)
         );
 
         Auction a2 = new Auction(
-                "A002", item2.getId(), seller1.getId(), 50000000L, 1000000L,
+                "A002",
+                item2.getId(),
+                seller1.getId(),
+                50000000L,
+                1000000L,
                 AuctionStatus.OPEN,
+                LocalDateTime.now().plusDays(1),
                 LocalDateTime.now().plusDays(5)
         );
 
