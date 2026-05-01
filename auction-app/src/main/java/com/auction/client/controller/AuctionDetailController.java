@@ -118,7 +118,7 @@ public class AuctionDetailController {
 
         if (bidHistoryListView != null) {
             bidHistoryListView.getItems().clear();
-            List<Bid> bids = auction.getBids();
+            List<Bid> bids = auction.getBidHistory();
             if (bids.isEmpty()) {
                 bidHistoryListView.getItems().add("Chưa có ai đặt giá.");
             } else {

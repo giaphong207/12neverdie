@@ -38,7 +38,7 @@ public class DefaultBidService implements BidService {
             throw new AuctionClosedException("Phiên đấu giá đã đóng hoặc chưa bắt đầu.");
         }
 
-        if (!auction.canBid(amount)) {
+        if (!auction.canAcceptBid(amount)) {
             long required = auction.getCurrentPrice() + auction.getMinIncrement();
             throw new InvalidBidException("Số tiền đặt phải từ " + required + " VNĐ trở lên.");
         }
