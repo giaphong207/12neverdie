@@ -5,12 +5,15 @@ import com.auction.client.util.AlertUtils;
 import com.auction.client.util.CountdownUtil;
 import com.auction.client.util.MoneyParser;
 import com.auction.client.util.SceneNavigator;
+import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.FileAuctionDao;
-import com.auction.server.service.AuctionManager;
+import com.auction.server.service.AuctionLifecycleService;
 import com.auction.server.service.BidService;
+import com.auction.server.service.DefaultAuctionLifecycleService;
 import com.auction.server.service.DefaultBidService;
 import com.auction.shared.exception.AppException;
 import com.auction.shared.model.Auction;
+import com.auction.shared.model.AuctionStatus;
 import com.auction.shared.model.Bid;
 import com.auction.shared.model.Role;
 import com.auction.shared.model.User;
@@ -21,10 +24,10 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.util.Duration;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 public class AuctionDetailController {
 
@@ -37,57 +40,82 @@ public class AuctionDetailController {
     @FXML private Label messageLabel;
     @FXML private Button placeBidButton;
 
-    // --- CÁC BIẾN MỚI CỦA TUẦN 3 ---
+    // --- CÁC BIẾN CỦA TV3 ---
     @FXML private TextField bidAmountField;
     @FXML private Label highestBidderLabel;
     @FXML private ListView<String> bidHistoryListView;
 
-    private Timeline countdownTimeline;
-    private LocalDateTime currentEndTime;
-    private Auction currentAuction;
+    // --- DAO & SERVICES ---
+    private final AuctionDao auctionDao = new FileAuctionDao();
+    private final AuctionLifecycleService lifecycleService = new DefaultAuctionLifecycleService(auctionDao);
+    // Truyền Lifecycle của TV4 vào cho BidService của TV3
+    private final BidService bidService = new DefaultBidService(auctionDao, lifecycleService);
 
-    // Khởi tạo Service xử lý logic đặt giá
-    private final BidService bidService = new DefaultBidService(new FileAuctionDao());
+    private Auction currentAuction;
+    private Timeline countdownTimeline;
+    private boolean expiredHandled = false;
 
     public void initialize() {
-        // Tuần 3: Lấy ID thật từ Session do màn hình List truyền sang
         String auctionId = ClientSession.getSelectedAuctionId();
-        if (auctionId != null) {
-            loadAuction(auctionId);
-        } else {
-            messageLabel.setText("Lỗi: Không tìm thấy phiên đấu giá.");
+
+        if (auctionId == null || auctionId.isBlank()) {
+            messageLabel.setText("Không có auction được chọn.");
             placeBidButton.setDisable(true);
-        }
-    }
-
-    public void loadAuction(String auctionId) {
-        // Tuần 3: Lấy dữ liệu thật từ database thông qua Manager
-        Optional<Auction> optAuction = AuctionManager.getInstance().findById(auctionId);
-
-        if (optAuction.isEmpty()) {
-            AlertUtils.showError("Lỗi", "Không tìm thấy phiên đấu giá này!");
-            onBackClicked();
+            remainingTimeLabel.setText("Không có dữ liệu");
             return;
         }
 
-        currentAuction = optAuction.get();
-        messageLabel.setText(""); // Xóa dòng chữ mock tuần 2
-        renderAuction(currentAuction);
-        startCountdown(currentAuction.getEndTime());
+        loadAuction(auctionId);
     }
 
-    // --- HÀM MỚI: Hiển thị dữ liệu lên giao diện ---
+    public void loadAuction(String auctionId) {
+        try {
+            // TV4: Cập nhật trạng thái ngay khi vừa load lên
+            currentAuction = lifecycleService.updateStatusByTime(auctionId);
+            expiredHandled = false;
+            renderAuction(currentAuction);
+            startCountdown(currentAuction.getEndTime());
+        } catch (Exception e) {
+            currentAuction = null;
+            messageLabel.setText("Không thể tải chi tiết auction.");
+            remainingTimeLabel.setText("Lỗi");
+            placeBidButton.setDisable(true);
+            AlertUtils.showError("Lỗi", "Không tải được auction: " + e.getMessage());
+        }
+    }
+
     private void renderAuction(Auction auction) {
-        itemNameLabel.setText(auction.getItemId()); // Tạm in ID, Tuần sau TV2 sẽ map ra Tên sp
-        descriptionLabel.setText("Thông tin chi tiết sản phẩm...");
-        sellerLabel.setText(auction.getSellerId());
+        // TV4: Hiển thị thông tin cơ bản
+        itemNameLabel.setText("Item ID: " + auction.getItemId());
+        descriptionLabel.setText("Auction ID: " + auction.getId());
+        sellerLabel.setText("Seller ID: " + auction.getSellerId());
         currentPriceLabel.setText(String.format("%,d VNĐ", auction.getCurrentPrice()));
-        statusLabel.setText(auction.getStatus().toString());
+        statusLabel.setText(auction.getStatus().name());
 
+        // TV4: Xử lý trạng thái Nút bấm
+        if (auction.isFinished()) {
+            remainingTimeLabel.setText("Đã kết thúc");
+            placeBidButton.setDisable(true);
+            if (auction.getWinnerBidderId() != null) {
+                messageLabel.setText("Người thắng: " + auction.getWinnerBidderId());
+            } else {
+                messageLabel.setText("Chưa có người thắng");
+            }
+        } else {
+            placeBidButton.setDisable(auction.getStatus() != AuctionStatus.RUNNING);
+            if (auction.getHighestBidderId() != null) {
+                messageLabel.setText("Người đang dẫn đầu: " + auction.getHighestBidderId());
+            } else {
+                messageLabel.setText("Chưa có ai đặt giá");
+            }
+        }
+
+        // TV3: Render lịch sử đấu giá & Người dẫn đầu
         String leader = auction.getHighestBidderId();
-        highestBidderLabel.setText("Người dẫn đầu: " + (leader != null ? leader : "Chưa có"));
+        if (highestBidderLabel != null) {
+            highestBidderLabel.setText("Người dẫn đầu: " + (leader != null ? leader : "Chưa có"));
+        }
 
-        // Render lịch sử đấu giá (đảo ngược để bid mới nhất lên đầu)
         if (bidHistoryListView != null) {
             bidHistoryListView.getItems().clear();
             List<Bid> bids = auction.getBids();
@@ -104,39 +132,61 @@ public class AuctionDetailController {
         }
     }
 
-    // --- CÁC HÀM CŨ CỦA BẠN (Đếm ngược thời gian) ---
     private void startCountdown(LocalDateTime endTime) {
         stopCountdown();
-        currentEndTime = endTime;
+
+        if (currentAuction == null || currentAuction.isFinished()) {
+            remainingTimeLabel.setText("Đã kết thúc");
+            placeBidButton.setDisable(true);
+            return;
+        }
+
         updateRemainingTime();
 
         countdownTimeline = new Timeline(
-                new KeyFrame(javafx.util.Duration.seconds(1), event -> updateRemainingTime())
+                new KeyFrame(Duration.seconds(1), event -> updateRemainingTime())
         );
         countdownTimeline.setCycleCount(Timeline.INDEFINITE);
         countdownTimeline.play();
     }
 
     private void updateRemainingTime() {
-        if (currentEndTime == null) {
-            remainingTimeLabel.setText("Không có dữ liệu thời gian");
+        if (currentAuction == null) {
+            remainingTimeLabel.setText("Không có dữ liệu");
             placeBidButton.setDisable(true);
             return;
         }
 
-        java.time.Duration remaining = java.time.Duration.between(LocalDateTime.now(), currentEndTime);
+        java.time.Duration remaining =
+                java.time.Duration.between(LocalDateTime.now(), currentAuction.getEndTime());
 
         if (remaining.isZero() || remaining.isNegative()) {
-            remainingTimeLabel.setText("Đã kết thúc");
-            statusLabel.setText("FINISHED");
-            placeBidButton.setDisable(true);
-            messageLabel.setText("Phiên đấu giá đã kết thúc.");
-            stopCountdown();
+            handleAuctionExpired();
             return;
         }
 
         remainingTimeLabel.setText(CountdownUtil.formatRemaining(remaining));
-        placeBidButton.setDisable(false);
+    }
+
+    private void handleAuctionExpired() {
+        if (expiredHandled || currentAuction == null) {
+            return;
+        }
+
+        expiredHandled = true;
+        stopCountdown();
+
+        try {
+            // TV4: Gọi server chốt phiên
+            currentAuction = lifecycleService.updateStatusByTime(currentAuction.getId());
+            renderAuction(currentAuction);
+            remainingTimeLabel.setText("Đã kết thúc");
+            placeBidButton.setDisable(true);
+
+            AlertUtils.showInfo("Phiên đã kết thúc", "Phiên đấu giá đã hết thời gian.");
+        } catch (Exception e) {
+            AlertUtils.showError("Lỗi", "Không cập nhật được trạng thái auction.");
+        }
     }
 
     private void stopCountdown() {
@@ -151,14 +201,19 @@ public class AuctionDetailController {
         SceneNavigator.switchScene("/fxml/AuctionList.fxml");
     }
 
-    // --- HÀM MỚI: Xử lý khi bấm nút Place Bid ---
+    // TV3: HÀM PLACE BID THẬT SỰ CỦA BẠN
     public void onPlaceBidClicked() {
+        if (currentAuction == null) {
+            AlertUtils.showWarning("Thông báo", "Không có auction để đặt giá.");
+            return;
+        }
+
         try {
-            // 1. Lấy dữ liệu và ép kiểu an toàn qua tiện ích của TV1
+            // 1. Ép kiểu tiền (TV1)
             String rawAmount = bidAmountField.getText();
             long amount = MoneyParser.parseBidAmount(rawAmount);
 
-            // 2. Kiểm tra tài khoản đăng nhập qua Session
+            // 2. Check quyền (Session)
             User currentUser = ClientSession.getCurrentUser();
             if (currentUser == null) {
                 AlertUtils.showWarning("Chưa đăng nhập", "Vui lòng đăng nhập để tham gia đấu giá.");
@@ -169,28 +224,25 @@ public class AuctionDetailController {
                 return;
             }
 
-            // 3. Thực thi logic đặt giá ở Service
+            // 3. Gọi Service Đặt giá (TV3)
             Auction updatedAuction = bidService.placeBid(
                     currentAuction.getId(),
                     currentUser.getId(),
                     amount
             );
 
-            // 4. Cập nhật giao diện sau khi bid thành công
+            // 4. Update UI
             currentAuction = updatedAuction;
             renderAuction(updatedAuction);
             if (bidAmountField != null) {
-                bidAmountField.clear(); // Xóa số tiền cũ trên ô nhập liệu
+                bidAmountField.clear();
             }
 
-            // 5. Hiển thị thông báo
             AlertUtils.showInfo("Thành công", "Bạn đã đặt giá thành công và đang là người dẫn đầu!");
 
         } catch (AppException ex) {
-            // Bắt lỗi nghiệp vụ (nhập sai, giá thấp, phiên đóng...)
             AlertUtils.showError("Lỗi đặt giá", ex.getMessage());
         } catch (Exception ex) {
-            // Bắt các lỗi hệ thống khác
             AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
             ex.printStackTrace();
         }

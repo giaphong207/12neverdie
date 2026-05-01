@@ -5,53 +5,76 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class Auction implements Serializable {
     private final String id;
     private final String itemId;
     private final String sellerId;
+
+    private final long startPrice;
     private long currentPrice;
     private final long minIncrement;
+
     private AuctionStatus status;
+
+    private final LocalDateTime startTime;
     private final LocalDateTime endTime;
+
     private String highestBidderId;
-    private final List<Bid> bids;
+    private String winnerBidderId;
+
+    private final List<Bid> bidHistory;
 
     public Auction(String id,
                    String itemId,
                    String sellerId,
-                   long currentPrice,
+                   long startPrice,
                    long minIncrement,
                    AuctionStatus status,
+                   LocalDateTime startTime,
                    LocalDateTime endTime) {
+
         if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("Phải có ID của Auction");
+            throw new IllegalArgumentException("Auction id không được rỗng");
         }
         if (itemId == null || itemId.isBlank()) {
-            throw new IllegalArgumentException("Phải có ID của Item");
+            throw new IllegalArgumentException("Item id không được rỗng");
         }
         if (sellerId == null || sellerId.isBlank()) {
-            throw new IllegalArgumentException("Phải có ID của Seller");
+            throw new IllegalArgumentException("Seller id không được rỗng");
         }
-        if (currentPrice < 0) {
-            throw new IllegalArgumentException("currentPrice không được âm");
+        if (startPrice < 0) {
+            throw new IllegalArgumentException("Start price không được âm");
         }
         if (minIncrement <= 0) {
-            throw new IllegalArgumentException("minIncrement phải dương");
+            throw new IllegalArgumentException("Min increment phải lớn hơn 0");
         }
         if (status == null) {
-            throw new IllegalArgumentException("Phải có status của Auction");
+            throw new IllegalArgumentException("Status không được null");
+        }
+        if (startTime == null) {
+            throw new IllegalArgumentException("Start time không được null");
+        }
+        if (endTime == null) {
+            throw new IllegalArgumentException("End time không được null");
+        }
+        if (!endTime.isAfter(startTime)) {
+            throw new IllegalArgumentException("End time phải sau start time");
         }
 
         this.id = id;
         this.itemId = itemId;
         this.sellerId = sellerId;
-        this.currentPrice = currentPrice;
+        this.startPrice = startPrice;
+        this.currentPrice = startPrice;
         this.minIncrement = minIncrement;
         this.status = status;
+        this.startTime = startTime;
         this.endTime = endTime;
         this.highestBidderId = null;
-        this.bids = new ArrayList<>();
+        this.winnerBidderId = null;
+        this.bidHistory = new ArrayList<>();
     }
 
     public String getId() {
@@ -66,6 +89,10 @@ public class Auction implements Serializable {
         return sellerId;
     }
 
+    public long getStartPrice() {
+        return startPrice;
+    }
+
     public long getCurrentPrice() {
         return currentPrice;
     }
@@ -78,6 +105,10 @@ public class Auction implements Serializable {
         return status;
     }
 
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
     public LocalDateTime getEndTime() {
         return endTime;
     }
@@ -86,59 +117,86 @@ public class Auction implements Serializable {
         return highestBidderId;
     }
 
-    public List<Bid> getBids() {
-        return Collections.unmodifiableList(bids);
+    public String getWinnerBidderId() {
+        return winnerBidderId;
     }
 
-    public boolean canBid(long amount) {
-        if (status != AuctionStatus.RUNNING) {
-            return false;
-        }
-        return amount >= currentPrice + minIncrement;
+    public List<Bid> getBidHistory() {
+        return Collections.unmodifiableList(bidHistory);
+    }
+
+    public boolean isRunning() {
+        return status == AuctionStatus.RUNNING;
+    }
+
+    public boolean isFinished() {
+        return status == AuctionStatus.FINISHED;
+    }
+
+    public boolean hasExpired(LocalDateTime now) {
+        return !now.isBefore(endTime);
+    }
+
+    public boolean canAcceptBid(long amount) {
+        return status == AuctionStatus.RUNNING
+                && amount >= currentPrice + minIncrement;
     }
 
     public void addBid(Bid bid) {
         if (bid == null) {
-            throw new IllegalArgumentException("Phải có Bid");
+            throw new IllegalArgumentException("Bid không được null");
         }
         if (!id.equals(bid.getAuctionId())) {
-            throw new IllegalArgumentException("Bid không thuộc Auction này");
+            throw new IllegalArgumentException("Bid không thuộc auction này");
         }
-        if (!canBid(bid.getAmount())) {
-            throw new IllegalArgumentException("Số tiền Bid không hợp lệ");
+        if (!canAcceptBid(bid.getAmount())) {
+            throw new IllegalArgumentException("Giá bid không hợp lệ");
         }
 
-        bids.add(bid);
+        bidHistory.add(bid);
         currentPrice = bid.getAmount();
         highestBidderId = bid.getBidderId();
     }
 
-    public void start() {
-        if (status != AuctionStatus.OPEN) {
-            throw new IllegalStateException("Auction đang ở trạng thái OPEN mới có thể Start");
+    public void updateStatusByTime(LocalDateTime now) {
+        if (now.isBefore(startTime)) {
+            status = AuctionStatus.OPEN;
+            return;
         }
-        status = AuctionStatus.RUNNING;
+
+        if (!now.isBefore(startTime) && now.isBefore(endTime)) {
+            status = AuctionStatus.RUNNING;
+            return;
+        }
+
+        if (!now.isBefore(endTime)) {
+            finish();
+        }
     }
 
     public void finish() {
-        if (status != AuctionStatus.RUNNING) {
-            throw new IllegalStateException("Auction đang ở trạng thái RUNNING mới có thể Finish");
-        }
         status = AuctionStatus.FINISHED;
+        winnerBidderId = highestBidderId;
+    }
+
+    public Optional<String> determineWinnerId() {
+        return Optional.ofNullable(winnerBidderId);
     }
 
     @Override
     public String toString() {
         return "Auction{" +
-                "id: " + id + '\'' +
-                ", itemId: " + itemId + '\'' +
-                ", sellerId: " + sellerId + '\'' +
-                ", currentPrice: " + currentPrice +
-                ", minIncrement: " + minIncrement +
-                ", status: " + status +
-                ", endTime: " + endTime +
-                ", highestBidderId: " + highestBidderId + '\'' +
-                ", bids: " + bids.size() +
+                "id='" + id + '\'' +
+                ", itemId='" + itemId + '\'' +
+                ", sellerId='" + sellerId + '\'' +
+                ", startPrice=" + startPrice +
+                ", currentPrice=" + currentPrice +
+                ", minIncrement=" + minIncrement +
+                ", status=" + status +
+                ", startTime=" + startTime +
+                ", endTime=" + endTime +
+                ", highestBidderId='" + highestBidderId + '\'' +
+                ", winnerBidderId='" + winnerBidderId + '\'' +
                 '}';
     }
 }
