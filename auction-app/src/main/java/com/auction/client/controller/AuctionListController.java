@@ -1,73 +1,97 @@
 package com.auction.client.controller;
 
-import com.auction.server.service.AuctionService;
-import com.auction.server.service.DefaultAuctionService;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
 import com.auction.client.context.ClientSession;
-
-import javafx.collections.FXCollections;
+import com.auction.client.util.SceneNavigator;
+import com.auction.server.dao.AuctionDao;
+import com.auction.server.dao.FileAuctionDao;
+import com.auction.server.service.AuctionLifecycleService;
+import com.auction.server.service.DefaultAuctionLifecycleService;
+import com.auction.shared.model.Auction;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.cell.PropertyValueFactory;
-import java.time.LocalDateTime;
+import javafx.scene.control.ListView;
+
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AuctionListController {
 
-    @FXML private TableView<Auction> auctionTable;
-    @FXML private TableColumn<Auction, String> itemIdCol;
-    @FXML private TableColumn<Auction, Long> currentPriceCol;
-    @FXML private TableColumn<Auction, AuctionStatus> statusCol;
-    @FXML private TableColumn<Auction, LocalDateTime> endTimeCol;
-
-    private final AuctionService auctionService = new DefaultAuctionService();
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-
     @FXML
+    private ListView<String> auctionListView;
+
+    private final AuctionDao auctionDao = new FileAuctionDao();
+    private final AuctionLifecycleService lifecycleService =
+            new DefaultAuctionLifecycleService(auctionDao);
+
+    private final List<Auction> currentAuctions = new ArrayList<>();
+
     public void initialize() {
-        // Cấu hình các cột lấy dữ liệu từ class Auction
-        itemIdCol.setCellValueFactory(new PropertyValueFactory<>("itemId"));
-        currentPriceCol.setCellValueFactory(new PropertyValueFactory<>("currentPrice"));
-        statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
-
-        // Cột thời gian cần format lại cho đẹp
-        endTimeCol.setCellValueFactory(new PropertyValueFactory<>("endTime"));
-        endTimeCol.setCellFactory(column -> new javafx.scene.control.TableCell<Auction, LocalDateTime>() {
-            @Override
-            protected void updateItem(LocalDateTime item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    setText(formatter.format(item));
-                }
-            }
-        });
-
+        lifecycleService.updateAllAuctionStatuses();
         loadActiveAuctions();
     }
 
     public void loadActiveAuctions() {
-        auctionTable.setItems(FXCollections.observableArrayList(auctionService.getActiveAuctions()));
+        currentAuctions.clear();
+        currentAuctions.addAll(auctionDao.findActiveAuctions());
+
+        auctionListView.getItems().clear();
+
+        if (currentAuctions.isEmpty()) {
+            auctionListView.getItems().add("Không có auction đang mở");
+            return;
+        }
+
+        for (Auction auction : currentAuctions) {
+            auctionListView.getItems().add(formatAuctionLine(auction));
+        }
     }
 
-    @FXML
     public void onRefreshClicked() {
+        lifecycleService.updateAllAuctionStatuses();
         loadActiveAuctions();
     }
 
-    @FXML
-    public void onOpenDetailClicked() {
-        Auction selected = auctionTable.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            // Lưu ID sang Session để TV4 dùng
-            ClientSession.setSelectedAuctionId(selected.getId());
-            new Alert(Alert.AlertType.INFORMATION, "Đã lưu Session ID: " + selected.getId()).show();
-        } else {
-            new Alert(Alert.AlertType.WARNING, "Vui lòng chọn 1 dòng trên bảng!").show();
+    public void onViewDetail() {
+        int selectedIndex = auctionListView.getSelectionModel().getSelectedIndex();
+
+        if (selectedIndex < 0 || selectedIndex >= currentAuctions.size()) {
+            showAlert(Alert.AlertType.WARNING, "Thông báo", "Hãy chọn một auction trước.");
+            return;
         }
+
+        Auction selectedAuction = currentAuctions.get(selectedIndex);
+        ClientSession.setSelectedAuctionId(selectedAuction.getId());
+        SceneNavigator.switchScene("/fxml/AuctionDetail.fxml");
+    }
+
+    public void onOpenDetailClicked() {
+        onViewDetail();
+    }
+
+    public void onBackHome() {
+        SceneNavigator.switchScene("/fxml/MainLayout.fxml");
+    }
+
+    private String formatAuctionLine(Auction auction) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM HH:mm:ss");
+
+        return "Auction ID: " + auction.getId()
+                + " | Item: " + auction.getItemId()
+                + " | Giá: " + formatMoney(auction.getCurrentPrice())
+                + " | Trạng thái: " + auction.getStatus()
+                + " | Kết thúc: " + auction.getEndTime().format(formatter);
+    }
+
+    private String formatMoney(long amount) {
+        return String.format("%,d VNĐ", amount);
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String content) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 }
