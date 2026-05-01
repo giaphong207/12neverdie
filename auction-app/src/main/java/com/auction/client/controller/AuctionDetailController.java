@@ -1,57 +1,55 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
+import com.auction.client.util.AlertUtils;
 import com.auction.client.util.CountdownUtil;
+import com.auction.client.util.MoneyParser;
 import com.auction.client.util.SceneNavigator;
 import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.FileAuctionDao;
 import com.auction.server.service.AuctionLifecycleService;
+import com.auction.server.service.BidService;
 import com.auction.server.service.DefaultAuctionLifecycleService;
+import com.auction.server.service.DefaultBidService;
+import com.auction.shared.exception.AppException;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.AuctionStatus;
+import com.auction.shared.model.Bid;
+import com.auction.shared.model.Role;
+import com.auction.shared.model.User;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.util.Duration;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class AuctionDetailController {
 
-    @FXML
-    private Label itemNameLabel;
+    @FXML private Label itemNameLabel;
+    @FXML private Label descriptionLabel;
+    @FXML private Label sellerLabel;
+    @FXML private Label currentPriceLabel;
+    @FXML private Label statusLabel;
+    @FXML private Label remainingTimeLabel;
+    @FXML private Label messageLabel;
+    @FXML private Button placeBidButton;
 
-    @FXML
-    private Label descriptionLabel;
+    // --- CÁC BIẾN CỦA TV3 ---
+    @FXML private TextField bidAmountField;
+    @FXML private Label highestBidderLabel;
+    @FXML private ListView<String> bidHistoryListView;
 
-    @FXML
-    private Label sellerLabel;
-
-    @FXML
-    private Label currentPriceLabel;
-
-    @FXML
-    private Label statusLabel;
-
-    @FXML
-    private Label remainingTimeLabel;
-
-    @FXML
-    private Label messageLabel;
-
-    @FXML
-    private Button placeBidButton;
-
-    @FXML
-    private TextField bidAmountField;
-
+    // --- DAO & SERVICES ---
     private final AuctionDao auctionDao = new FileAuctionDao();
-    private final AuctionLifecycleService lifecycleService =
-            new DefaultAuctionLifecycleService(auctionDao);
+    private final AuctionLifecycleService lifecycleService = new DefaultAuctionLifecycleService(auctionDao);
+    // Truyền Lifecycle của TV4 vào cho BidService của TV3
+    private final BidService bidService = new DefaultBidService(auctionDao, lifecycleService);
 
     private Auction currentAuction;
     private Timeline countdownTimeline;
@@ -72,6 +70,7 @@ public class AuctionDetailController {
 
     public void loadAuction(String auctionId) {
         try {
+            // TV4: Cập nhật trạng thái ngay khi vừa load lên
             currentAuction = lifecycleService.updateStatusByTime(auctionId);
             expiredHandled = false;
             renderAuction(currentAuction);
@@ -81,21 +80,22 @@ public class AuctionDetailController {
             messageLabel.setText("Không thể tải chi tiết auction.");
             remainingTimeLabel.setText("Lỗi");
             placeBidButton.setDisable(true);
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không tải được auction: " + e.getMessage());
+            AlertUtils.showError("Lỗi", "Không tải được auction: " + e.getMessage());
         }
     }
 
     private void renderAuction(Auction auction) {
+        // TV4: Hiển thị thông tin cơ bản
         itemNameLabel.setText("Item ID: " + auction.getItemId());
         descriptionLabel.setText("Auction ID: " + auction.getId());
         sellerLabel.setText("Seller ID: " + auction.getSellerId());
-        currentPriceLabel.setText(formatMoney(auction.getCurrentPrice()));
+        currentPriceLabel.setText(String.format("%,d VNĐ", auction.getCurrentPrice()));
         statusLabel.setText(auction.getStatus().name());
 
+        // TV4: Xử lý trạng thái Nút bấm
         if (auction.isFinished()) {
             remainingTimeLabel.setText("Đã kết thúc");
             placeBidButton.setDisable(true);
-
             if (auction.getWinnerBidderId() != null) {
                 messageLabel.setText("Người thắng: " + auction.getWinnerBidderId());
             } else {
@@ -103,11 +103,31 @@ public class AuctionDetailController {
             }
         } else {
             placeBidButton.setDisable(auction.getStatus() != AuctionStatus.RUNNING);
-
             if (auction.getHighestBidderId() != null) {
                 messageLabel.setText("Người đang dẫn đầu: " + auction.getHighestBidderId());
             } else {
                 messageLabel.setText("Chưa có ai đặt giá");
+            }
+        }
+
+        // TV3: Render lịch sử đấu giá & Người dẫn đầu
+        String leader = auction.getHighestBidderId();
+        if (highestBidderLabel != null) {
+            highestBidderLabel.setText("Người dẫn đầu: " + (leader != null ? leader : "Chưa có"));
+        }
+
+        if (bidHistoryListView != null) {
+            bidHistoryListView.getItems().clear();
+            List<Bid> bids = auction.getBidHistory();
+            if (bids.isEmpty()) {
+                bidHistoryListView.getItems().add("Chưa có ai đặt giá.");
+            } else {
+                for (int i = bids.size() - 1; i >= 0; i--) {
+                    Bid b = bids.get(i);
+                    bidHistoryListView.getItems().add(
+                            b.getBidderId() + " -> " + String.format("%,d VNĐ", b.getAmount())
+                    );
+                }
             }
         }
     }
@@ -157,18 +177,15 @@ public class AuctionDetailController {
         stopCountdown();
 
         try {
+            // TV4: Gọi server chốt phiên
             currentAuction = lifecycleService.updateStatusByTime(currentAuction.getId());
             renderAuction(currentAuction);
             remainingTimeLabel.setText("Đã kết thúc");
             placeBidButton.setDisable(true);
 
-            showAlert(
-                    Alert.AlertType.INFORMATION,
-                    "Phiên đã kết thúc",
-                    "Phiên đấu giá đã hết thời gian."
-            );
+            AlertUtils.showInfo("Phiên đã kết thúc", "Phiên đấu giá đã hết thời gian.");
         } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không cập nhật được trạng thái auction.");
+            AlertUtils.showError("Lỗi", "Không cập nhật được trạng thái auction.");
         }
     }
 
@@ -184,40 +201,50 @@ public class AuctionDetailController {
         SceneNavigator.switchScene("/fxml/AuctionList.fxml");
     }
 
+    // TV3: HÀM PLACE BID THẬT SỰ CỦA BẠN
     public void onPlaceBidClicked() {
         if (currentAuction == null) {
-            showAlert(Alert.AlertType.WARNING, "Thông báo", "Không có auction để đặt giá.");
+            AlertUtils.showWarning("Thông báo", "Không có auction để đặt giá.");
             return;
         }
 
         try {
-            currentAuction = lifecycleService.updateStatusByTime(currentAuction.getId());
-            renderAuction(currentAuction);
+            // 1. Ép kiểu tiền (TV1)
+            String rawAmount = bidAmountField.getText();
+            long amount = MoneyParser.parseBidAmount(rawAmount);
 
-            if (!currentAuction.isRunning()) {
-                showAlert(Alert.AlertType.WARNING, "Thông báo", "Phiên đấu giá đã đóng.");
+            // 2. Check quyền (Session)
+            User currentUser = ClientSession.getCurrentUser();
+            if (currentUser == null) {
+                AlertUtils.showWarning("Chưa đăng nhập", "Vui lòng đăng nhập để tham gia đấu giá.");
+                return;
+            }
+            if (currentUser.getRole() != Role.BIDDER) {
+                AlertUtils.showError("Lỗi Quyền", "Chỉ tài khoản BIDDER mới được đặt giá!");
                 return;
             }
 
-            showAlert(
-                    Alert.AlertType.INFORMATION,
-                    "Thông báo",
-                    "Tuần 3 phần đặt giá thật do TV3 làm. TV4 chỉ khóa bid khi phiên hết giờ."
+            // 3. Gọi Service Đặt giá (TV3)
+            Auction updatedAuction = bidService.placeBid(
+                    currentAuction.getId(),
+                    currentUser.getId(),
+                    amount
             );
-        } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không xử lý được trạng thái auction.");
+
+            // 4. Update UI
+            currentAuction = updatedAuction;
+            renderAuction(updatedAuction);
+            if (bidAmountField != null) {
+                bidAmountField.clear();
+            }
+
+            AlertUtils.showInfo("Thành công", "Bạn đã đặt giá thành công và đang là người dẫn đầu!");
+
+        } catch (AppException ex) {
+            AlertUtils.showError("Lỗi đặt giá", ex.getMessage());
+        } catch (Exception ex) {
+            AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
+            ex.printStackTrace();
         }
-    }
-
-    private String formatMoney(long amount) {
-        return String.format("%,d VNĐ", amount);
-    }
-
-    private void showAlert(Alert.AlertType type, String title, String content) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
     }
 }
