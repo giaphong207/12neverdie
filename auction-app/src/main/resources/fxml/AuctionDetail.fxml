@@ -35,8 +35,16 @@
     <Label text="Thời gian còn lại:"/>
     <Label fx:id="remainingTimeLabel"/>
 
+    <Label text="Nhập giá đặt (VNĐ):"/>
+    <javafx.scene.control.TextField fx:id="bidAmountField" promptText="Ví dụ: 21000000" prefWidth="220"/>
+
+    <Label fx:id="highestBidderLabel" text="Người dẫn đầu: Chưa có" style="-fx-font-weight: bold; -fx-text-fill: #d35400;"/>
+
+    <Label text="Lịch sử đấu giá:"/>
+    <javafx.scene.control.ListView fx:id="bidHistoryListView" prefHeight="120" prefWidth="220"/>
+
     <Button fx:id="placeBidButton"
-            text="Place Bid (Tuần 3)"
+            text="Place Bid"
             onAction="#onPlaceBidClicked"
             prefWidth="220"/>
 

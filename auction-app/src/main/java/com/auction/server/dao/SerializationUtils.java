@@ -12,7 +12,7 @@ public final class SerializationUtils {
 
     public static void writeObject(String path, Serializable obj) throws IOException {
         File file = new File(path);
-        file.getParentFile().mkdirs();
+        file.getParentFile().mkdirs(); //ktra xem nếu file tồn tại thì đi qua, nếu k thì tạo file mới trên ổ cứng
 
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
             oos.writeObject(obj);
