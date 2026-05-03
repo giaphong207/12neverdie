@@ -1,60 +1,75 @@
 package com.auction.server.service;
 
+import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.DataManager;
 import com.auction.shared.exception.AuctionClosedException;
 import com.auction.shared.exception.AuctionNotFoundException;
 import com.auction.shared.exception.InvalidBidException;
 import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
 import com.auction.shared.model.Bid;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class DefaultBidService implements BidService {
     private final AuctionDao auctionDao;
-    private final AuctionLifecycleService lifecycleService; // Của TV4
+    private final AuctionLifecycleService lifecycleService;
+    private final AuctionLockManager auctionLockManager;
 
-    // Khởi tạo nhận 2 mảnh ghép
-    public DefaultBidService(AuctionDao auctionDao, AuctionLifecycleService lifecycleService) {
+    public DefaultBidService(AuctionDao auctionDao,
+                             AuctionLifecycleService lifecycleService,
+                             AuctionLockManager auctionLockManager) {
         this.auctionDao = auctionDao;
         this.lifecycleService = lifecycleService;
+        this.auctionLockManager = auctionLockManager;
     }
 
     @Override
     public Auction placeBid(String auctionId, String bidderId, long amount) {
-        Optional<Auction> optAuction = auctionDao.findById(auctionId);
-        if (optAuction.isEmpty()) {
-            throw new AuctionNotFoundException(auctionId);
-        }
-
-        // Tích hợp logic TV4: Cập nhật trạng thái mới nhất trước khi cho bid
-        lifecycleService.updateStatusByTime(auctionId);
-        Auction auction = auctionDao.findById(auctionId).get();
-
-        if (auction.getStatus() != AuctionStatus.RUNNING) {
-            throw new AuctionClosedException("Phiên đấu giá đã đóng hoặc chưa bắt đầu.");
-        }
-
-        if (!auction.canAcceptBid(amount)) {
-            long required = auction.getCurrentPrice() + auction.getMinIncrement();
-            throw new InvalidBidException("Số tiền đặt phải từ " + required + " VNĐ trở lên.");
-        }
-
-        String bidId = "B-" + UUID.randomUUID().toString().substring(0, 8);
-        Bid newBid = new Bid(bidId, auction.getId(), bidderId, amount, LocalDateTime.now());
-
-        auction.addBid(newBid);
-        auctionDao.save(auction);
+        ReentrantLock lock = auctionLockManager.getLock(auctionId);
+        lock.lock();
 
         try {
-            DataManager.getInstance().save(DataManager.getInstance().getStore());
-        } catch (Exception e) {
-            // Bỏ qua lỗi DataManager khi chạy Test
-        }
+            Optional<Auction> optAuction = auctionDao.findById(auctionId);
+            if (optAuction.isEmpty()) {
+                throw new AuctionNotFoundException(auctionId);
+            }
 
-        return auction;
+            Auction auction = lifecycleService.updateStatusByTime(auctionId);
+
+            if (!auction.isRunning()) {
+                throw new AuctionClosedException("Phiên đấu giá đã đóng hoặc chưa bắt đầu.");
+            }
+
+            if (!auction.canAcceptBid(amount)) {
+                long required = auction.getCurrentPrice() + auction.getMinIncrement();
+                throw new InvalidBidException("Số tiền đặt phải từ " + required + " VNĐ trở lên.");
+            }
+
+            String bidId = "B-" + UUID.randomUUID().toString().substring(0, 8);
+            Bid newBid = new Bid(
+                    bidId,
+                    auction.getId(),
+                    bidderId,
+                    amount,
+                    LocalDateTime.now()
+            );
+
+            auction.addBid(newBid);
+            auctionDao.save(auction);
+
+            try {
+                DataManager.getInstance().save(DataManager.getInstance().getStore());
+            } catch (Exception e) {
+                // Bỏ qua lỗi DataManager khi chạy test
+            }
+
+            return auction;
+        } finally {
+            lock.unlock();
+        }
     }
 }

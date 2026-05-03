@@ -1,5 +1,6 @@
 package com.auction.server.service;
 
+import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.server.dao.AuctionDao;
 import com.auction.shared.exception.AuctionClosedException;
 import com.auction.shared.exception.AuctionNotFoundException;
@@ -24,15 +25,17 @@ class BidServiceTest {
     @BeforeEach
     void setUp() {
         mockDao = new MockAuctionDao();
-        // Cập nhật Tuần 3: Truyền thêm LifecycleService của TV4 vào để BidService hoạt động
         AuctionLifecycleService lifecycleService = new DefaultAuctionLifecycleService(mockDao);
-        bidService = new DefaultBidService(mockDao, lifecycleService);
+        bidService = new DefaultBidService(
+                mockDao,
+                lifecycleService,
+                new AuctionLockManager()
+        );
     }
 
     @Test
     void shouldPlaceBidSuccessfully() {
         LocalDateTime now = LocalDateTime.now();
-        // Cập nhật: Thêm startTime và endTime vào Constructor
         Auction auction = new Auction("A1", "I1", "S1", 1000, 100, AuctionStatus.RUNNING, now.minusMinutes(10), now.plusMinutes(10));
         mockDao.save(auction);
 
@@ -69,7 +72,6 @@ class BidServiceTest {
         Auction auction = new Auction("A4", "I1", "S1", 1000, 100, AuctionStatus.RUNNING, now.minusMinutes(10), now.plusMinutes(10));
         mockDao.save(auction);
 
-        // Giá hiện tại 1000, bước giá 100 -> Phải đặt từ 1100 trở lên. Đặt 1050 sẽ bị chặn.
         assertThrows(InvalidBidException.class, () -> {
             bidService.placeBid("A4", "Bidder_1", 1050);
         });
@@ -78,7 +80,6 @@ class BidServiceTest {
     @Test
     void shouldThrowExceptionWhenAuctionClosed() {
         LocalDateTime now = LocalDateTime.now();
-        // Phiên đấu giá đã kết thúc (FINISHED) và hết hạn thời gian
         Auction auction = new Auction("A5", "I1", "S1", 1000, 100, AuctionStatus.FINISHED, now.minusMinutes(20), now.minusMinutes(10));
         mockDao.save(auction);
 
@@ -89,15 +90,11 @@ class BidServiceTest {
 
     @Test
     void shouldThrowExceptionWhenAuctionNotFound() {
-        // Truyền một ID không hề tồn tại trong database
         assertThrows(AuctionNotFoundException.class, () -> {
             bidService.placeBid("ID_AO_DIEN", "Bidder_1", 1500);
         });
     }
 
-    // ==========================================
-    // LỚP MOCK DAO (Giả lập Database)
-    // ==========================================
     static class MockAuctionDao implements AuctionDao {
         private final List<Auction> auctions = new ArrayList<>();
 
