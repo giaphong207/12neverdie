@@ -5,6 +5,7 @@ import com.auction.client.util.AlertUtils;
 import com.auction.client.util.CountdownUtil;
 import com.auction.client.util.MoneyParser;
 import com.auction.client.util.SceneNavigator;
+import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.FileAuctionDao;
 import com.auction.server.service.AuctionLifecycleService;
@@ -40,16 +41,15 @@ public class AuctionDetailController {
     @FXML private Label messageLabel;
     @FXML private Button placeBidButton;
 
-    // --- CÁC BIẾN CỦA TV3 ---
     @FXML private TextField bidAmountField;
     @FXML private Label highestBidderLabel;
     @FXML private ListView<String> bidHistoryListView;
 
-    // --- DAO & SERVICES ---
     private final AuctionDao auctionDao = new FileAuctionDao();
     private final AuctionLifecycleService lifecycleService = new DefaultAuctionLifecycleService(auctionDao);
-    // Truyền Lifecycle của TV4 vào cho BidService của TV3
-    private final BidService bidService = new DefaultBidService(auctionDao, lifecycleService);
+    private final AuctionLockManager auctionLockManager = new AuctionLockManager();
+    private final BidService bidService =
+            new DefaultBidService(auctionDao, lifecycleService, auctionLockManager);
 
     private Auction currentAuction;
     private Timeline countdownTimeline;
@@ -70,7 +70,6 @@ public class AuctionDetailController {
 
     public void loadAuction(String auctionId) {
         try {
-            // TV4: Cập nhật trạng thái ngay khi vừa load lên
             currentAuction = lifecycleService.updateStatusByTime(auctionId);
             expiredHandled = false;
             renderAuction(currentAuction);
@@ -85,14 +84,12 @@ public class AuctionDetailController {
     }
 
     private void renderAuction(Auction auction) {
-        // TV4: Hiển thị thông tin cơ bản
         itemNameLabel.setText("Item ID: " + auction.getItemId());
         descriptionLabel.setText("Auction ID: " + auction.getId());
         sellerLabel.setText("Seller ID: " + auction.getSellerId());
         currentPriceLabel.setText(String.format("%,d VNĐ", auction.getCurrentPrice()));
         statusLabel.setText(auction.getStatus().name());
 
-        // TV4: Xử lý trạng thái Nút bấm
         if (auction.isFinished()) {
             remainingTimeLabel.setText("Đã kết thúc");
             placeBidButton.setDisable(true);
@@ -110,7 +107,6 @@ public class AuctionDetailController {
             }
         }
 
-        // TV3: Render lịch sử đấu giá & Người dẫn đầu
         String leader = auction.getHighestBidderId();
         if (highestBidderLabel != null) {
             highestBidderLabel.setText("Người dẫn đầu: " + (leader != null ? leader : "Chưa có"));
@@ -177,7 +173,6 @@ public class AuctionDetailController {
         stopCountdown();
 
         try {
-            // TV4: Gọi server chốt phiên
             currentAuction = lifecycleService.updateStatusByTime(currentAuction.getId());
             renderAuction(currentAuction);
             remainingTimeLabel.setText("Đã kết thúc");
@@ -201,7 +196,6 @@ public class AuctionDetailController {
         SceneNavigator.switchScene("/fxml/AuctionList.fxml");
     }
 
-    // TV3: HÀM PLACE BID THẬT SỰ CỦA BẠN
     public void onPlaceBidClicked() {
         if (currentAuction == null) {
             AlertUtils.showWarning("Thông báo", "Không có auction để đặt giá.");
@@ -209,11 +203,9 @@ public class AuctionDetailController {
         }
 
         try {
-            // 1. Ép kiểu tiền (TV1)
             String rawAmount = bidAmountField.getText();
             long amount = MoneyParser.parseBidAmount(rawAmount);
 
-            // 2. Check quyền (Session)
             User currentUser = ClientSession.getCurrentUser();
             if (currentUser == null) {
                 AlertUtils.showWarning("Chưa đăng nhập", "Vui lòng đăng nhập để tham gia đấu giá.");
@@ -224,14 +216,12 @@ public class AuctionDetailController {
                 return;
             }
 
-            // 3. Gọi Service Đặt giá (TV3)
             Auction updatedAuction = bidService.placeBid(
                     currentAuction.getId(),
                     currentUser.getId(),
                     amount
             );
 
-            // 4. Update UI
             currentAuction = updatedAuction;
             renderAuction(updatedAuction);
             if (bidAmountField != null) {
