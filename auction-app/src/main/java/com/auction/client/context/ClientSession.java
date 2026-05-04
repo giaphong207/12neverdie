@@ -2,9 +2,14 @@ package com.auction.client.context;
 
 import com.auction.shared.model.User;
 
+/**
+ * Quản lý phiên làm việc của người dùng trên toàn ứng dụng.
+ * Sử dụng Static Utility Class để truy cập nhanh từ mọi Controller.
+ */
 public final class ClientSession {
-    private static User currentUser;
-    private static String selectedAuctionId;
+    //Dùng volatile để an toàn khi nhiều luồng cùng truy xuất
+    private static volatile User currentUser;
+    private static volatile String selectedAuctionId;
 
     //Để private constructor để ngăn không cho ai dùng từ khóa 'new ClientSession()'
     private ClientSession() {}
@@ -17,12 +22,18 @@ public final class ClientSession {
         return currentUser;
     }
 
+    //Hàm tiện ích giúp UI kiểm tra trạng thái đăng nhập nhanh gọn
+    public static boolean isLoggedIn() {
+        return currentUser != null;
+    }
+
+    //Xóa dữ liệu phiên khi đăng xuất
     public static void clear() {
         currentUser = null;
         selectedAuctionId = null;
     }
 
-    //tv3 và 4 dùng
+    //Dành cho TV3 và TV4 dùng để biết người dùng đang xem phòng đấu giá nào
     public static void setSelectedAuctionId(String auctionId) {
         selectedAuctionId = auctionId;
     }
