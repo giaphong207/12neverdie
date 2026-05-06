@@ -52,12 +52,6 @@ public class AuctionDetailController implements AuctionEventObserver {
     @FXML private Label highestBidderLabel;
     @FXML private ListView<String> bidHistoryListView;
 
-    private final AuctionDao auctionDao = new FileAuctionDao();
-    private final AuctionLifecycleService lifecycleService = new DefaultAuctionLifecycleService(auctionDao);
-    private final AuctionLockManager auctionLockManager = new AuctionLockManager();
-    private final BidService bidService =
-            new DefaultBidService(auctionDao, lifecycleService, auctionLockManager);
-
     private Auction currentAuction;
     private Timeline countdownTimeline;
     private boolean expiredHandled = false;
@@ -78,19 +72,20 @@ public class AuctionDetailController implements AuctionEventObserver {
     }
 
     public void loadAuction(String auctionId) {
+        this.currentAuctionId = auctionId;
+        this.expiredHandled = false;
+
+        AuctionEventBus.getInstance().addObserver(this);
+
         try {
-            this.currentAuctionId = auctionId;
-            ServerConnection.getInstance().send(new SubscribeAuctionRequest(auctionId));
-            currentAuction = lifecycleService.updateStatusByTime(auctionId);
-            expiredHandled = false;
-            renderAuction(currentAuction);
-            startCountdown(currentAuction.getEndTime());
-        } catch (Exception e) {
+            ServerConnection.getInstance()
+                    .send(new SubscribeAuctionRequest(auctionId));
+        } catch (IOException e) {
             currentAuction = null;
             messageLabel.setText("Không thể tải chi tiết auction.");
             remainingTimeLabel.setText("Lỗi");
             placeBidButton.setDisable(true);
-            AlertUtils.showError("Lỗi", "Không tải được auction: " + e.getMessage());
+            AlertUtils.showError("Lỗi", "Không gửi được yêu cầu theo dõi auction: " + e.getMessage());
         }
     }
 
@@ -183,16 +178,9 @@ public class AuctionDetailController implements AuctionEventObserver {
         expiredHandled = true;
         stopCountdown();
 
-        try {
-            currentAuction = lifecycleService.updateStatusByTime(currentAuction.getId());
-            renderAuction(currentAuction);
-            remainingTimeLabel.setText("Đã kết thúc");
-            placeBidButton.setDisable(true);
-
-            AlertUtils.showInfo("Phiên đã kết thúc", "Phiên đấu giá đã hết thời gian.");
-        } catch (Exception e) {
-            AlertUtils.showError("Lỗi", "Không cập nhật được trạng thái auction.");
-        }
+        remainingTimeLabel.setText("Đã kết thúc");
+        placeBidButton.setDisable(true);
+        messageLabel.setText("Phiên đấu giá đã hết thời gian. Đang chờ server cập nhật trạng thái...");
     }
 
     private void stopCountdown() {
@@ -228,12 +216,9 @@ public class AuctionDetailController implements AuctionEventObserver {
             }
 
             ServerConnection.getInstance().send(new BidRequest(currentAuction.getId(),currentUser.getId(),amount));
-            if (bidAmountField != null) {
-                bidAmountField.clear();
-            }
+            if (bidAmountField != null) { bidAmountField.clear(); }
 
-            AlertUtils.showInfo("Thành công", "Bạn đã đặt giá thành công và đang là người dẫn đầu!");
-
+            messageLabel.setText("Đã gửi yêu cầu đặt giá. Đang chờ server xử lý...");
         } catch (AppException ex) {
             AlertUtils.showError("Lỗi đặt giá", ex.getMessage());
         } catch (IOException ex) {
