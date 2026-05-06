@@ -22,6 +22,7 @@ import com.auction.shared.model.Bid;
 import com.auction.shared.model.Role;
 import com.auction.shared.model.User;
 import com.auction.shared.network.AuctionUpdateEvent;
+import com.auction.shared.network.BidRequest;
 import com.auction.shared.network.SubscribeAuctionRequest;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -31,6 +32,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.util.Duration;
+
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -224,14 +227,7 @@ public class AuctionDetailController implements AuctionEventObserver {
                 return;
             }
 
-            Auction updatedAuction = bidService.placeBid(
-                    currentAuction.getId(),
-                    currentUser.getId(),
-                    amount
-            );
-
-            currentAuction = updatedAuction;
-            renderAuction(updatedAuction);
+            ServerConnection.getInstance().send(new BidRequest(currentAuction.getId(),currentUser.getId(),amount));
             if (bidAmountField != null) {
                 bidAmountField.clear();
             }
@@ -240,6 +236,8 @@ public class AuctionDetailController implements AuctionEventObserver {
 
         } catch (AppException ex) {
             AlertUtils.showError("Lỗi đặt giá", ex.getMessage());
+        } catch (IOException ex) {
+            AlertUtils.showError("Lỗi kết nối", "Không gửi được yêu cầu đặt giá: " + ex.getMessage());
         } catch (Exception ex) {
             AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
             ex.printStackTrace();
