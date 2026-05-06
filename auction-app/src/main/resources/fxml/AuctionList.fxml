@@ -1,21 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
 
-<VBox spacing="15" style="-fx-padding: 25;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AuctionListController">
-    <Label text="DANH SÁCH PHIÊN ĐẤU GIÁ" style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
 
-    <TableView fx:id="auctionTable" VBox.vgrow="ALWAYS">
-        <columns>
-            <TableColumn fx:id="itemIdCol" text="Mã Sản Phẩm" prefWidth="150" />
-            <TableColumn fx:id="currentPriceCol" text="Giá Hiện Tại (VNĐ)" prefWidth="150" />
-            <TableColumn fx:id="statusCol" text="Trạng Thái" prefWidth="120" />
-            <TableColumn fx:id="endTimeCol" text="Thời Gian Kết Thúc" prefWidth="180" />
-        </columns>
-    </TableView>
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.auction.client.controller.AuctionListController"
+      spacing="15"
+      style="-fx-padding: 25;">
+
+    <Label text="DANH SÁCH PHIÊN ĐẤU GIÁ"
+           style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
+
+    <ListView fx:id="auctionListView"
+              prefHeight="360"
+              prefWidth="720"
+              VBox.vgrow="ALWAYS"/>
 
     <HBox spacing="15" alignment="CENTER_RIGHT">
-        <Button text="Làm mới bảng" onAction="#onRefreshClicked" style="-fx-font-size: 14px;"/>
-        <Button text="Xem Chi Tiết" onAction="#onOpenDetailClicked" style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+        <Button text="Làm mới bảng"
+                onAction="#onRefreshClicked"
+                style="-fx-font-size: 14px;"/>
+
+        <Button text="Xem Chi Tiết"
+                onAction="#onOpenDetailClicked"
+                style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"/>
     </HBox>
+
 </VBox>
