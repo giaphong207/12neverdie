@@ -1,6 +1,9 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
+import com.auction.client.network.ServerConnection;
+import com.auction.client.realtime.AuctionEventBus;
+import com.auction.client.realtime.AuctionEventObserver;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.CountdownUtil;
 import com.auction.client.util.MoneyParser;
@@ -18,6 +21,9 @@ import com.auction.shared.model.AuctionStatus;
 import com.auction.shared.model.Bid;
 import com.auction.shared.model.Role;
 import com.auction.shared.model.User;
+import com.auction.shared.network.AuctionUpdateEvent;
+import com.auction.shared.network.BidRequest;
+import com.auction.shared.network.SubscribeAuctionRequest;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
@@ -27,10 +33,11 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.util.Duration;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public class AuctionDetailController {
+public class AuctionDetailController implements AuctionEventObserver {
 
     @FXML private Label itemNameLabel;
     @FXML private Label descriptionLabel;
@@ -55,6 +62,8 @@ public class AuctionDetailController {
     private Timeline countdownTimeline;
     private boolean expiredHandled = false;
 
+    private String currentAuctionId;
+
     public void initialize() {
         String auctionId = ClientSession.getSelectedAuctionId();
 
@@ -70,6 +79,8 @@ public class AuctionDetailController {
 
     public void loadAuction(String auctionId) {
         try {
+            this.currentAuctionId = auctionId;
+            ServerConnection.getInstance().send(new SubscribeAuctionRequest(auctionId));
             currentAuction = lifecycleService.updateStatusByTime(auctionId);
             expiredHandled = false;
             renderAuction(currentAuction);
@@ -216,14 +227,7 @@ public class AuctionDetailController {
                 return;
             }
 
-            Auction updatedAuction = bidService.placeBid(
-                    currentAuction.getId(),
-                    currentUser.getId(),
-                    amount
-            );
-
-            currentAuction = updatedAuction;
-            renderAuction(updatedAuction);
+            ServerConnection.getInstance().send(new BidRequest(currentAuction.getId(),currentUser.getId(),amount));
             if (bidAmountField != null) {
                 bidAmountField.clear();
             }
@@ -232,9 +236,23 @@ public class AuctionDetailController {
 
         } catch (AppException ex) {
             AlertUtils.showError("Lỗi đặt giá", ex.getMessage());
+        } catch (IOException ex) {
+            AlertUtils.showError("Lỗi kết nối", "Không gửi được yêu cầu đặt giá: " + ex.getMessage());
         } catch (Exception ex) {
             AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
             ex.printStackTrace();
         }
+    }
+
+    @Override
+    public void onAuctionUpdated(AuctionUpdateEvent event) {
+        Auction updated = event.getAuction();
+        if (updated.getId().equals(currentAuctionId)) {
+            renderAuction(updated);
+        }
+    }
+
+    public void dispose() {
+        AuctionEventBus.getInstance().removeObserver(this);
     }
 }

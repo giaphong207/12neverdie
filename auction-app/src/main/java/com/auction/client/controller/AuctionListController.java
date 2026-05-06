@@ -1,21 +1,28 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
+import com.auction.client.network.ServerConnection;
+import com.auction.client.realtime.AuctionEventBus;
+import com.auction.client.realtime.AuctionEventObserver;
+import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneNavigator;
 import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.FileAuctionDao;
 import com.auction.server.service.AuctionLifecycleService;
 import com.auction.server.service.DefaultAuctionLifecycleService;
 import com.auction.shared.model.Auction;
+import com.auction.shared.network.AuctionUpdateEvent;
+import com.auction.shared.network.SubscribeAuctionListRequest;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ListView;
 
+import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AuctionListController {
+public class AuctionListController implements AuctionEventObserver {
 
     @FXML
     private ListView<String> auctionListView;
@@ -28,6 +35,15 @@ public class AuctionListController {
 
     public void initialize() {
         lifecycleService.updateAllAuctionStatuses();
+
+        AuctionEventBus.getInstance().addObserver(this);
+        try {
+            ServerConnection.getInstance()
+                    .send(new SubscribeAuctionListRequest());
+        } catch (IOException e) {
+            AlertUtils.showError("Lỗi kết nối", "Không thể subscribe danh sách auction: " + e.getMessage());
+        }
+
         loadActiveAuctions();
     }
 
@@ -93,5 +109,33 @@ public class AuctionListController {
         alert.setHeaderText(null);
         alert.setContentText(content);
         alert.showAndWait();
+    }
+
+    @Override
+    public void onAuctionUpdated(AuctionUpdateEvent event) {
+        Auction updated = event.getAuction();
+        updateAuctionRow(updated);
+    }
+
+    private void updateAuctionRow(Auction updated) {
+        for (int i = 0; i < currentAuctions.size(); i++) {
+            Auction oldAuction = currentAuctions.get(i);
+
+            if (oldAuction.getId().equals(updated.getId())) {
+                currentAuctions.set(i, updated);
+                auctionListView.getItems().set(i, formatAuctionLine(updated));
+                return;
+            }
+        }
+
+        // Nếu auction mới chưa có trong danh sách nhưng đang active thì thêm vào
+        if (updated.isRunning()) {
+            currentAuctions.add(updated);
+            auctionListView.getItems().add(formatAuctionLine(updated));
+        }
+    }
+
+    public void dispose() {
+        AuctionEventBus.getInstance().removeObserver(this);
     }
 }
