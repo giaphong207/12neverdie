@@ -27,29 +27,23 @@ public class AuctionListController implements AuctionEventObserver {
     @FXML
     private ListView<String> auctionListView;
 
-    private final AuctionDao auctionDao = new FileAuctionDao();
-    private final AuctionLifecycleService lifecycleService =
-            new DefaultAuctionLifecycleService(auctionDao);
 
     private final List<Auction> currentAuctions = new ArrayList<>();
 
     public void initialize() {
-        lifecycleService.updateAllAuctionStatuses();
-
         AuctionEventBus.getInstance().addObserver(this);
+
         try {
             ServerConnection.getInstance()
                     .send(new SubscribeAuctionListRequest());
         } catch (IOException e) {
-            AlertUtils.showError("Lỗi kết nối", "Không thể subscribe danh sách auction: " + e.getMessage());
+            AlertUtils.showError("Lỗi kết nối",
+                    "Không thể subscribe danh sách auction: " + e.getMessage());
         }
-
-        loadActiveAuctions();
     }
-
-    public void loadActiveAuctions() {
+    public void renderAuctionList(List<Auction> auctions) {
         currentAuctions.clear();
-        currentAuctions.addAll(auctionDao.findActiveAuctions());
+        currentAuctions.addAll(auctions);
 
         auctionListView.getItems().clear();
 
@@ -62,10 +56,14 @@ public class AuctionListController implements AuctionEventObserver {
             auctionListView.getItems().add(formatAuctionLine(auction));
         }
     }
-
     public void onRefreshClicked() {
-        lifecycleService.updateAllAuctionStatuses();
-        loadActiveAuctions();
+        try {
+            ServerConnection.getInstance()
+                    .send(new SubscribeAuctionListRequest());
+        } catch (IOException e) {
+            AlertUtils.showError("Lỗi kết nối",
+                    "Không thể làm mới danh sách auction: " + e.getMessage());
+        }
     }
 
     public void onViewDetail() {
