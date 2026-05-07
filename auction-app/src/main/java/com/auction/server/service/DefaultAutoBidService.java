@@ -133,7 +133,9 @@ public class DefaultAutoBidService implements AutoBidService {
             );
             AutoBidConfig chosen = candidates.get(0);
 
-            long nextAmount = chosen.nextBidAmount(currentPrice);
+            long step = Math.max(chosen.getIncrement(), auction.getMinIncrement());
+            long nextAmount = currentPrice + step;
+
             if (nextAmount > chosen.getMaxAmount()) {
                 break;
             }
@@ -154,13 +156,8 @@ public class DefaultAutoBidService implements AutoBidService {
             // CHỈ rủi ro: nếu auction status không phải RUNNING (ví dụ
             // anti-sniping của TV3 đổi status), addBid() sẽ throw.
             // Mình try-catch để cascade dừng gracefully thay vì crash placeBid().
-            try {
-                auction.addBid(autoBid);
-                anyAutoBidPlaced = true;
-            } catch (IllegalArgumentException ex) {
-                // Auction đã đóng giữa chừng hoặc lý do khác -> dừng cascade
-                break;
-            }
+            auction.addBid(autoBid);
+            anyAutoBidPlaced = true;
         }
 
         if (iterations >= MAX_CASCADE_ITERATIONS) {
