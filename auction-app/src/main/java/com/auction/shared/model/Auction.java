@@ -19,7 +19,7 @@ public class Auction implements Serializable {
     private AuctionStatus status;
 
     private final LocalDateTime startTime;
-    private final LocalDateTime endTime;
+    private LocalDateTime endTime; // xóa final để anti-sniping có thể gia hạn
 
     private String highestBidderId;
     private String winnerBidderId;
@@ -198,5 +198,17 @@ public class Auction implements Serializable {
                 ", highestBidderId='" + highestBidderId + '\'' +
                 ", winnerBidderId='" + winnerBidderId + '\'' +
                 '}';
+    }
+    /**
+     * Gia hạn thời gian kết thúc phiên đấu giá.
+     * Chỉ được gọi bởi AntiSnipingService khi có bid ở giây cuối.
+     *
+     * @param seconds số giây muốn cộng thêm (thường là 60)
+     */
+    public void extendEndTime(long seconds) {
+        if (seconds <= 0) {
+            throw new IllegalArgumentException("Số giây gia hạn phải dương");
+        }
+        this.endTime = this.endTime.plusSeconds(seconds);
     }
 }

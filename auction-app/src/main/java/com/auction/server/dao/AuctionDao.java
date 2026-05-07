@@ -9,5 +9,5 @@ public interface AuctionDao {
     Optional<Auction> findById(String id);
     void save(Auction auction);
     void deleteById(String id);
-    List<Auction> findActiveAuctions(); // Phục vụ lọc dữ liệu Tuần 2
+    List<Auction> findActiveAuctions();
 }
