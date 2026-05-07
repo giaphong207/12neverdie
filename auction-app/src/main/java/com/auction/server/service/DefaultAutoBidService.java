@@ -113,34 +113,49 @@ public class DefaultAutoBidService implements AutoBidService {
             long currentPrice = auction.getCurrentPrice();
             String currentLeaderId = auction.getHighestBidderId();
 
-            // Tìm tất cả config có thể outbid (loại bỏ leader)
             List<AutoBidConfig> candidates = new ArrayList<>();
+
             for (AutoBidConfig cfg : configs) {
-                if (cfg.canOutbid(currentPrice, currentLeaderId)) {
+                if (!cfg.isEnabled()) {
+                    continue;
+                }
+
+                if (cfg.getBidderId().equals(currentLeaderId)) {
+                    continue;
+                }
+
+                long step = Math.max(cfg.getIncrement(), auction.getMinIncrement());
+
+                if (cfg.getMaxAmount() >= currentPrice + step) {
                     candidates.add(cfg);
                 }
             }
 
             if (candidates.isEmpty()) {
-                break; // không ai có thể outbid nữa -> dừng
+                break;
             }
 
-            // Chọn config có maxAmount CAO NHẤT;
-            // bằng nhau -> createdAt SỚM HƠN thắng.
             candidates.sort(
                     Comparator.comparingLong(AutoBidConfig::getMaxAmount).reversed()
                             .thenComparing(AutoBidConfig::getCreatedAt)
             );
+
             AutoBidConfig chosen = candidates.get(0);
 
             long step = Math.max(chosen.getIncrement(), auction.getMinIncrement());
-            long nextAmount = currentPrice + step;
 
-            if (nextAmount > chosen.getMaxAmount()) {
-                break;
+            long runnerUpMaxAmount = currentPrice;
+            if (candidates.size() > 1) {
+                runnerUpMaxAmount = candidates.get(1).getMaxAmount();
             }
 
-            // Tạo bid bằng constructor 5 tham số của TV2
+            long nextAmount = Math.max(
+                    currentPrice + step,
+                    runnerUpMaxAmount + step
+            );
+
+            nextAmount = Math.min(nextAmount, chosen.getMaxAmount());
+
             Bid autoBid = new Bid(
                     UUID.randomUUID().toString(),
                     auction.getId(),
@@ -149,13 +164,6 @@ public class DefaultAutoBidService implements AutoBidService {
                     LocalDateTime.now()
             );
 
-            // auction.addBid() sẽ tự validate canAcceptBid + tự cập nhật
-            // currentPrice và highestBidderId. Nếu validate fail thì throw,
-            // nhưng mình đã canOutbid() ở trên nên đảm bảo hợp lệ.
-            //
-            // CHỈ rủi ro: nếu auction status không phải RUNNING (ví dụ
-            // anti-sniping của TV3 đổi status), addBid() sẽ throw.
-            // Mình try-catch để cascade dừng gracefully thay vì crash placeBid().
             auction.addBid(autoBid);
             anyAutoBidPlaced = true;
         }
