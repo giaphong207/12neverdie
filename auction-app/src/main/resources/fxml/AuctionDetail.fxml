@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
@@ -48,6 +51,24 @@
     <ListView fx:id="bidHistoryListView"
               prefHeight="120"
               prefWidth="300"/>
+
+    <Label text="Biểu đồ lịch sử giá:"
+           style="-fx-font-weight: bold; -fx-font-size: 15px;"/>
+
+    <LineChart fx:id="bidHistoryChart"
+               title="Bid History"
+               animated="false"
+               createSymbols="true"
+               legendVisible="false"
+               prefHeight="260"
+               prefWidth="520">
+        <xAxis>
+            <CategoryAxis fx:id="bidTimeAxis" label="Thời điểm bid"/>
+        </xAxis>
+        <yAxis>
+            <NumberAxis fx:id="bidPriceAxis" label="Giá bid"/>
+        </yAxis>
+    </LineChart>
 
     <Label text="Nhập giá đặt (VND):"/>
     <TextField fx:id="bidAmountField"
