@@ -1,11 +1,10 @@
-package com.auction;
+package com.auction.shared.pattern;
 
 import com.auction.shared.model.ArtItem;
 import com.auction.shared.model.ElectronicsItem;
 import com.auction.shared.model.Item;
 import com.auction.shared.model.ItemType;
 import com.auction.shared.model.VehicleItem;
-import com.auction.shared.pattern.ItemFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

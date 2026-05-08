@@ -1,5 +1,6 @@
 package com.auction.client.controller;
 
+import com.auction.client.chart.BidHistorySeriesBuilder;
 import com.auction.client.context.ClientSession;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
@@ -16,6 +17,10 @@ import com.auction.shared.network.SubscribeAuctionRequest;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -44,8 +49,11 @@ public class AuctionDetailController implements AuctionEventObserver {
     private Auction currentAuction;
     private Timeline countdownTimeline;
     private boolean expiredHandled = false;
-
     private String currentAuctionId;
+
+    @FXML private LineChart<String, Number> bidHistoryChart;
+    @FXML private CategoryAxis bidTimeAxis;
+    @FXML private NumberAxis bidPriceAxis;
 
     public void initialize() {
         // Đăng ký nhận AuctionUpdateEvent realtime từ      (tv3)
@@ -254,5 +262,20 @@ public class AuctionDetailController implements AuctionEventObserver {
 
     public void dispose() {
         AuctionEventBus.getInstance().removeObserver(this);
+    }
+    private void renderBidHistoryChart(Auction auction) {
+        if (bidHistoryChart == null) {
+            return;
+        }
+
+        bidHistoryChart.getData().clear();
+
+        if (auction == null || auction.getBidHistory() == null || auction.getBidHistory().isEmpty()) {
+            return;
+        }
+
+        XYChart.Series<String, Number> series = BidHistorySeriesBuilder.buildSeries(auction.getBidHistory());
+
+        bidHistoryChart.getData().add(series);
     }
 }
