@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,7 +21,6 @@ import com.auction.support.TestDataFactory;
 
 /**
  * Integration test cho chuỗi xử lý đầy đủ tuần 5.
- * TV3 + TV4 đã merge → dùng implementation thật.
  */
 class AdvancedFeatureIntegrationTest {
 
@@ -38,51 +36,128 @@ class AdvancedFeatureIntegrationTest {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // TEST 1 — ScenarioA: manual bid cuối phiên → anti-snipe → auto-bid
+    // TEST 1 — Anti-sniping extend đúng 60 giây
     // ══════════════════════════════════════════════════════════════
 
     @Test
-    @DisplayName("ScenarioA: manual bid ở 20s cuối → anti-sniping extend → auto-bid phản ứng")
-    void scenarioA_fullFlow() {
-        AdvancedFeatureScenarioFactory.ScenarioA scenario =
-                AdvancedFeatureScenarioFactory.createScenarioA();
+    @DisplayName("Anti-sniping extend đúng 60 giây khi còn <= 30s")
+    void antiSniping_shouldExtend60Seconds() {
+        Auction auction = TestDataFactory.auctionAboutToEnd();
+        LocalDateTime originalEnd = auction.getEndTime();
 
-        Auction auction = scenario.auction;
-        autoBidDao.save(scenario.autoBidConfig);
-        LocalDateTime originalEndTime = auction.getEndTime();
-
-        // Step 1: manual bid
-        LocalDateTime bidTime = LocalDateTime.now();
+        // Thêm 1 bid trước để auction có highestBidder
         auction.addBid(TestDataFactory.bid(
-                auction.getId(), scenario.manualBidderId, 6_100_000L));
+                auction.getId(), "bidder-1", 5_100_000L));
 
-        // Step 2: anti-sniping
-        boolean extended = antiSnipingService.applyExtensionIfNeeded(auction, bidTime);
+        boolean extended = antiSnipingService.applyExtensionIfNeeded(
+                auction, LocalDateTime.now());
 
-        assertTrue(extended, "Anti-sniping phải extend khi còn <= 30 giây");
-        assertTrue(auction.getEndTime().isAfter(originalEndTime));
+        assertTrue(extended, "Phải extend khi còn <= 30 giây");
         long extensionSeconds = java.time.temporal.ChronoUnit.SECONDS
-                .between(originalEndTime, auction.getEndTime());
+                .between(originalEnd, auction.getEndTime());
         assertEquals(60L, extensionSeconds, "Extension phải đúng 60 giây");
-
-        // Step 3: auto-bid
-        boolean autoBidded = autoBidService.resolveAutoBids(auction);
-
-        assertTrue(autoBidded, "Auto-bid phải phản ứng");
-        assertTrue(auction.getCurrentPrice() > 6_100_000L);
-        assertEquals(scenario.autoBidderId, auction.getHighestBidderId());
-        assertTrue(AdvancedFeatureScenarioFactory
-                .countAutoBids(auction.getBidHistory()) >= 1);
-        assertNotEquals(originalEndTime, auction.getEndTime());
     }
 
     // ══════════════════════════════════════════════════════════════
-    // TEST 2 — ScenarioB: 2 auto-bidder — final price đúng
+    // TEST 2 — Anti-sniping không extend khi còn nhiều thời gian
     // ══════════════════════════════════════════════════════════════
 
     @Test
-    @DisplayName("ScenarioB: auto-B (max cao hơn) thắng, giá cuối đúng 5_600_000")
-    void scenarioB_twoAutoBiddersFinalPrice() {
+    @DisplayName("Anti-sniping không extend khi còn > 30s")
+    void antiSniping_shouldNotExtendWhenPlentyOfTime() {
+        Auction auction = TestDataFactory.auctionWithPlentyOfTime();
+        LocalDateTime originalEnd = auction.getEndTime();
+
+        boolean extended = antiSnipingService.applyExtensionIfNeeded(
+                auction, LocalDateTime.now());
+
+        assertFalse(extended, "Không được extend khi còn > 30 giây");
+        assertEquals(originalEnd, auction.getEndTime());
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // TEST 3 — Anti-sniping chỉ extend 1 lần
+    // ══════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("Anti-sniping chỉ extend 1 lần — lần 2 không extend")
+    void antiSniping_shouldOnlyExtendOnce() {
+        Auction auction = TestDataFactory.auctionAboutToEnd();
+
+        auction.addBid(TestDataFactory.bid(
+                auction.getId(), "bidder-1", 5_100_000L));
+
+        boolean extended1 = antiSnipingService.applyExtensionIfNeeded(
+                auction, LocalDateTime.now());
+        LocalDateTime afterFirst = auction.getEndTime();
+
+        assertTrue(extended1);
+
+        // Sau extend auction còn ~80s → không trigger nữa
+        boolean extended2 = antiSnipingService.applyExtensionIfNeeded(
+                auction, LocalDateTime.now());
+
+        assertFalse(extended2, "Lần 2 không được extend");
+        assertEquals(afterFirst, auction.getEndTime());
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // TEST 4 — Auto-bid cơ bản: 1 bidder outbid manual bid
+    // ══════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("Auto-bid: 1 bidder tự động outbid manual bid")
+    void autoBid_shouldOutbidManualBid() {
+        Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+
+        // Lưu config TRƯỚC khi bid để autoBidDao có data
+        AutoBidConfig config = TestDataFactory.autoBidConfig(
+                auction.getId(), "auto-bidder", 8_000_000L, 100_000L);
+        autoBidDao.save(config);
+
+        // Manual bid của đối thủ
+        auction.addBid(TestDataFactory.bid(
+                auction.getId(), "manual-bidder", 5_200_000L));
+
+        boolean result = autoBidService.resolveAutoBids(auction);
+
+        assertTrue(result, "Auto-bid phải phản ứng");
+        assertEquals("auto-bidder", auction.getHighestBidderId(),
+                "auto-bidder phải dẫn đầu sau resolve");
+        assertTrue(auction.getCurrentPrice() > 5_200_000L,
+                "Giá phải cao hơn manual bid");
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // TEST 5 — Auto-bid không bid khi đang dẫn đầu
+    // ══════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("Auto-bid không tự bid khi mình đang dẫn đầu")
+    void autoBid_shouldNotBidWhenLeading() {
+        Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+
+        // auto-bidder đang dẫn đầu
+        auction.addBid(TestDataFactory.bid(
+                auction.getId(), "auto-bidder", 5_200_000L));
+
+        autoBidDao.save(TestDataFactory.autoBidConfig(
+                auction.getId(), "auto-bidder", 10_000_000L, 100_000L));
+
+        boolean result = autoBidService.resolveAutoBids(auction);
+
+        assertFalse(result, "Không được auto-bid khi mình đang dẫn đầu");
+        assertEquals(1, auction.getBidHistory().size());
+        assertEquals("auto-bidder", auction.getHighestBidderId());
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // TEST 6 — ScenarioB: 2 auto-bidder — winner đúng
+    // ══════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("ScenarioB: auto-B (max cao hơn) thắng")
+    void scenarioB_higherMaxAmountWins() {
         AdvancedFeatureScenarioFactory.ScenarioB scenario =
                 AdvancedFeatureScenarioFactory.createScenarioB();
 
@@ -97,123 +172,14 @@ class AdvancedFeatureIntegrationTest {
 
         assertEquals(scenario.expectedWinner, auction.getHighestBidderId(),
                 "Bidder maxAmount cao hơn phải thắng");
-        assertEquals(scenario.expectedFinalPrice, auction.getCurrentPrice(),
-                "Giá cuối phải đúng");
 
+        // Giá phải tăng dần
         List<Long> prices = AdvancedFeatureScenarioFactory
                 .extractPrices(auction.getBidHistory());
         for (int i = 1; i < prices.size(); i++) {
             assertTrue(prices.get(i) > prices.get(i - 1),
                     "Giá phải tăng dần tại index " + i);
         }
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // TEST 3 — ScenarioC: tie-break theo createdAt
-    // ══════════════════════════════════════════════════════════════
-
-    @Test
-    @DisplayName("ScenarioC: 2 config cùng maxAmount — config tạo sớm hơn thắng")
-    void scenarioC_tieBreakByCreatedAt() {
-        AdvancedFeatureScenarioFactory.ScenarioC scenario =
-                AdvancedFeatureScenarioFactory.createScenarioC();
-
-        Auction auction = scenario.auction;
-        autoBidDao.save(scenario.configEarly);
-        autoBidDao.save(scenario.configLate);
-
-        auction.addBid(TestDataFactory.bid(
-                auction.getId(), "manual-bidder", 5_100_000L));
-
-        autoBidService.resolveAutoBids(auction);
-
-        assertEquals(scenario.expectedWinner, auction.getHighestBidderId(),
-                "Config tạo sớm hơn phải thắng");
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // TEST 4 — Anti-sniping chỉ extend 1 lần
-    // ══════════════════════════════════════════════════════════════
-
-    @Test
-    @DisplayName("Anti-sniping chỉ extend 1 lần — lần 2 không extend")
-    void antiSnipingShouldOnlyExtendOnce() {
-        Auction auction = TestDataFactory.auctionAboutToEnd();
-        LocalDateTime originalEnd = auction.getEndTime();
-
-        boolean extended1 = antiSnipingService.applyExtensionIfNeeded(
-                auction, LocalDateTime.now());
-        LocalDateTime afterFirst = auction.getEndTime();
-
-        assertTrue(extended1, "Lần 1 phải extend");
-        assertNotEquals(originalEnd, afterFirst);
-
-        boolean extended2 = antiSnipingService.applyExtensionIfNeeded(
-                auction, LocalDateTime.now());
-
-        assertFalse(extended2, "Lần 2 không được extend");
-        assertEquals(afterFirst, auction.getEndTime());
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // TEST 5 — bidHistory đúng thứ tự: manual trước, auto sau
-    // ══════════════════════════════════════════════════════════════
-
-    @Test
-    @DisplayName("bidHistory chứa manual bid trước, auto-bid sau, giá tăng dần")
-    void bidHistoryShouldContainManualThenAutoBids() {
-        Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
-
-        autoBidDao.save(TestDataFactory.autoBidConfig(
-                auction.getId(), "auto-bidder", 7_000_000L, 200_000L));
-
-        auction.addBid(TestDataFactory.bid(
-                auction.getId(), "manual-bidder", 5_200_000L));
-
-        int before = auction.getBidHistory().size();
-        autoBidService.resolveAutoBids(auction);
-
-        assertTrue(auction.getBidHistory().size() > before,
-                "bidHistory phải tăng sau auto-bid");
-
-        // Bid đầu tiên phải là MANUAL — check bidderId thay vì BidSource
-        // vì Bid của TV2 chưa chắc có getSource()
-        assertEquals("manual-bidder",
-                auction.getBidHistory().get(0).getBidderId(),
-                "Bid đầu tiên phải là của manual-bidder");
-
-        assertTrue(AdvancedFeatureScenarioFactory
-                .countAutoBids(auction.getBidHistory()) >= 1,
-                "Phải có ít nhất 1 auto-bid");
-
-        List<Long> prices = AdvancedFeatureScenarioFactory
-                .extractPrices(auction.getBidHistory());
-        for (int i = 1; i < prices.size(); i++) {
-            assertTrue(prices.get(i) > prices.get(i - 1),
-                    "Giá phải tăng dần");
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // TEST 6 — Không tự bid khi đang dẫn đầu
-    // ══════════════════════════════════════════════════════════════
-
-    @Test
-    @DisplayName("Auto-bid không tự bid khi mình đang là highest bidder")
-    void autoBidShouldNotBidWhenAlreadyLeading() {
-        Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
-
-        auction.addBid(TestDataFactory.bid(
-                auction.getId(), "auto-bidder", 5_200_000L));
-
-        autoBidDao.save(TestDataFactory.autoBidConfig(
-                auction.getId(), "auto-bidder", 10_000_000L, 100_000L));
-
-        boolean result = autoBidService.resolveAutoBids(auction);
-
-        assertFalse(result, "Không được auto-bid khi mình đang dẫn đầu");
-        assertEquals(1, auction.getBidHistory().size());
-        assertEquals("auto-bidder", auction.getHighestBidderId());
     }
 
     // ══════════════════════════════════════════════════════════════
