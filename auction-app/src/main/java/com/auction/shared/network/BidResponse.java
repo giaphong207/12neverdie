@@ -11,9 +11,9 @@ public class BidResponse implements Serializable {
     private final Auction updatedAuction;
 
     public BidResponse(boolean success, String message, Auction updatedAuction) {
-        this.success = success;
-        this.message = message;
-        this.updatedAuction = updatedAuction;
+        this.success = success; //trả về true/fasle - thành công hay khôg
+        this.message = message; // thông báo
+        this.updatedAuction = updatedAuction; //obj Auction đã có giá mới
     }
 
     public boolean isSuccess() { return success; }

@@ -3,7 +3,6 @@ package com.auction.server.dao;
 import java.io.File;
 import java.time.LocalDateTime;
 
-// Import đầy đủ các model cần thiết
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.AuctionStatus;
 import com.auction.shared.model.Bidder;
@@ -59,24 +58,20 @@ public final class DataManager {
             System.err.println("Lỗi ghi file: " + e.getMessage());
         }
     }
-
-    // Hàm cực kỳ quan trọng để lấp đầy dữ liệu mẫu theo đúng Rubric
+    // Tạo dữ liệu mới
     private void seedIfMissing(AppDataStore targetStore) {
         System.out.println("TV3: Đang bơm toàn bộ dữ liệu mẫu (User, Item, Auction)...");
 
-        // 1. Khởi tạo 1 Bidder và 1 Seller
         Bidder bidder1 = new Bidder("U001", "bidder01", "123456");
         Seller seller1 = new Seller("U002", "seller01", "123456");
         targetStore.getUsers().add(bidder1);
         targetStore.getUsers().add(seller1);
 
-        // 2. Khởi tạo 2-3 Item bằng các class kế thừa
         ElectronicsItem item1 = new ElectronicsItem("I001", seller1.getId(), "Laptop Macbook Pro", "Máy mới 99%", 20000000L);
         VehicleItem item2 = new VehicleItem("I002", seller1.getId(), "Xe máy Honda SH", "Xe chính chủ, màu đen", 50000000L);
         targetStore.getItems().add(item1);
         targetStore.getItems().add(item2);
 
-        // 3. Khởi tạo 2-3 Phiên đấu giá liên kết chặt chẽ với Item và Seller vừa tạo
         Auction a1 = new Auction(
                 "A001",
                 item1.getId(),

@@ -10,9 +10,9 @@ public class BidRequest implements Serializable {
     private final long amount;
 
     public BidRequest(String auctionId, String bidderId, long amount) {
-        this.auctionId = auctionId;
-        this.bidderId = bidderId;
-        this.amount = amount;
+        this.auctionId = auctionId; //Đặt phiên nào
+        this.bidderId = bidderId; //Ai đặt
+        this.amount = amount;  //Đặt bao nhiêu
     }
 
     public String getAuctionId() { return auctionId; }

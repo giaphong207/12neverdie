@@ -1,5 +1,6 @@
 package com.auction.client.controller;
 
+import com.auction.client.chart.BidHistorySeriesBuilder;
 import com.auction.client.context.ClientSession;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
@@ -8,25 +9,18 @@ import com.auction.client.util.AlertUtils;
 import com.auction.client.util.CountdownUtil;
 import com.auction.client.util.MoneyParser;
 import com.auction.client.util.SceneNavigator;
-import com.auction.server.concurrency.AuctionLockManager;
-import com.auction.server.dao.AuctionDao;
-import com.auction.server.dao.FileAuctionDao;
-import com.auction.server.service.AuctionLifecycleService;
-import com.auction.server.service.BidService;
-import com.auction.server.service.DefaultAuctionLifecycleService;
-import com.auction.server.service.DefaultBidService;
 import com.auction.shared.exception.AppException;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
-import com.auction.shared.model.Bid;
-import com.auction.shared.model.Role;
-import com.auction.shared.model.User;
+import com.auction.shared.model.*;
 import com.auction.shared.network.AuctionUpdateEvent;
 import com.auction.shared.network.BidRequest;
 import com.auction.shared.network.SubscribeAuctionRequest;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -55,10 +49,16 @@ public class AuctionDetailController implements AuctionEventObserver {
     private Auction currentAuction;
     private Timeline countdownTimeline;
     private boolean expiredHandled = false;
-
     private String currentAuctionId;
 
+    @FXML private LineChart<String, Number> bidHistoryChart;
+    @FXML private CategoryAxis bidTimeAxis;
+    @FXML private NumberAxis bidPriceAxis;
+
     public void initialize() {
+        // Đăng ký nhận AuctionUpdateEvent realtime từ      (tv3)
+        AuctionEventBus.getInstance().addObserver(this); // (tv3)
+
         String auctionId = ClientSession.getSelectedAuctionId();
 
         if (auctionId == null || auctionId.isBlank()) {
@@ -192,6 +192,7 @@ public class AuctionDetailController implements AuctionEventObserver {
 
     public void onBackClicked() {
         stopCountdown();
+        AuctionEventBus.getInstance().removeObserver(this); // Anti - sniping dùng ở đây
         SceneNavigator.switchScene("/fxml/AuctionList.fxml");
     }
 
@@ -229,15 +230,52 @@ public class AuctionDetailController implements AuctionEventObserver {
         }
     }
 
+    /**
+     * Được AuctionEventBus gọi khi server broadcast AuctionUpdateEvent.
+     * Xảy ra khi: có bid mới, anti-sniping gia hạn thời gian, auto-bid chạy.
+     * Chạy trên JavaFX Application Thread (do Platform.runLater trong EventBus).
+     */
     @Override
     public void onAuctionUpdated(AuctionUpdateEvent event) {
         Auction updated = event.getAuction();
-        if (updated.getId().equals(currentAuctionId)) {
-            renderAuction(updated);
+
+        // Chỉ xử lý nếu đây đúng phòng mình đang xem
+        if (currentAuction == null || !updated.getId().equals(currentAuction.getId())) {
+            return;
         }
+
+        System.out.println("[Detail] Nhận update auction: " + updated.getId()
+                + " | endTime: " + updated.getEndTime()
+                + " | giá: " + updated.getCurrentPrice());
+
+        // Cập nhật object auction trong bộ nhớ
+        currentAuction = updated;
+        expiredHandled  = false;   // reset để cho phép xử lý hết giờ lần mới
+
+        // Cập nhật toàn bộ UI: giá, người dẫn đầu, bid history
+        renderAuction(updated);
+
+        // Khởi động lại countdown với endTime mới
+        // (quan trọng cho anti-sniping: endTime vừa được gia hạn thêm 60s)
+        startCountdown(updated.getEndTime());
     }
 
     public void dispose() {
         AuctionEventBus.getInstance().removeObserver(this);
+    }
+    private void renderBidHistoryChart(Auction auction) {
+        if (bidHistoryChart == null) {
+            return;
+        }
+
+        bidHistoryChart.getData().clear();
+
+        if (auction == null || auction.getBidHistory() == null || auction.getBidHistory().isEmpty()) {
+            return;
+        }
+
+        XYChart.Series<String, Number> series = BidHistorySeriesBuilder.buildSeries(auction.getBidHistory());
+
+        bidHistoryChart.getData().add(series);
     }
 }

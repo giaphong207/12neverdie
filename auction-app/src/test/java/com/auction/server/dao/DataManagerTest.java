@@ -1,6 +1,5 @@
-package com.auction;
+package com.auction.server.dao;
 
-import com.auction.server.dao.DataManager;
 import org.junit.jupiter.api.Test;
 import java.io.File;
 import static org.junit.jupiter.api.Assertions.*;
