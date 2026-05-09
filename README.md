@@ -29,3 +29,14 @@ Bài tập lớn môn Lập trình nâng cao - Nhóm 12
    ```bash
    cd online-auction-system/auction-app
    
+## Tài khoản mặc định
+| Tài khoản | Mật khẩu | Role   |
+|-----------|----------|--------|
+| admin     | admin123 | Admin  |
+| seller1   | 123456   | Seller |
+| bidder1   | 123456   | Bidder |
+| bidder2   | 123456   | Bidder |
+| bidder3   | 123456   | Bidder |
+
+## Reset data trước khi demo anti-sniping
+Xóa file `data/database.dat` rồi restart server.
