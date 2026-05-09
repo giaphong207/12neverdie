@@ -1,16 +1,14 @@
 package com.auction.server.dao;
 
 import java.io.File;
-import java.time.LocalDateTime;
 
+import com.auction.server.seed.DemoDataSeeder;
 import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
-import com.auction.shared.model.Bidder;
-import com.auction.shared.model.ElectronicsItem;
-import com.auction.shared.model.Seller;
-import com.auction.shared.model.VehicleItem;
+import com.auction.shared.model.Item;
+import com.auction.shared.model.User;
 
 public final class DataManager {
+
     private static DataManager instance;
     private final String FILE_PATH = "data/database.dat";
     private AppDataStore store;
@@ -31,15 +29,22 @@ public final class DataManager {
         if (!file.exists()) {
             System.out.println("Tạo kho dữ liệu mới rỗng...");
             AppDataStore newStore = new AppDataStore();
-            seedIfMissing(newStore); // Bơm dữ liệu nếu file chưa có
+            seedIfMissing(newStore);
             return newStore;
         }
         try {
             AppDataStore loadedStore = (AppDataStore) SerializationUtils.readObject(FILE_PATH);
-            // Kiểm tra xem đã có data đấu giá chưa, chưa có thì bơm mồi
+
+            // Backward compatible: file cũ chưa có autoBidConfigs
+            if (loadedStore.getAutoBidConfigs() == null) {
+                loadedStore.setAutoBidConfigs(new java.util.ArrayList<>());
+            }
+
+            // Seed nếu chưa có data
             if (loadedStore.getAuctions() == null || loadedStore.getAuctions().isEmpty()) {
                 seedIfMissing(loadedStore);
             }
+
             return loadedStore;
         } catch (Exception e) {
             System.err.println("Lỗi đọc file, tạo kho mới: " + e.getMessage());
@@ -58,47 +63,41 @@ public final class DataManager {
             System.err.println("Lỗi ghi file: " + e.getMessage());
         }
     }
-    // Tạo dữ liệu mới
+
+    /**
+     * Seed dữ liệu demo dùng DemoDataSeeder — 4 scenario tuần 5.
+     * Chỉ seed khi users rỗng.
+     */
     private void seedIfMissing(AppDataStore targetStore) {
-        System.out.println("TV3: Đang bơm toàn bộ dữ liệu mẫu (User, Item, Auction)...");
+        System.out.println("Đang seed demo data (4 scenario tuần 5)...");
 
-        Bidder bidder1 = new Bidder("U001", "bidder01", "123456");
-        Seller seller1 = new Seller("U002", "seller01", "123456");
-        targetStore.getUsers().add(bidder1);
-        targetStore.getUsers().add(seller1);
+        for (User user : DemoDataSeeder.allUsers()) {
+            targetStore.getUsers().add(user);
+        }
 
-        ElectronicsItem item1 = new ElectronicsItem("I001", seller1.getId(), "Laptop Macbook Pro", "Máy mới 99%", 20000000L);
-        VehicleItem item2 = new VehicleItem("I002", seller1.getId(), "Xe máy Honda SH", "Xe chính chủ, màu đen", 50000000L);
-        targetStore.getItems().add(item1);
-        targetStore.getItems().add(item2);
+        for (Item item : DemoDataSeeder.allItems()) {
+            targetStore.getItems().add(item);
+        }
 
-        Auction a1 = new Auction(
-                "A001",
-                item1.getId(),
-                seller1.getId(),
-                20000000L,
-                500000L,
-                AuctionStatus.RUNNING,
-                LocalDateTime.now().minusHours(1),
-                LocalDateTime.now().plusDays(2)
-        );
+        for (Auction auction : DemoDataSeeder.allAuctions()) {
+            targetStore.getAuctions().add(auction);
+        }
 
-        Auction a2 = new Auction(
-                "A002",
-                item2.getId(),
-                seller1.getId(),
-                50000000L,
-                1000000L,
-                AuctionStatus.OPEN,
-                LocalDateTime.now().plusDays(1),
-                LocalDateTime.now().plusDays(5)
-        );
-
-        targetStore.getAuctions().add(a1);
-        targetStore.getAuctions().add(a2);
-
-        // Ép lưu xuống ổ cứng
         save(targetStore);
+        System.out.println("Seed xong: " + targetStore.getUsers().size()
+                + " users, " + targetStore.getItems().size()
+                + " items, " + targetStore.getAuctions().size() + " auctions.");
+    }
+
+    /**
+     * Xóa toàn bộ data và seed lại.
+     * Gọi trước khi demo anti-sniping để endTime được tính lại từ now.
+     * Cách dùng: DataManager.getInstance().resetAndReseed();
+     */
+    public void resetAndReseed() {
+        System.out.println("Reset và seed lại toàn bộ data...");
+        this.store = new AppDataStore();
+        seedIfMissing(this.store);
     }
 
     public AppDataStore getStore() {
