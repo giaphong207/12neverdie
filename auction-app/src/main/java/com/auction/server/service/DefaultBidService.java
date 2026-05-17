@@ -2,101 +2,143 @@ package com.auction.server.service;
 
 import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.server.dao.AuctionDao;
-import com.auction.server.dao.DataManager;
+import com.auction.server.dao.BidDao;
+import com.auction.server.dao.Database;
 import com.auction.shared.exception.AuctionClosedException;
 import com.auction.shared.exception.AuctionNotFoundException;
+import com.auction.shared.exception.DataAccessException;
 import com.auction.shared.exception.InvalidBidException;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.Bid;
+import com.auction.shared.model.BidSource;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class DefaultBidService implements BidService {
 
-    private final AuctionDao             auctionDao;
+    private final Database db;
+    private final AuctionDao auctionDao;
+    private final BidDao bidDao;
     private final AuctionLifecycleService lifecycleService;
-    private final AuctionLockManager     auctionLockManager;
-    private final AntiSnipingService     antiSnipingService;   // TV3 thêm
-    // TV4 sẽ thêm: private final AutoBidService autoBidService;
+    private final AuctionLockManager lockManager;
+    private final AntiSnipingService antiSnipingService;
+    private final AutoBidService autoBidService;
 
-    // ── Constructor TV3 dùng (TV4 sẽ thêm AutoBidService vào sau) ──────────
-    public DefaultBidService(AuctionDao auctionDao,
+    public DefaultBidService(Database db,
+                             AuctionDao auctionDao,
+                             BidDao bidDao,
                              AuctionLifecycleService lifecycleService,
-                             AuctionLockManager auctionLockManager) {
-        this(auctionDao, lifecycleService, auctionLockManager,
-                new DefaultAntiSnipingService());
-    }
-
-    // ── Constructor đầy đủ để test và để TV4 inject AutoBidService ──────────
-    public DefaultBidService(AuctionDao auctionDao,
-                             AuctionLifecycleService lifecycleService,
-                             AuctionLockManager auctionLockManager,
-                             AntiSnipingService antiSnipingService) {
-        this.auctionDao         = auctionDao;
-        this.lifecycleService   = lifecycleService;
-        this.auctionLockManager = auctionLockManager;
+                             AuctionLockManager lockManager,
+                             AntiSnipingService antiSnipingService,
+                             AutoBidService autoBidService) {
+        this.db = db;
+        this.auctionDao = auctionDao;
+        this.bidDao = bidDao;
+        this.lifecycleService = lifecycleService;
+        this.lockManager = lockManager;
         this.antiSnipingService = antiSnipingService;
+        this.autoBidService = autoBidService;
     }
 
     @Override
     public Auction placeBid(String auctionId, String bidderId, long amount) {
+        // ① Validate input
+        if (auctionId == null || auctionId.isBlank()) {
+            throw new InvalidBidException("auctionId rỗng");
+        }
+        if (bidderId == null || bidderId.isBlank()) {
+            throw new InvalidBidException("bidderId rỗng");
+        }
+        if (amount <= 0) {
+            throw new InvalidBidException("Số tiền phải dương");
+        }
 
-        ReentrantLock lock = auctionLockManager.getLock(auctionId);
-        lock.lock();
+        // ② Lấy lock per-auction
+        ReentrantLock lock = lockManager.getLock(auctionId);
+        boolean acquired;
+        try {
+            acquired = lock.tryLock(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new InvalidBidException("Bị gián đoạn khi chờ lock");
+        }
+        if (!acquired) {
+            throw new InvalidBidException("Hệ thống đang bận, vui lòng thử lại");
+        }
 
         try {
-            // Bước 1: Tìm auction
-            Optional<Auction> optAuction = auctionDao.findById(auctionId);
-            if (optAuction.isEmpty()) {
-                throw new AuctionNotFoundException(auctionId);
-            }
+            // ③ Update status theo thời gian
+            lifecycleService.updateStatusByTime(auctionId);
 
-            // Bước 2: Cập nhật trạng thái theo thời gian (OPEN→RUNNING→FINISHED)
-            Auction auction = lifecycleService.updateStatusByTime(auctionId);
+            // ④ Load auction (kèm bid history)
+            Auction auction = auctionDao.findById(auctionId)
+                    .orElseThrow(() -> new AuctionNotFoundException(auctionId));
 
-            // Bước 3: Kiểm tra phiên còn đang chạy không
+            // ⑤ Validate status
             if (!auction.isRunning()) {
-                throw new AuctionClosedException("Phiên đấu giá đã đóng hoặc chưa bắt đầu.");
+                throw new AuctionClosedException(
+                        "Phiên không hoạt động (trạng thái: " + auction.getStatus() + ")");
             }
 
-            // Bước 4: Kiểm tra số tiền có hợp lệ không
+            // ⑥ Validate amount
             if (!auction.canAcceptBid(amount)) {
                 long required = auction.getCurrentPrice() + auction.getMinIncrement();
-                throw new InvalidBidException("Số tiền đặt phải từ " + required + " VNĐ trở lên.");
+                throw new InvalidBidException(
+                        "Số tiền phải >= " + required + " VNĐ");
             }
 
-            // Bước 5: Tạo Bid và chấp nhận vào auction
-            String bidId = "B-" + UUID.randomUUID().toString().substring(0, 8);
-            Bid newBid = new Bid(bidId, auction.getId(), bidderId, amount, LocalDateTime.now());
-            auction.addBid(newBid);
-
-            // Bước 6: Anti-sniping — kiểm tra có cần gia hạn thời gian không
-            // (TV3) Ghi lại thời điểm bid xảy ra TRƯỚC khi gọi để tính đúng remaining
-            LocalDateTime bidTime = newBid.getCreatedAt();
-            boolean extended = antiSnipingService.applyExtensionIfNeeded(auction, bidTime);
-            if (extended) {
-                System.out.println("[BidService] Đã gia hạn phiên " + auctionId);
+            // ⑦ Business rules
+            if (auction.getSellerId().equals(bidderId)) {
+                throw new InvalidBidException("Người bán không được đặt giá sản phẩm của mình");
+            }
+            if (bidderId.equals(auction.getHighestBidderId())) {
+                throw new InvalidBidException("Bạn đang là người giữ giá cao nhất");
             }
 
-            // Bước 7: Auto-bid cascade — TV4 thêm dòng này:
-            // autoBidService.resolveAutoBids(auction);
+            // ⑧ Tạo manual bid
+            int sizeBefore = auction.getBidHistory().size();
+            LocalDateTime now = LocalDateTime.now();
+            Bid manualBid = new Bid(
+                    "B-" + UUID.randomUUID().toString().substring(0, 8),
+                    auction.getId(), bidderId, amount, now, BidSource.MANUAL);
+            auction.addBid(manualBid);
 
-            // Bước 8: Lưu auction (với endTime mới nếu có gia hạn, và toàn bộ bid history)
-            auctionDao.save(auction);
+            // ⑨ Anti-sniping
+            antiSnipingService.applyExtensionIfNeeded(auction, now);
 
-            try {
-                DataManager.getInstance().save(DataManager.getInstance().getStore());
-            } catch (Exception e) {
-                // Bỏ qua lỗi DataManager khi chạy test
+            // ⑩ AutoBid cascade — TRONG CÙNG LOCK
+            autoBidService.resolveAutoBids(auction);
+
+            // ⑪ Persist trong 1 transaction
+            List<Bid> newBids = auction.getBidHistory()
+                    .subList(sizeBefore, auction.getBidHistory().size());
+
+            try (Connection conn = db.getConnection()) {
+                conn.setAutoCommit(false);
+                try {
+                    for (Bid b : newBids) {
+                        bidDao.save(conn, b);
+                    }
+                    auctionDao.update(conn, auction);
+                    conn.commit();
+                } catch (Exception ex) {
+                    try { conn.rollback(); } catch (SQLException ignore) {}
+                    throw new DataAccessException("Lưu bid thất bại", ex);
+                }
+            } catch (SQLException e) {
+                throw new DataAccessException("Không lấy được connection", e);
             }
 
-            return auction;   // trả về auction đã có endTime mới + bid mới
+            return auction;
 
         } finally {
-            lock.unlock();    // luôn unlock dù có lỗi hay không
+            lock.unlock();
         }
     }
 }

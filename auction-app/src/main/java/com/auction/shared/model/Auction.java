@@ -211,4 +211,37 @@ public class Auction implements Serializable {
         }
         this.endTime = this.endTime.plusSeconds(seconds);
     }
+    /**
+     * DAO-only: khôi phục bid history khi load từ DB.
+     * KHÔNG re-validate (vì auction có thể đã FINISHED).
+     * Chỉ gọi 1 lần ngay sau khi tạo Auction từ ResultSet.
+     */
+    public void restoreBidHistory(java.util.List<Bid> bids) {
+        if (!this.bidHistory.isEmpty()) {
+            throw new IllegalStateException("Bid history đã được nạp rồi");
+        }
+        if (bids != null) {
+            this.bidHistory.addAll(bids);
+        }
+    }
+
+    /**
+     * DAO-only: gán currentPrice + highestBidderId + winnerBidderId trực tiếp.
+     * Dùng khi load Auction đang giữa chừng (đã có bid).
+     */
+    public void restoreState(long currentPrice, String highestBidderId, String winnerBidderId) {
+        this.currentPrice = currentPrice;
+        this.highestBidderId = highestBidderId;
+        this.winnerBidderId = winnerBidderId;
+    }
+
+    /**
+     * DAO-only: gán status trực tiếp (bypass logic chuyển trạng thái theo thời gian).
+     */
+    public void restoreStatus(AuctionStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("Status không được null");
+        }
+        this.status = status;
+    }
 }

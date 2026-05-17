@@ -232,32 +232,38 @@ public class AuctionDetailController implements AuctionEventObserver {
 
     /**
      * Được AuctionEventBus gọi khi server broadcast AuctionUpdateEvent.
-     * Xảy ra khi: có bid mới, anti-sniping gia hạn thời gian, auto-bid chạy.
-     * Chạy trên JavaFX Application Thread (do Platform.runLater trong EventBus).
+     * Xảy ra khi: có bid mới, anti-sniping gia hạn thời gian, auto-bid chạy,
+     * HOẶC khi vừa subscribe (server gửi snapshot lần đầu).
      */
     @Override
     public void onAuctionUpdated(AuctionUpdateEvent event) {
         Auction updated = event.getAuction();
 
-        // Chỉ xử lý nếu đây đúng phòng mình đang xem
-        if (currentAuction == null || !updated.getId().equals(currentAuction.getId())) {
+        // Chỉ xử lý nếu đây đúng auction mình đang xem
+        // (so sánh với currentAuctionId, KHÔNG phải currentAuction vì lần đầu nó null)
+        if (currentAuctionId == null || !updated.getId().equals(currentAuctionId)) {
             return;
         }
 
-        System.out.println("[Detail] Nhận update auction: " + updated.getId()
-                + " | endTime: " + updated.getEndTime()
-                + " | giá: " + updated.getCurrentPrice());
+        // Wrap trong Platform.runLater để đảm bảo update UI trên FX Thread
+        javafx.application.Platform.runLater(() -> {
+            System.out.println("[Detail] Nhận update auction: " + updated.getId()
+                    + " | endTime: " + updated.getEndTime()
+                    + " | giá: " + updated.getCurrentPrice());
 
-        // Cập nhật object auction trong bộ nhớ
-        currentAuction = updated;
-        expiredHandled  = false;   // reset để cho phép xử lý hết giờ lần mới
+            // Cập nhật object auction trong bộ nhớ
+            currentAuction = updated;
+            expiredHandled = false;
 
-        // Cập nhật toàn bộ UI: giá, người dẫn đầu, bid history
-        renderAuction(updated);
+            // Cập nhật toàn bộ UI
+            renderAuction(updated);
 
-        // Khởi động lại countdown với endTime mới
-        // (quan trọng cho anti-sniping: endTime vừa được gia hạn thêm 60s)
-        startCountdown(updated.getEndTime());
+            // Render biểu đồ bid history
+            renderBidHistoryChart(updated);
+
+            // Khởi động countdown
+            startCountdown(updated.getEndTime());
+        });
     }
 
     public void dispose() {

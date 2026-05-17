@@ -4,6 +4,7 @@ import com.auction.client.network.RealtimeListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
+import com.auction.client.util.SceneNavigator;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -13,63 +14,61 @@ import javafx.stage.Stage;
 
 public class ClientApp extends Application {
 
-    private RealtimeListener listener; //thêm biến listener để có thể điều khiển luồng chạy ngầm
+    private static RealtimeListener listener;
+
+    /** Getter cho các Controller lấy listener (chờ response). */
+    public static RealtimeListener getListener() {
+        return listener;
+    }
 
     @Override
     public void start(Stage stage) {
         try {
-            //Tìm và nạp giao diện từ file FXML
+            // ① Đăng ký stage cho SceneNavigator để các Controller dùng switchScene()
+            SceneNavigator.setStage(stage);
+
+            // ② Load màn Login từ FXML
             Parent root = FXMLLoader.load(getClass().getResource("/fxml/Login.fxml"));
-            
-            //Thiết lập Scene
             Scene scene = new Scene(root);
-            
-            //Cấu hình cửa sổ
             stage.setTitle("Hệ thống Đấu giá Trực tuyến");
             stage.setScene(scene);
 
-            //Khởi động kết nối mạng và Listener chạy ngầm
+            // ③ Khởi tạo kết nối mạng và Listener chạy ngầm
             initNetwork();
 
-            //Bắt sự kiện khi người dùng bấm dấu X tắt cửa sổ
+            // ④ Bắt sự kiện khi người dùng tắt cửa sổ
             stage.setOnCloseRequest(event -> {
                 System.out.println("Dang dong ung dung...");
                 if (listener != null) {
-                    listener.stop(); //dừng luồng nghe ngóng
+                    listener.stop();
                 }
-                ServerConnection.getInstance().close(); //cắt đứt kết nối socket
+                ServerConnection.getInstance().close();
             });
-            stage.show(); //Hiện hình
-            
+            stage.show();
+
         } catch (Exception e) {
-            System.err.println("Lỗi khởi động ứng dụng: Không thể tải giao diện đăng nhập.");
-            System.err.println("Chi tiết lỗi: " + e.getMessage());
+            System.err.println("Lỗi khởi động ứng dụng: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    //Hàm phụ trợ: Khởi tạo kết nối đến Server
     private void initNetwork() {
         try {
             ServerConnection connection = ServerConnection.getInstance();
-            //Kết nối tới Server (Đổi "localhost" thành IP thật nếu chạy trên nhiều máy)
             connection.connect("localhost", 9999);
 
-            //Cắm tai nghe (Listener) vào kết nối và ném cho EventBus
             listener = new RealtimeListener(connection.getInputStream(), AuctionEventBus.getInstance());
-            
-            //Khởi chạy tai nghe trên một luồng phụ (Background thread)
             Thread listenerThread = new Thread(listener);
-            listenerThread.setDaemon(true); //Đảm bảo luồng này chết theo khi tắt app
+            listenerThread.setDaemon(true);
             listenerThread.start();
 
         } catch (Exception e) {
-            System.err.println("Khong the ket noi den Server luc khoi dong.");
-            AlertUtils.showError("Lỗi Máy Chủ", "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng hoặc thử lại sau!");
+            System.err.println("Khong the ket noi den Server luc khoi dong: " + e.getMessage());
+            AlertUtils.showError("Lỗi Máy Chủ", "Không thể kết nối đến máy chủ. Hãy kiểm tra Server đã chạy chưa.");
         }
     }
 
     public static void main(String[] args) {
-        launch(args); //Lệnh kích hoạt JavaFX
+        launch(args);
     }
 }

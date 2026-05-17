@@ -1,0 +1,9 @@
+# MySQL connection config
+# Copy file này thành 'db.properties' và đổi password thật
+db.url=jdbc:mysql://localhost:3306/auction_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+db.user=auction_user
+db.password=CHANGE_ME_TO_REAL_PASSWORD
+
+# Connection pool config
+db.pool.maxSize=10
+db.pool.connectionTimeout=3000

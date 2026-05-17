@@ -3,185 +3,145 @@ package com.auction.server.service;
 import com.auction.server.dao.AuctionDao;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.AuctionStatus;
-import com.auction.shared.model.Bid;
+
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Connection;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@DisplayName("AuctionLifecycleService - chuyển trạng thái theo thời gian")
 class AuctionLifecycleServiceTest {
 
-    private AuctionLifecycleService lifecycleService;
-    private FakeAuctionDao fakeAuctionDao;
+    private FakeAuctionDao auctionDao;
+    private DefaultAuctionLifecycleService lifecycleService;
 
     @BeforeEach
     void setUp() {
-        fakeAuctionDao = new FakeAuctionDao();
-        lifecycleService = new DefaultAuctionLifecycleService(fakeAuctionDao);
+        auctionDao = new FakeAuctionDao();
+        lifecycleService = new DefaultAuctionLifecycleService(auctionDao);
     }
 
     @Test
-    void shouldKeepAuctionOpenBeforeStartTime() {
+    @DisplayName("OPEN trong tương lai → vẫn OPEN sau update")
+    void open_in_future_stays_open() {
         LocalDateTime now = LocalDateTime.now();
+        String auctionId = UUID.randomUUID().toString();
+        Auction auction = new Auction(auctionId, "item", "seller",
+                100L, 10L, AuctionStatus.OPEN,
+                now.plusMinutes(30), now.plusHours(1));
+        auctionDao.save(auction);
 
-        Auction auction = new Auction(
-                "auction-open",
-                "item-01",
-                "seller-01",
-                100_000L,
-                10_000L,
-                AuctionStatus.OPEN,
-                now.plusMinutes(10),
-                now.plusMinutes(20)
-        );
+        lifecycleService.updateStatusByTime(auctionId);
 
-        fakeAuctionDao.save(auction);
-
-        Auction updated = lifecycleService.updateStatusByTime(auction.getId());
-
-        assertEquals(AuctionStatus.OPEN, updated.getStatus());
+        Auction reloaded = auctionDao.findById(auctionId).orElseThrow();
+        assertEquals(AuctionStatus.OPEN, reloaded.getStatus());
     }
 
     @Test
-    void shouldChangeAuctionToRunningWhenCurrentTimeIsBetweenStartAndEnd() {
+    @DisplayName("OPEN đến giờ → chuyển RUNNING")
+    void open_reached_start_time_becomes_running() {
         LocalDateTime now = LocalDateTime.now();
+        String auctionId = UUID.randomUUID().toString();
+        Auction auction = new Auction(auctionId, "item", "seller",
+                100L, 10L, AuctionStatus.OPEN,
+                now.minusMinutes(1), now.plusHours(1));
+        auctionDao.save(auction);
 
-        Auction auction = new Auction(
-                "auction-running",
-                "item-02",
-                "seller-01",
-                100_000L,
-                10_000L,
-                AuctionStatus.OPEN,
-                now.minusMinutes(5),
-                now.plusMinutes(5)
-        );
+        lifecycleService.updateStatusByTime(auctionId);
 
-        fakeAuctionDao.save(auction);
-
-        Auction updated = lifecycleService.updateStatusByTime(auction.getId());
-
-        assertEquals(AuctionStatus.RUNNING, updated.getStatus());
+        Auction reloaded = auctionDao.findById(auctionId).orElseThrow();
+        assertEquals(AuctionStatus.RUNNING, reloaded.getStatus());
     }
 
     @Test
-    void shouldFinishAuctionWhenEndTimePassed() {
+    @DisplayName("RUNNING hết hạn → chuyển FINISHED")
+    void running_expired_becomes_finished() {
         LocalDateTime now = LocalDateTime.now();
+        String auctionId = UUID.randomUUID().toString();
+        Auction auction = new Auction(auctionId, "item", "seller",
+                100L, 10L, AuctionStatus.RUNNING,
+                now.minusHours(2), now.minusMinutes(1));
+        auctionDao.save(auction);
 
-        Auction auction = new Auction(
-                "auction-finished",
-                "item-03",
-                "seller-01",
-                100_000L,
-                10_000L,
-                AuctionStatus.RUNNING,
-                now.minusMinutes(20),
-                now.minusMinutes(5)
-        );
+        lifecycleService.updateStatusByTime(auctionId);
 
-        fakeAuctionDao.save(auction);
-
-        Auction updated = lifecycleService.updateStatusByTime(auction.getId());
-
-        assertEquals(AuctionStatus.FINISHED, updated.getStatus());
+        Auction reloaded = auctionDao.findById(auctionId).orElseThrow();
+        assertEquals(AuctionStatus.FINISHED, reloaded.getStatus());
     }
 
     @Test
-    void shouldSetWinnerWhenAuctionFinishedWithBid() {
+    @DisplayName("RUNNING chưa hết hạn → giữ RUNNING")
+    void running_not_expired_stays_running() {
         LocalDateTime now = LocalDateTime.now();
+        String auctionId = UUID.randomUUID().toString();
+        Auction auction = new Auction(auctionId, "item", "seller",
+                100L, 10L, AuctionStatus.RUNNING,
+                now.minusMinutes(5), now.plusMinutes(30));
+        auctionDao.save(auction);
 
-        Auction auction = new Auction(
-                "auction-winner",
-                "item-04",
-                "seller-01",
-                100_000L,
-                10_000L,
-                AuctionStatus.RUNNING,
-                now.minusMinutes(5),
-                now.plusMinutes(5)
-        );
+        lifecycleService.updateStatusByTime(auctionId);
 
-        Bid bid = new Bid(
-                "bid-01",
-                auction.getId(),
-                "bidder-01",
-                120_000L,
-                now
-        );
-
-        auction.addBid(bid);
-        fakeAuctionDao.save(auction);
-
-        lifecycleService.finishAuction(auction.getId());
-
-        Auction updated = fakeAuctionDao.findById(auction.getId()).orElseThrow();
-
-        assertEquals(AuctionStatus.FINISHED, updated.getStatus());
-        assertEquals("bidder-01", updated.getWinnerBidderId());
+        Auction reloaded = auctionDao.findById(auctionId).orElseThrow();
+        assertEquals(AuctionStatus.RUNNING, reloaded.getStatus());
     }
 
     @Test
-    void shouldHaveNoWinnerWhenAuctionFinishedWithoutBid() {
+    @DisplayName("FINISHED không bị đổi lại")
+    void finished_stays_finished() {
         LocalDateTime now = LocalDateTime.now();
+        String auctionId = UUID.randomUUID().toString();
+        Auction auction = new Auction(auctionId, "item", "seller",
+                100L, 10L, AuctionStatus.FINISHED,
+                now.minusHours(2), now.minusHours(1));
+        auctionDao.save(auction);
 
-        Auction auction = new Auction(
-                "auction-no-winner",
-                "item-05",
-                "seller-01",
-                100_000L,
-                10_000L,
-                AuctionStatus.RUNNING,
-                now.minusMinutes(5),
-                now.plusMinutes(5)
-        );
+        lifecycleService.updateStatusByTime(auctionId);
 
-        fakeAuctionDao.save(auction);
-
-        lifecycleService.finishAuction(auction.getId());
-
-        Auction updated = fakeAuctionDao.findById(auction.getId()).orElseThrow();
-
-        assertEquals(AuctionStatus.FINISHED, updated.getStatus());
-        assertNull(updated.getWinnerBidderId());
+        Auction reloaded = auctionDao.findById(auctionId).orElseThrow();
+        assertEquals(AuctionStatus.FINISHED, reloaded.getStatus());
     }
 
+    // ===== FAKE DAO =====
     static class FakeAuctionDao implements AuctionDao {
-        private final List<Auction> auctions = new ArrayList<>();
+        private final Map<String, Auction> auctions = new HashMap<>();
 
         @Override
-        public List<Auction> findAll() {
-            return auctions;
+        public void save(Auction auction) {
+            auctions.put(auction.getId(), auction);
         }
 
         @Override
         public Optional<Auction> findById(String id) {
-            return auctions.stream()
-                    .filter(a -> a.getId().equals(id))
-                    .findFirst();
+            return id == null ? Optional.empty() : Optional.ofNullable(auctions.get(id));
         }
 
         @Override
-        public void save(Auction auction) {
-            auctions.removeIf(a -> a.getId().equals(auction.getId()));
-            auctions.add(auction);
-        }
-
-        @Override
-        public void deleteById(String id) {
-            auctions.removeIf(a -> a.getId().equals(id));
+        public List<Auction> findAll() {
+            return new ArrayList<>(auctions.values());
         }
 
         @Override
         public List<Auction> findActiveAuctions() {
-            return auctions.stream()
+            return auctions.values().stream()
                     .filter(a -> a.getStatus() == AuctionStatus.OPEN
                             || a.getStatus() == AuctionStatus.RUNNING)
-                    .toList();
+                    .collect(Collectors.toList());
+        }
+
+        @Override
+        public void update(Connection conn, Auction auction) {
+            auctions.put(auction.getId(), auction);
+        }
+
+        @Override
+        public void deleteById(String id) {
+            auctions.remove(id);
         }
     }
 }

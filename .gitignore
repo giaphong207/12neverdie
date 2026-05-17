@@ -23,3 +23,6 @@ Thumbs.db
 
 # Dữ liệu thử nghiệm cá nhân 
 *.dat
+
+# Database config - chứa password, không commit
+src/main/resources/db.properties
