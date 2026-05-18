@@ -2,6 +2,8 @@ package com.auction.server.dao;
 
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.AuctionStatus;
+
+import java.sql.Connection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -38,5 +40,10 @@ public class FileAuctionDao implements AuctionDao {
         return findAll().stream()
                 .filter(a -> a.getStatus() == AuctionStatus.OPEN || a.getStatus() == AuctionStatus.RUNNING)
                 .collect(Collectors.toList());
+    }
+    @Override
+    public void update(Connection conn, Auction auction) {
+        // FileAuctionDao không hỗ trợ transaction
+        save(auction);
     }
 }

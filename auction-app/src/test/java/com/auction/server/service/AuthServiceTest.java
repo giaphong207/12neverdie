@@ -1,173 +1,118 @@
 package com.auction.server.service;
 
-import java.io.File;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import com.auction.server.dao.DataManager;
+import com.auction.server.dao.UserDao;
 import com.auction.shared.model.Role;
 import com.auction.shared.model.User;
 
-public class AuthServiceTest {
-    private AuthService authService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@DisplayName("AuthService - login/register với BCrypt")
+class AuthServiceTest {
+
+    private DefaultAuthService authService;
+    private FakeUserDao userDao;
 
     @BeforeEach
-    public void setUp() {
-        //Xóa file database cũ trước mỗi test
-        File dataFile = new File("data/database.dat");
-        if (dataFile.exists()) {
-            dataFile.delete();
-        }
-        //RESET singleton DataManager
-        try {
-            java.lang.reflect.Field instanceField = DataManager.class.getDeclaredField("instance");
-            instanceField.setAccessible(true);
-            instanceField.set(null, null);  // ← Set instance = null để reload
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        //Khởi tạo AuthService trước mỗi test
-        authService = new DefaultAuthService();
+    void setUp() {
+        userDao = new FakeUserDao();
+        authService = new DefaultAuthService(userDao);
     }
 
-    //TEST CASE ĐĂNG NHẬP
-
     @Test
-    public void shouldLoginSuccessWithValidCredentials() {
-        //Arrange: Đăng ký user trước
-        User registered = authService.register("testuser", "password123", Role.BIDDER); //check register thành công trước
-        assertNotNull(registered, "Register phải thành công");
-
-        //Act: Đăng nhập
-        User user = authService.login("testuser", "password123");
-
-        //Assert: Kiểm tra kết quả
-        assertNotNull(user, "User không được null");
-        assertEquals("testuser", user.getUsername());
+    @DisplayName("Register tạo user mới với BCrypt hash")
+    void register_creates_user_with_bcrypt() {
+        User user = authService.register("alice", "pwd123", Role.BIDDER);
+        assertNotNull(user);
+        assertEquals("alice", user.getUsername());
         assertEquals(Role.BIDDER, user.getRole());
+        assertTrue(user.getPassword().startsWith("$2"),
+                "Password phải là BCrypt hash");
     }
 
     @Test
-    public void shouldLoginFailWithWrongPassword() {
-        //Arrange: Đăng ký user
-        authService.register("testuser", "password123", Role.BIDDER);
-
-        //Act: Đăng nhập với password sai
-        User user = authService.login("testuser", "wrongpassword");
-
-        //Assert: Phải return null
-        assertNull(user, "Đăng nhập sai password phải return null");
+    @DisplayName("Register username trùng trả null")
+    void register_duplicate_returns_null() {
+        authService.register("bob", "pwd", Role.BIDDER);
+        assertNull(authService.register("bob", "other", Role.SELLER));
     }
 
     @Test
-    public void shouldLoginFailWithNonExistentUser() {
-        //Act: Đăng nhập với user không tồn tại
-        User user = authService.login("nonexistent", "password123");
-
-        //Assert: Phải return null
-        assertNull(user, "Đăng nhập user không tồn tại phải return null");
+    @DisplayName("Login đúng credentials trả về user")
+    void login_correct_returns_user() {
+        authService.register("charlie", "secret", Role.SELLER);
+        User result = authService.login("charlie", "secret");
+        assertNotNull(result);
+        assertEquals(Role.SELLER, result.getRole());
     }
 
     @Test
-    public void shouldLoginFailWhenUsernameIsEmpty() {
-        //Act: Đăng nhập với username rỗng
-        User user = authService.login("", "password123");
-
-        //Assert: Phải return null
-        assertNull(user, "Đăng nhập username rỗng phải return null");
-    }
-
-    //TEST CASE ĐĂNG KÝ
-
-    @Test
-    public void shouldRegisterNewUserSuccessfully() {
-        //Act: Đăng ký user mới
-        User user = authService.register("newuser", "pass123", Role.SELLER);
-
-        //Assert: Kiểm tra user được tạo
-        assertNotNull(user, "User mới phải không null");
-        assertEquals("newuser", user.getUsername());
-        assertEquals("pass123", user.getPassword());
-        assertEquals(Role.SELLER, user.getRole());
-        assertNotNull(user.getId(), "User ID phải được sinh ra");
+    @DisplayName("Login sai password trả null")
+    void login_wrong_password_returns_null() {
+        authService.register("dave", "right", Role.BIDDER);
+        assertNull(authService.login("dave", "wrong"));
     }
 
     @Test
-    public void shouldNotRegisterDuplicatedUsername() {
-        //Arrange: Đăng ký user lần 1
-        authService.register("testuser", "pass123", Role.BIDDER);
-
-        //Act: Cố gắng đăng ký lại username trùng
-        User user = authService.register("testuser", "pass456", Role.SELLER);
-
-        //Assert: Phải return null
-        assertNull(user, "Đăng ký username trùng phải return null");
+    @DisplayName("Login user không tồn tại trả null")
+    void login_unknown_user_returns_null() {
+        assertNull(authService.login("ghost", "anything"));
     }
 
     @Test
-    public void shouldRegisterWithDifferentRoles() {
-        //Test đăng ký với vai trò BIDDER
-        User bidder = authService.register("bidderuser", "pass123", Role.BIDDER);
-        assertNotNull(bidder);
-        assertEquals(Role.BIDDER, bidder.getRole());
-
-        //Test đăng ký với vai trò SELLER
-        User seller = authService.register("selleruser", "pass123", Role.SELLER);
-        assertNotNull(seller);
-        assertEquals(Role.SELLER, seller.getRole());
-    }
-
-    //TEST CASE KIỂM TRA USERNAME
-
-    @Test
-    public void shouldCheckUsernameExistsReturnTrue() {
-        //Arrange: Đăng ký user
-        authService.register("testuser", "pass123", Role.BIDDER);
-
-        //Act & Assert: Kiểm tra username tồn tại
-        assertTrue(authService.usernameExists("testuser"),
-                "usernameExists phải return true khi user tồn tại");
+    @DisplayName("Login với input null/empty không crash")
+    void login_null_inputs() {
+        assertNull(authService.login(null, "pwd"));
+        assertNull(authService.login("user", null));
+        assertNull(authService.login(null, null));
     }
 
     @Test
-    public void shouldCheckUsernameExistsReturnFalse() {
-        //Act & Assert: Kiểm tra username không tồn tại
-        assertFalse(authService.usernameExists("nonexistent"),
-                "usernameExists phải return false khi user không tồn tại");
+    @DisplayName("usernameExists check chính xác")
+    void username_exists_check() {
+        assertFalse(authService.usernameExists("nobody"));
+        authService.register("eve", "p", Role.BIDDER);
+        assertTrue(authService.usernameExists("eve"));
     }
 
     @Test
-    public void shouldCheckEmptyUsernameReturnFalse() {
-        //Act và Assert: Kiểm tra username rỗng
-        assertFalse(authService.usernameExists(""),
-                "usernameExists với username rỗng phải return false");
+    @DisplayName("Register 3 role tạo đúng")
+    void register_all_three_roles() {
+        assertEquals(Role.BIDDER, authService.register("b", "p", Role.BIDDER).getRole());
+        assertEquals(Role.SELLER, authService.register("s", "p", Role.SELLER).getRole());
+        assertEquals(Role.ADMIN, authService.register("a", "p", Role.ADMIN).getRole());
     }
 
-    //TEST CASE ADMIN SEED 
-    @Test
-    public void shouldAdminAccountBeSeededOnStartup() {
-        //Act: Kiểm tra admin account có tồn tại không
-        boolean adminExists = authService.usernameExists("admin");
+    // ===== FAKE DAO =====
+    static class FakeUserDao implements UserDao {
+        private final Map<String, User> usersById = new HashMap<>();
 
-        //Assert: Admin phải được seed sẵn
-        assertTrue(adminExists, "Admin account phải được seed sẵn");
-    }
+        @Override
+        public void save(User user) {
+            usersById.put(user.getId(), user);
+        }
 
-    @Test
-    public void shouldLoginAsAdminWithDefaultPassword() {
-        //Act: Đăng nhập với admin default
-        User adminUser = authService.login("admin", "admin123");
+        @Override
+        public Optional<User> findById(String id) {
+            return id == null ? Optional.empty() : Optional.ofNullable(usersById.get(id));
+        }
 
-        //Assert: Kiểm tra admin login thành công
-        assertNotNull(adminUser, "Admin login phải thành công");
-        assertEquals("admin", adminUser.getUsername());
-        assertEquals(Role.ADMIN, adminUser.getRole());
+        @Override
+        public Optional<User> findByUsername(String username) {
+            if (username == null) return Optional.empty();
+            return usersById.values().stream()
+                    .filter(u -> u.getUsername().equals(username))
+                    .findFirst();
+        }
+
+        @Override
+        public List<User> findAll() {
+            return new ArrayList<>(usersById.values());
+        }
     }
 }
-//Cấu trúc AAA (Arrange - Act - Assert): Chuẩn bị dữ liệu (Arrange) -> Gọi hàm cần test (Act) -> Kiểm tra kết quả (Assert)

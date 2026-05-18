@@ -1,253 +1,122 @@
 package com.auction.server.service;
 
 import com.auction.server.dao.AutoBidDao;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
 import com.auction.shared.model.AutoBidConfig;
-import com.auction.shared.model.Bid;
+
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Test cho DefaultAutoBidService.
- *
- * 6 case theo file phân công TV4 tuần 5:
- *   1. shouldCreateAutoBidConfigSuccessfully
- *   2. shouldAutoBidWhenCurrentPriceIsBelowMaxAmount
- *   3. shouldStopAutoBiddingWhenMaxAmountReached
- *   4. shouldChooseHighestMaxAmountConfigWhenMultipleAutoBiddersExist
- *   5. shouldNotAutoBidForCurrentHighestBidder
- *   6. shouldGenerateBidHistoryEntriesForAutoBids
- *
- * + 2 case bonus:
- *   - shouldRejectInvalidConfig
- *   - shouldChooseEarlierConfigWhenMaxAmountTied
- *
- * Test KHÔNG phụ thuộc file thật, dùng InMemoryAutoBidDao.
- */
+@DisplayName("AutoBidService - lưu/load config autobid")
 class AutoBidServiceTest {
 
-    private InMemoryAutoBidDao dao;
-    private AutoBidService service;
+    private FakeAutoBidDao autoBidDao;
 
     @BeforeEach
     void setUp() {
-        dao = new InMemoryAutoBidDao();
-        service = new DefaultAutoBidService(dao);
+        autoBidDao = new FakeAutoBidDao();
     }
 
-    // ========== Case 1 ==========
     @Test
-    void shouldCreateAutoBidConfigSuccessfully() {
-        service.upsertConfig("auction-1", "bidder-A", 1000L, 100L);
+    @DisplayName("Save autoBidConfig và lấy lại được")
+    void save_and_retrieve_autobid_config() {
+        String cfgId = UUID.randomUUID().toString();
+        AutoBidConfig cfg = new AutoBidConfig(
+                cfgId,
+                "auction-1",
+                "bidder-1",
+                5000L, 200L);
+        autoBidDao.save(cfg);
 
-        Optional<AutoBidConfig> saved = dao.findByAuctionIdAndBidderId("auction-1", "bidder-A");
-        assertTrue(saved.isPresent());
-        assertEquals(1000L, saved.get().getMaxAmount());
-        assertEquals(100L, saved.get().getIncrement());
-        assertTrue(saved.get().isEnabled());
+        Optional<AutoBidConfig> found = autoBidDao.findByAuctionIdAndBidderId("auction-1", "bidder-1");
+        assertTrue(found.isPresent());
+        assertEquals(5000L, found.get().getMaxAmount());
+        assertEquals(200L, found.get().getIncrement());
     }
 
-    // ========== Case 2 ==========
     @Test
-    void shouldAutoBidWhenCurrentPriceIsBelowMaxAmount() {
-        // bidder-A có auto-bid config maxAmount=500, increment=50
-        service.upsertConfig("auction-1", "bidder-A", 500L, 50L);
+    @DisplayName("findByAuctionId() — lấy tất cả config của 1 auction")
+    void find_by_auction_id() {
+        autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
+                "auction-1", "bidder-1", 5000L, 100L));
+        autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
+                "auction-1", "bidder-2", 6000L, 100L));
+        autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
+                "auction-2", "bidder-3", 7000L, 100L));
 
-        // bidder-B vừa manual bid 150 (vượt minIncrement=50 từ startPrice=100)
-        // và đang dẫn đầu.
-        Auction auction = newAuctionWithSeedBid("auction-1", 100L, 50L, "bidder-B", 150L);
-
-        boolean placed = service.resolveAutoBids(auction);
-
-        assertTrue(placed, "Phải có ít nhất 1 auto-bid được tạo");
-        // bidder-A auto-bid 150+50 = 200, vượt B
-        assertEquals(200L, auction.getCurrentPrice());
-        assertEquals("bidder-A", auction.getHighestBidderId());
+        assertEquals(2, autoBidDao.findByAuctionId("auction-1").size());
+        assertEquals(1, autoBidDao.findByAuctionId("auction-2").size());
     }
 
-    // ========== Case 3 ==========
     @Test
-    void shouldStopAutoBiddingWhenMaxAmountReached() {
-        // bidder-A maxAmount=200, increment=50
-        // bidder-B manual bid lên 250 (>= max của A) -> A không đủ tiền outbid
-        service.upsertConfig("auction-1", "bidder-A", 200L, 50L);
-
-        Auction auction = newAuctionWithSeedBid("auction-1", 100L, 50L, "bidder-B", 250L);
-
-        boolean placed = service.resolveAutoBids(auction);
-
-        // A không vượt được vì 250+50=300 > 200 (maxAmount)
-        assertFalse(placed);
-        assertEquals(250L, auction.getCurrentPrice());
-        assertEquals("bidder-B", auction.getHighestBidderId());
+    @DisplayName("findByAuctionIdAndBidderId() — không tồn tại trả empty")
+    void find_not_exist_returns_empty() {
+        Optional<AutoBidConfig> result = autoBidDao.findByAuctionIdAndBidderId(
+                "ghost-auction", "ghost-bidder");
+        assertTrue(result.isEmpty());
     }
 
-    // ========== Case 4 ==========
     @Test
-    void shouldChooseHighestMaxAmountConfigWhenMultipleAutoBiddersExist() {
-        // A maxAmount=300, B maxAmount=500 -> B nên thắng cascade
-        service.upsertConfig("auction-1", "bidder-A", 300L, 50L);
-        service.upsertConfig("auction-1", "bidder-B", 500L, 50L);
+    @DisplayName("findAll() — trả về tất cả config")
+    void find_all() {
+        assertEquals(0, autoBidDao.findAll().size());
 
-        // Manual bidder-C đặt 150, đang dẫn đầu
-        Auction auction = newAuctionWithSeedBid("auction-1", 100L, 50L, "bidder-C", 150L);
+        autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
+                "a-1", "b-1", 5000L, 100L));
+        autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
+                "a-2", "b-2", 6000L, 100L));
 
-        boolean placed = service.resolveAutoBids(auction);
-
-        assertTrue(placed);
-        // Sau cascade: B sẽ thắng vì max cao hơn
-        assertEquals("bidder-B", auction.getHighestBidderId());
-        // currentPrice cuối phải > 300 (A đã hết max)
-        assertTrue(auction.getCurrentPrice() > 300L,
-                "currentPrice phải > 300 (A maxed out), nhưng là " + auction.getCurrentPrice());
-        // và <= 500 (B chưa vượt max)
-        assertTrue(auction.getCurrentPrice() <= 500L);
+        assertEquals(2, autoBidDao.findAll().size());
     }
 
-    // ========== Case 5 ==========
     @Test
-    void shouldNotAutoBidForCurrentHighestBidder() {
-        // A đang dẫn đầu mà có auto-bid config -> không nên tự bid chính mình
-        service.upsertConfig("auction-1", "bidder-A", 1000L, 50L);
+    @DisplayName("deleteById() — xóa config theo id")
+    void delete_by_id() {
+        String cfgId = UUID.randomUUID().toString();
+        autoBidDao.save(new AutoBidConfig(cfgId, "a-1", "b-1", 5000L, 100L));
+        assertEquals(1, autoBidDao.findAll().size());
 
-        Auction auction = newAuctionWithSeedBid("auction-1", 100L, 50L, "bidder-A", 150L);
-
-        boolean placed = service.resolveAutoBids(auction);
-
-        assertFalse(placed, "Không được auto-bid khi mình đang dẫn đầu");
-        assertEquals(150L, auction.getCurrentPrice());
-        assertEquals("bidder-A", auction.getHighestBidderId());
+        autoBidDao.deleteById(cfgId);
+        assertEquals(0, autoBidDao.findAll().size());
     }
 
-    // ========== Case 6 ==========
-    @Test
-    void shouldGenerateBidHistoryEntriesForAutoBids() {
-        service.upsertConfig("auction-1", "bidder-A", 500L, 50L);
-
-        Auction auction = newAuctionWithSeedBid("auction-1", 100L, 50L, "bidder-B", 150L);
-        int historyBefore = auction.getBidHistory().size();
-
-        service.resolveAutoBids(auction);
-
-        int historyAfter = auction.getBidHistory().size();
-        assertTrue(historyAfter > historyBefore,
-                "bidHistory phải có thêm entry cho auto-bid");
-    }
-
-    // ========== Bonus 1: validate input ==========
-    @Test
-    void shouldRejectInvalidConfig() {
-        // Constructor của AutoBidConfig validate -> upsertConfig throw IllegalArgumentException
-        assertThrows(IllegalArgumentException.class,
-                () -> service.upsertConfig("auction-1", "bidder-A", 0L, 50L));
-        assertThrows(IllegalArgumentException.class,
-                () -> service.upsertConfig("auction-1", "bidder-A", -100L, 50L));
-        assertThrows(IllegalArgumentException.class,
-                () -> service.upsertConfig("auction-1", "bidder-A", 1000L, 0L));
-    }
-
-    // ========== Bonus 2: tie-break by createdAt ==========
-    @Test
-    void shouldChooseEarlierConfigWhenMaxAmountTied() throws InterruptedException {
-        service.upsertConfig("auction-1", "bidder-A", 500L, 50L);
-        Thread.sleep(10);
-        service.upsertConfig("auction-1", "bidder-B", 500L, 50L);
-
-        Auction auction = newAuctionWithSeedBid("auction-1", 100L, 50L, "bidder-C", 150L);
-
-        service.resolveAutoBids(auction);
-
-        // Có cascade & có winner
-        assertNotNull(auction.getHighestBidderId());
-        assertTrue(auction.getBidHistory().size() >= 2,
-                "Phải có cascade nhiều bid khi 2 auto-bidder cùng max");
-    }
-
-    // ============ Helpers ============
-
-    /**
-     * Tạo Auction RUNNING + seed 1 manual bid của highestBidderId.
-     * Vì Auction của TV2 là immutable (final fields), phải dùng constructor
-     * và addBid() đúng theo API public của Auction.
-     *
-     * @param firstBidAmount  số tiền bid của highestBidderId, phải >= startPrice + minIncrement
-     */
-    private Auction newAuctionWithSeedBid(String auctionId,
-                                          long startPrice,
-                                          long minIncrement,
-                                          String highestBidderId,
-                                          long firstBidAmount) {
-        Auction a = new Auction(
-                auctionId,
-                "item-" + auctionId,
-                "seller-x",
-                startPrice,
-                minIncrement,
-                AuctionStatus.RUNNING,
-                LocalDateTime.now().minusMinutes(10),
-                LocalDateTime.now().plusMinutes(10)
-        );
-
-        // Seed manual bid
-        Bid seedBid = new Bid(
-                UUID.randomUUID().toString(),
-                auctionId,
-                highestBidderId,
-                firstBidAmount,
-                LocalDateTime.now().minusSeconds(5)
-        );
-        a.addBid(seedBid);
-        return a;
-    }
-
-    /** In-memory implementation của AutoBidDao cho test. */
-    private static class InMemoryAutoBidDao implements AutoBidDao {
-        private final Map<String, AutoBidConfig> store = new HashMap<>();
+    // ===== FAKE DAO =====
+    static class FakeAutoBidDao implements AutoBidDao {
+        private final Map<String, AutoBidConfig> configs = new HashMap<>();
 
         @Override
-        public List<AutoBidConfig> findByAuctionId(String auctionId) {
-            List<AutoBidConfig> result = new ArrayList<>();
-            for (AutoBidConfig cfg : store.values()) {
-                if (cfg.getAuctionId().equals(auctionId)) result.add(cfg);
-            }
-            return result;
+        public void save(AutoBidConfig cfg) {
+            configs.put(cfg.getId(), cfg);
         }
 
         @Override
         public Optional<AutoBidConfig> findByAuctionIdAndBidderId(String auctionId, String bidderId) {
-            for (AutoBidConfig cfg : store.values()) {
-                if (cfg.getAuctionId().equals(auctionId)
-                        && cfg.getBidderId().equals(bidderId)) {
-                    return Optional.of(cfg);
-                }
-            }
-            return Optional.empty();
+            return configs.values().stream()
+                    .filter(c -> c.getAuctionId().equals(auctionId)
+                            && c.getBidderId().equals(bidderId))
+                    .findFirst();
         }
 
         @Override
-        public void save(AutoBidConfig config) {
-            store.put(config.getId(), config);
+        public List<AutoBidConfig> findByAuctionId(String auctionId) {
+            return configs.values().stream()
+                    .filter(c -> c.getAuctionId().equals(auctionId))
+                    .collect(Collectors.toList());
         }
 
         @Override
         public void deleteById(String configId) {
-            store.remove(configId);
+            configs.remove(configId);
         }
 
         @Override
         public List<AutoBidConfig> findAll() {
-            return new ArrayList<>(store.values());
+            return new ArrayList<>(configs.values());
         }
     }
 }

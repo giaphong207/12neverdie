@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import javafx.application.Platform;
 
 public class AuctionListController implements AuctionEventObserver {
 
@@ -108,13 +109,12 @@ public class AuctionListController implements AuctionEventObserver {
     @Override
     public void onAuctionUpdated(AuctionUpdateEvent event) {
         Auction updated = event.getAuction();
-        updateAuctionRow(updated);
+        Platform.runLater(() -> updateAuctionRow(updated));   // ← Wrap!
     }
 
     private void updateAuctionRow(Auction updated) {
         for (int i = 0; i < currentAuctions.size(); i++) {
             Auction oldAuction = currentAuctions.get(i);
-
             if (oldAuction.getId().equals(updated.getId())) {
                 currentAuctions.set(i, updated);
                 auctionListView.getItems().set(i, formatAuctionLine(updated));
@@ -122,8 +122,9 @@ public class AuctionListController implements AuctionEventObserver {
             }
         }
 
-        // Nếu auction mới chưa có trong danh sách nhưng đang active thì thêm vào
-        if (updated.isRunning()) {
+        // Auction mới chưa có trong danh sách → thêm vào nếu còn active
+        if (updated.getStatus() == com.auction.shared.model.AuctionStatus.OPEN
+                || updated.getStatus() == com.auction.shared.model.AuctionStatus.RUNNING) {
             currentAuctions.add(updated);
             auctionListView.getItems().add(formatAuctionLine(updated));
         }
