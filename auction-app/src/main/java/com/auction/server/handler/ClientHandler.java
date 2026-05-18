@@ -1,14 +1,17 @@
 package com.auction.server.handler;
 
 import com.auction.server.dao.AuctionDao;
+import com.auction.server.dao.ItemDao;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.service.AuthService;
 import com.auction.server.service.BidService;
 import com.auction.shared.exception.AppException;
 import com.auction.shared.model.Auction;
+import com.auction.shared.model.Item;
 import com.auction.shared.model.User;
 import com.auction.shared.network.*;
+import com.auction.shared.pattern.ItemFactory;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -16,12 +19,14 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class ClientHandler implements Runnable {
     private final Socket socket;
     private final BidService bidService;
     private final AuthService authService;
     private final AuctionDao auctionDao;
+    private final ItemDao itemDao;
     private final AuctionSubscriptionManager subscriptionManager;
     private final EventBroadcaster broadcaster;
 
@@ -32,12 +37,14 @@ public class ClientHandler implements Runnable {
                          BidService bidService,
                          AuthService authService,
                          AuctionDao auctionDao,
+                         ItemDao itemDao,
                          AuctionSubscriptionManager subscriptionManager,
                          EventBroadcaster broadcaster) {
         this.socket = socket;
         this.bidService = bidService;
         this.authService = authService;
         this.auctionDao = auctionDao;
+        this.itemDao = itemDao;
         this.subscriptionManager = subscriptionManager;
         this.broadcaster = broadcaster;
     }
@@ -62,6 +69,14 @@ public class ClientHandler implements Runnable {
                     handleSubscribeAuction(req);
                 } else if (incoming instanceof BidRequest req) {
                     handleBidRequest(req);
+                } else if (incoming instanceof AddItemRequest req) {
+                    handleAddItem(req);
+                } else if (incoming instanceof UpdateItemRequest req) {
+                    handleUpdateItem(req);
+                } else if (incoming instanceof DeleteItemRequest req) {
+                    handleDeleteItem(req);
+                } else if (incoming instanceof GetSellerItemsRequest req) {
+                    handleGetSellerItems(req);
                 }
             }
         } catch (Exception e) {
@@ -97,18 +112,12 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    /**
-     * Khi client subscribe danh sách:
-     *  1. Thêm client vào subscription manager
-     *  2. GỬI NGAY danh sách auction hiện có cho client (snapshot)
-     */
     private void handleSubscribeList() {
         subscriptionManager.subscribeList(this);
         try {
             List<Auction> activeAuctions = auctionDao.findActiveAuctions();
             System.out.println("[Server] Gửi " + activeAuctions.size()
                     + " auction snapshot cho client " + socket.getRemoteSocketAddress());
-            // Gửi từng auction qua AuctionUpdateEvent
             for (Auction a : activeAuctions) {
                 send(new AuctionUpdateEvent(a));
             }
@@ -117,11 +126,6 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    /**
-     * Khi client subscribe 1 auction cụ thể (mở AuctionDetail):
-     *  1. Thêm vào subscription
-     *  2. Gửi snapshot auction đó
-     */
     private void handleSubscribeAuction(SubscribeAuctionRequest req) {
         subscriptionManager.subscribeAuction(req.getAuctionId(), this);
         try {
@@ -147,6 +151,113 @@ public class ClientHandler implements Runnable {
         } catch (Exception ex) {
             send(new ErrorMessage("Lỗi server khi xử lý bid: " + ex.getMessage()));
             ex.printStackTrace();
+        }
+    }
+
+    // ===== ITEM MANAGEMENT (MỚI) =====
+
+    private void handleAddItem(AddItemRequest req) {
+        try {
+            // Validate
+            if (req.getName() == null || req.getName().isBlank()) {
+                send(new AddItemResponse(false, "Tên sản phẩm không được rỗng", null));
+                return;
+            }
+            if (req.getStartPrice() <= 0) {
+                send(new AddItemResponse(false, "Giá khởi điểm phải > 0", null));
+                return;
+            }
+            if (req.getType() == null) {
+                send(new AddItemResponse(false, "Phải chọn loại sản phẩm", null));
+                return;
+            }
+
+            // Tạo item
+            String itemId = UUID.randomUUID().toString();
+            Item item = ItemFactory.createItem(
+                    req.getType(), itemId, req.getSellerId(),
+                    req.getName(), req.getDescription(), req.getStartPrice());
+            itemDao.save(item);
+
+            System.out.println("[Server] Item mới: " + item.getName() + " | seller: " + req.getSellerId());
+
+            // Tự tạo auction RUNNING 24h cho item này
+            String auctionId = UUID.randomUUID().toString();
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            long minIncrement = Math.max(1000L, req.getStartPrice() / 100); // 1% giá khởi điểm
+            Auction auction = new Auction(
+                    auctionId, itemId, req.getSellerId(),
+                    req.getStartPrice(), minIncrement,
+                    com.auction.shared.model.AuctionStatus.RUNNING,
+                    now, now.plusHours(24));
+            auctionDao.save(auction);
+
+            System.out.println("[Server] Auction mới: " + auctionId + " (RUNNING 24h)");
+
+            send(new AddItemResponse(true, "Đã thêm sản phẩm và tạo phiên đấu giá 24h", item));
+
+            // Broadcast cho mọi Bidder thấy auction mới
+            broadcaster.broadcastAuctionUpdate(auction);
+        } catch (Exception e) {
+            e.printStackTrace();
+            send(new AddItemResponse(false, "Lỗi server: " + e.getMessage(), null));
+        }
+    }
+
+    private void handleUpdateItem(UpdateItemRequest req) {
+        try {
+            if (req.getName() == null || req.getName().isBlank()) {
+                send(new UpdateItemResponse(false, "Tên sản phẩm không được rỗng", null));
+                return;
+            }
+
+            Optional<Item> existing = itemDao.findById(req.getItemId());
+            if (existing.isEmpty()) {
+                send(new UpdateItemResponse(false, "Sản phẩm không tồn tại", null));
+                return;
+            }
+
+            // Tạo item mới với cùng id → save() sẽ UPSERT
+            Item updated = ItemFactory.createItem(
+                    req.getType(), req.getItemId(), req.getSellerId(),
+                    req.getName(), req.getDescription(), req.getStartPrice());
+            itemDao.save(updated);
+
+            send(new UpdateItemResponse(true, "Đã cập nhật sản phẩm", updated));
+        } catch (Exception e) {
+            e.printStackTrace();
+            send(new UpdateItemResponse(false, "Lỗi server: " + e.getMessage(), null));
+        }
+    }
+
+    private void handleDeleteItem(DeleteItemRequest req) {
+        try {
+            Optional<Item> existing = itemDao.findById(req.getItemId());
+            if (existing.isEmpty()) {
+                send(new DeleteItemResponse(false, "Sản phẩm không tồn tại"));
+                return;
+            }
+
+            itemDao.deleteById(req.getItemId());
+            send(new DeleteItemResponse(true, "Đã xoá sản phẩm"));
+        } catch (Exception e) {
+            // Có thể fail nếu item đang được dùng trong auction (FK RESTRICT)
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("foreign key")) {
+                send(new DeleteItemResponse(false, "Không xoá được: sản phẩm đang có trong phiên đấu giá"));
+            } else {
+                send(new DeleteItemResponse(false, "Lỗi server: " + msg));
+            }
+        }
+    }
+
+    private void handleGetSellerItems(GetSellerItemsRequest req) {
+        try {
+            List<Item> items = itemDao.findBySellerId(req.getSellerId());
+            send(new GetSellerItemsResponse(true, "OK", items));
+        } catch (Exception e) {
+            e.printStackTrace();
+            send(new GetSellerItemsResponse(false, "Lỗi server: " + e.getMessage(), null));
         }
     }
 
