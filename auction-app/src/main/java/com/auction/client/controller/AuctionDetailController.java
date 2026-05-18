@@ -89,6 +89,10 @@ public class AuctionDetailController implements AuctionEventObserver {
         }
     }
 
+    public void setCurrentAuction(Auction currentAuction) {
+        this.currentAuction = currentAuction;
+    }
+
     private void renderAuction(Auction auction) {
         itemNameLabel.setText("Item ID: " + auction.getItemId());
         descriptionLabel.setText("Auction ID: " + auction.getId());
