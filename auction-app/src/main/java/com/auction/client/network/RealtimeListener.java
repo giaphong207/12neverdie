@@ -6,11 +6,15 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
+import com.auction.shared.network.AddItemResponse;
 import com.auction.shared.network.AuctionUpdateEvent;
 import com.auction.shared.network.BidResponse;
+import com.auction.shared.network.DeleteItemResponse;
 import com.auction.shared.network.ErrorMessage;
+import com.auction.shared.network.GetSellerItemsResponse;
 import com.auction.shared.network.LoginResponse;
 import com.auction.shared.network.RegisterResponse;
+import com.auction.shared.network.UpdateItemResponse;
 
 import javafx.application.Platform;
 
@@ -20,6 +24,8 @@ import javafx.application.Platform;
  *  - AuctionUpdateEvent: publish lên EventBus (broadcast cho UI)
  *  - LoginResponse / RegisterResponse / BidResponse: đẩy vào response queue
  *    (LoginController/RegisterController sẽ poll queue này để lấy)
+ *  - AddItemResponse / UpdateItemResponse / DeleteItemResponse / GetSellerItemsResponse:
+ *    đẩy vào queue cho ProductManagementController
  *  - ErrorMessage: hiển thị alert
  */
 public class RealtimeListener implements Runnable {
@@ -28,7 +34,7 @@ public class RealtimeListener implements Runnable {
     private final AuctionEventBus eventBus;
     private volatile boolean running = true;
 
-    /** Hàng đợi response trả về cho các controller (Login/Register/Bid). */
+    /** Hàng đợi response trả về cho các controller (Login/Register/Bid/Item). */
     private final BlockingQueue<Object> responseQueue = new LinkedBlockingQueue<>();
 
     public RealtimeListener(ObjectInputStream inputStream, AuctionEventBus eventBus) {
@@ -63,6 +69,22 @@ public class RealtimeListener implements Runnable {
 
                 } else if (incoming instanceof BidResponse) {
                     System.out.println("Nhan BidResponse -> day vao queue");
+                    responseQueue.offer(incoming);
+
+                } else if (incoming instanceof AddItemResponse) {
+                    System.out.println("Nhan AddItemResponse -> day vao queue");
+                    responseQueue.offer(incoming);
+
+                } else if (incoming instanceof UpdateItemResponse) {
+                    System.out.println("Nhan UpdateItemResponse -> day vao queue");
+                    responseQueue.offer(incoming);
+
+                } else if (incoming instanceof DeleteItemResponse) {
+                    System.out.println("Nhan DeleteItemResponse -> day vao queue");
+                    responseQueue.offer(incoming);
+
+                } else if (incoming instanceof GetSellerItemsResponse) {
+                    System.out.println("Nhan GetSellerItemsResponse -> day vao queue");
                     responseQueue.offer(incoming);
 
                 } else if (incoming instanceof ErrorMessage error) {

@@ -62,7 +62,7 @@ public class ServerApp {
                 System.out.println("Client mới kết nối: " + socket.getRemoteSocketAddress());
 
                 ClientHandler handler = new ClientHandler(
-                        socket, bidService, authService, auctionDao,
+                        socket, bidService, authService, auctionDao, itemDao,
                         subscriptionManager, broadcaster);
                 new Thread(handler).start();
             }

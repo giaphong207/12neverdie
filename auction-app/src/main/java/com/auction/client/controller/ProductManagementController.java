@@ -1,85 +1,64 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
-import com.auction.server.dao.FileItemDao;
-import com.auction.server.service.DefaultItemService;
-import com.auction.server.service.ItemService;
+import com.auction.client.main.ClientApp;
+import com.auction.client.network.RealtimeListener;
+import com.auction.client.network.ServerConnection;
+import com.auction.client.util.AlertUtils;
+import com.auction.client.util.SceneNavigator;
 import com.auction.shared.model.Item;
 import com.auction.shared.model.ItemType;
 import com.auction.shared.model.User;
-import com.auction.shared.pattern.ItemFactory;
+import com.auction.shared.network.*;
+
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.util.List;
-import java.util.UUID;
-
-
-import com.auction.client.util.SceneNavigator;
-import javafx.fxml.FXML;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
-
-import com.auction.client.util.AlertUtils;
-import com.auction.shared.exception.AppException;
 
 public class ProductManagementController {
 
-    @FXML
-    private TextField productNameField;
+    @FXML private TableView<Item> tblItems;
+    @FXML private TableColumn<Item, String> colName;
+    @FXML private TableColumn<Item, String> colDescription;
+    @FXML private TableColumn<Item, String> colStartingPrice;
+    @FXML private TableColumn<Item, String> colType;
 
-    @FXML
-    private TextField priceField;
-
-    @FXML
-    private Label messageLabel;
-
-    @FXML
-    private TableView<Item> tblItems;
-
-    @FXML
-    private TableColumn<Item, String> colName;
-
-    @FXML
-    private TableColumn<Item, String> colDescription;
-
-    @FXML
-    private TableColumn<Item, String> colStartPrice;
-
-    @FXML
-    private TextField txtName;
-
-    @FXML
-    private TextArea txtDescription;
-
-    @FXML
-    private TextField txtStartPrice;
-
-    @FXML
-    private ComboBox<ItemType> cbItemType;
-
-    private final ItemService itemService =
-            new DefaultItemService(new FileItemDao());
+    @FXML private TextField txtName;
+    @FXML private TextArea txtDescription;
+    @FXML private TextField txtStartingPrice;
+    @FXML private ComboBox<ItemType> cbItemType;
 
     private Item selectedItem;
-
-    public void onAddProduct() {
-        String name = productNameField.getText();
-        String price = priceField.getText();
-        messageLabel.setText("Mock add product: " + name + " - " + price);
-    }
-
-    public void onBackHome() {
-        SceneNavigator.switchScene("/fxml/MainLayout.fxml");
-    }
 
     @FXML
     public void initialize() {
         cbItemType.setItems(FXCollections.observableArrayList(ItemType.values()));
 
-        tblItems.getSelectionModel()
-                .selectedItemProperty()
+        // Setup table columns
+        if (colName != null) {
+            colName.setCellValueFactory(c ->
+                    new javafx.beans.property.SimpleStringProperty(c.getValue().getName()));
+        }
+        if (colDescription != null) {
+            colDescription.setCellValueFactory(c ->
+                    new javafx.beans.property.SimpleStringProperty(c.getValue().getDescription()));
+        }
+        if (colStartingPrice != null) {
+            colStartingPrice.setCellValueFactory(c ->
+                    new javafx.beans.property.SimpleStringProperty(
+                            String.format("%,d VNĐ", c.getValue().getStartPrice())));
+        }
+        if (colType != null) {
+            colType.setCellValueFactory(c ->
+                    new javafx.beans.property.SimpleStringProperty(
+                            c.getValue().getType().name()));
+        }
+
+        // Listen for row selection
+        tblItems.getSelectionModel().selectedItemProperty()
                 .addListener((obs, oldItem, newItem) -> {
                     selectedItem = newItem;
                     if (newItem != null) {
@@ -87,84 +66,195 @@ public class ProductManagementController {
                     }
                 });
 
+        // Load items lúc mở screen
         loadSellerProducts();
     }
 
     public void loadSellerProducts() {
-        try {
-            User currentUser = ClientSession.getCurrentUser();
+        User currentUser = ClientSession.getCurrentUser();
+        if (currentUser == null) {
+            AlertUtils.showWarning("Chưa đăng nhập", "Cần đăng nhập để xem sản phẩm");
+            return;
+        }
 
-            if (currentUser == null) {
-                AlertUtils.showWarning("Chưa đăng nhập", "Bạn cần đăng nhập để xem sản phẩm");
-                return;
+        new Thread(() -> {
+            try {
+                ServerConnection conn = ServerConnection.getInstance();
+                conn.send(new GetSellerItemsRequest(currentUser.getId()));
+
+                RealtimeListener listener = ClientApp.getListener();
+                Object response = listener.waitForResponse();
+
+                Platform.runLater(() -> handleGetItemsResponse(response));
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() ->
+                        AlertUtils.showError("Lỗi mạng", "Không tải được danh sách: " + e.getMessage()));
             }
+        }).start();
+    }
 
-            String sellerId = currentUser.getId();
-            List<Item> items = itemService.getItemsBySeller(sellerId);
-
-            tblItems.setItems(FXCollections.observableArrayList(items));
-        } catch (AppException ex) {
-            AlertUtils.showError("Lỗi tải sản phẩm", ex.getMessage());
+    private void handleGetItemsResponse(Object response) {
+        if (response instanceof GetSellerItemsResponse resp) {
+            if (resp.isSuccess()) {
+                List<Item> items = resp.getItems();
+                tblItems.setItems(FXCollections.observableArrayList(items));
+            } else {
+                AlertUtils.showError("Lỗi", resp.getMessage());
+            }
         }
     }
 
     @FXML
     public void onAddClicked() {
+        User currentUser = ClientSession.getCurrentUser();
+        if (currentUser == null) {
+            AlertUtils.showWarning("Chưa đăng nhập", "Cần đăng nhập");
+            return;
+        }
+
+        String name = txtName.getText().trim();
+        String description = txtDescription.getText().trim();
+        String priceStr = txtStartingPrice.getText().trim();
+        ItemType type = cbItemType.getValue();
+
+        // Validate
+        if (name.isEmpty()) {
+            AlertUtils.showWarning("Lỗi", "Nhập tên sản phẩm");
+            return;
+        }
+        if (type == null) {
+            AlertUtils.showWarning("Lỗi", "Chọn loại sản phẩm");
+            return;
+        }
+        long startPrice;
         try {
-            Item item = buildItemFromForm();
-
-            itemService.addItem(item);
-
-            loadSellerProducts();
-            clearForm();
-
-            AlertUtils.showInfo("Thành công", "Đã thêm sản phẩm");
+            startPrice = Long.parseLong(priceStr);
         } catch (NumberFormatException ex) {
             AlertUtils.showError("Lỗi nhập liệu", "Giá khởi điểm phải là số");
-        } catch (AppException ex) {
-            AlertUtils.showError("Lỗi sản phẩm", ex.getMessage());
+            return;
+        }
+        if (startPrice <= 0) {
+            AlertUtils.showWarning("Lỗi", "Giá phải > 0");
+            return;
+        }
+
+        // Gửi request qua server
+        new Thread(() -> {
+            try {
+                ServerConnection conn = ServerConnection.getInstance();
+                conn.send(new AddItemRequest(name, description, startPrice, type, currentUser.getId()));
+
+                RealtimeListener listener = ClientApp.getListener();
+                Object response = listener.waitForResponse();
+
+                Platform.runLater(() -> handleAddResponse(response));
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() ->
+                        AlertUtils.showError("Lỗi mạng", "Không gửi được: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void handleAddResponse(Object response) {
+        if (response instanceof AddItemResponse resp) {
+            if (resp.isSuccess()) {
+                AlertUtils.showInfo("Thành công", resp.getMessage());
+                clearForm();
+                loadSellerProducts();
+            } else {
+                AlertUtils.showError("Lỗi", resp.getMessage());
+            }
         }
     }
 
     @FXML
     public void onUpdateClicked() {
+        if (selectedItem == null) {
+            AlertUtils.showWarning("Chưa chọn sản phẩm", "Chọn sản phẩm để sửa");
+            return;
+        }
+
+        User currentUser = ClientSession.getCurrentUser();
+        String name = txtName.getText().trim();
+        String description = txtDescription.getText().trim();
+        String priceStr = txtStartingPrice.getText().trim();
+        ItemType type = cbItemType.getValue();
+
+        long startPrice;
         try {
-            if (selectedItem == null) {
-                AlertUtils.showWarning("Chưa chọn sản phẩm", "Bạn chưa chọn sản phẩm để sửa");
-                return;
-            }
-
-            Item updatedItem = buildItemFromFormWithId(selectedItem.getId());
-
-            itemService.updateItem(updatedItem);
-
-            loadSellerProducts();
-            clearForm();
-
-            AlertUtils.showInfo("Thành công", "Đã cập nhật sản phẩm");
+            startPrice = Long.parseLong(priceStr);
         } catch (NumberFormatException ex) {
-            AlertUtils.showError("Lỗi nhập liệu", "Giá khởi điểm phải là số");
-        } catch (AppException ex) {
-            AlertUtils.showError("Lỗi sản phẩm", ex.getMessage());
+            AlertUtils.showError("Lỗi", "Giá phải là số");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                ServerConnection conn = ServerConnection.getInstance();
+                conn.send(new UpdateItemRequest(
+                        selectedItem.getId(), name, description, startPrice, type, currentUser.getId()));
+
+                RealtimeListener listener = ClientApp.getListener();
+                Object response = listener.waitForResponse();
+
+                Platform.runLater(() -> handleUpdateResponse(response));
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() ->
+                        AlertUtils.showError("Lỗi mạng", e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void handleUpdateResponse(Object response) {
+        if (response instanceof UpdateItemResponse resp) {
+            if (resp.isSuccess()) {
+                AlertUtils.showInfo("Thành công", resp.getMessage());
+                clearForm();
+                loadSellerProducts();
+            } else {
+                AlertUtils.showError("Lỗi", resp.getMessage());
+            }
         }
     }
 
     @FXML
     public void onDeleteClicked() {
-        try {
-            if (selectedItem == null) {
-                AlertUtils.showWarning("Chưa chọn sản phẩm", "Bạn chưa chọn sản phẩm để xoá");
-                return;
+        if (selectedItem == null) {
+            AlertUtils.showWarning("Chưa chọn sản phẩm", "Chọn sản phẩm để xoá");
+            return;
+        }
+
+        String itemId = selectedItem.getId();
+
+        new Thread(() -> {
+            try {
+                ServerConnection conn = ServerConnection.getInstance();
+                conn.send(new DeleteItemRequest(itemId));
+
+                RealtimeListener listener = ClientApp.getListener();
+                Object response = listener.waitForResponse();
+
+                Platform.runLater(() -> handleDeleteResponse(response));
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() ->
+                        AlertUtils.showError("Lỗi mạng", e.getMessage()));
             }
+        }).start();
+    }
 
-            itemService.deleteItem(selectedItem.getId());
-
-            loadSellerProducts();
-            clearForm();
-
-            AlertUtils.showInfo("Thành công", "Đã xoá sản phẩm");
-        } catch (AppException ex) {
-            AlertUtils.showError("Lỗi sản phẩm", ex.getMessage());
+    private void handleDeleteResponse(Object response) {
+        if (response instanceof DeleteItemResponse resp) {
+            if (resp.isSuccess()) {
+                AlertUtils.showInfo("Thành công", resp.getMessage());
+                clearForm();
+                loadSellerProducts();
+            } else {
+                AlertUtils.showError("Lỗi", resp.getMessage());
+            }
         }
     }
 
@@ -173,46 +263,24 @@ public class ProductManagementController {
         clearForm();
     }
 
-    private Item buildItemFromForm() {
-        String id = UUID.randomUUID().toString();
-        return buildItemFromFormWithId(id);
-    }
-
-    private Item buildItemFromFormWithId(String id) {
-        User currentUser = ClientSession.getCurrentUser();
-        String sellerId = currentUser.getId();
-
-        String name = txtName.getText().trim();
-        String description = txtDescription.getText().trim();
-        long startPrice = Long.parseLong(txtStartPrice.getText().trim());
-        ItemType type = cbItemType.getValue();
-
-        return ItemFactory.createItem(
-                type,
-                id,
-                sellerId,
-                name,
-                description,
-                startPrice
-        );
+    @FXML
+    public void onBackHome() {
+        SceneNavigator.switchScene("/fxml/MainLayout.fxml");
     }
 
     private void fillForm(Item item) {
         txtName.setText(item.getName());
         txtDescription.setText(item.getDescription());
-        txtStartPrice.setText(String.valueOf(item.getStartPrice()));
+        txtStartingPrice.setText(String.valueOf(item.getStartPrice()));
         cbItemType.setValue(item.getType());
     }
 
     private void clearForm() {
         selectedItem = null;
         tblItems.getSelectionModel().clearSelection();
-
         txtName.clear();
         txtDescription.clear();
-        txtStartPrice.clear();
+        txtStartingPrice.clear();
         cbItemType.setValue(null);
     }
 }
-
-
