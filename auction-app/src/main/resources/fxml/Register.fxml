@@ -1,22 +1,70 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<VBox alignment="CENTER" spacing="15.0" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" 
-      fx:controller="com.auction.client.controller.RegisterController" prefHeight="400.0" prefWidth="600.0">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-    </padding>
+<StackPane xmlns="http://javafx.com/javafx/17"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.auction.client.controller.RegisterController"
+           styleClass="root"
+           prefWidth="1280"
+           prefHeight="800">
 
-    <Label text="ĐĂNG KÝ TÀI KHOẢN MỚI" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
-    
-    <TextField fx:id="txtUsername" promptText="Tên đăng nhập" maxWidth="250"/>
-    <PasswordField fx:id="txtPassword" promptText="Mật khẩu" maxWidth="250"/>
-    
-    <ComboBox fx:id="cbRole" promptText="Chọn vai trò của bạn" maxWidth="250"/>
-    
-    <Button text="Đăng ký" onAction="#onRegisterClicked" prefWidth="250"/>
-    <Button text="Quay lại Đăng nhập" onAction="#onBackToLoginClicked" prefWidth="250"/>
-</VBox>
+    <VBox alignment="CENTER" spacing="32" maxWidth="480">
+
+        <VBox alignment="CENTER" spacing="6">
+            <Label text="AuctionHub" styleClass="title-serif"/>
+            <Label text="ĐĂNG KÝ TÀI KHOẢN"
+                   styleClass="label-tiny-uppercase"
+                   style="-fx-letter-spacing: 0.2em;"/>
+        </VBox>
+
+        <VBox styleClass="card-elevated" spacing="20" maxWidth="440">
+            <padding>
+                <Insets top="36" right="48" bottom="36" left="48"/>
+            </padding>
+
+            <VBox spacing="6">
+                <Label text="VAI TRÒ" styleClass="label-tiny-uppercase"/>
+                <ComboBox fx:id="cbRole" maxWidth="Infinity" promptText="Chọn vai trò"/>
+            </VBox>
+
+            <VBox spacing="6">
+                <Label text="TÊN ĐĂNG NHẬP" styleClass="label-tiny-uppercase"/>
+                <TextField fx:id="txtUsername"/>
+            </VBox>
+
+            <VBox spacing="6">
+                <Label text="MẬT KHẨU" styleClass="label-tiny-uppercase"/>
+                <PasswordField fx:id="txtPassword"/>
+            </VBox>
+
+            <Region prefHeight="4"/>
+
+            <Button text="ĐĂNG KÝ"
+                    styleClass="btn-primary"
+                    onAction="#onRegisterClicked"
+                    maxWidth="Infinity"/>
+
+            <Label text="* Tài khoản Quản trị viên không cho phép tự đăng ký."
+                   styleClass="text-italic-note"
+                   style="-fx-alignment: center;"
+                   maxWidth="Infinity"
+                   contentDisplay="CENTER"
+                   wrapText="true"/>
+
+            <Button text="← Quay lại Đăng nhập"
+                    styleClass="btn-link"
+                    onAction="#onBackToLoginClicked"
+                    maxWidth="Infinity"/>
+        </VBox>
+    </VBox>
+
+</StackPane>

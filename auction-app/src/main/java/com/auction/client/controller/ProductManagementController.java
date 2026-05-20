@@ -17,6 +17,13 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.util.List;
+import com.auction.client.util.EnumFormatter;
+import com.auction.client.util.MoneyFormatter;
+import com.auction.client.util.SidebarBuilder;
+import com.auction.client.util.SidebarBuilder.NavKey;
+import com.auction.shared.model.Role;
+import javafx.scene.layout.StackPane;
+import javafx.util.StringConverter;
 
 public class ProductManagementController {
 
@@ -30,12 +37,36 @@ public class ProductManagementController {
     @FXML private TextArea txtDescription;
     @FXML private TextField txtStartingPrice;
     @FXML private ComboBox<ItemType> cbItemType;
+    @FXML private StackPane sidebarContainer;
 
     private Item selectedItem;
 
     @FXML
     public void initialize() {
+        // Build sidebar Seller
+        if (sidebarContainer != null && ClientSession.getCurrentUser() != null) {
+            var user = ClientSession.getCurrentUser();
+            var sidebar = SidebarBuilder.build(
+                    user,
+                    NavKey.SELLER_PRODUCTS,
+                    this::handleNavClick,
+                    this::handleLogout
+            );
+            sidebarContainer.getChildren().add(sidebar);
+        }
+
+        // ComboBox ItemType hiển thị tiếng Việt
         cbItemType.setItems(FXCollections.observableArrayList(ItemType.values()));
+        cbItemType.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(ItemType type) {
+                return EnumFormatter.itemTypeVi(type);
+            }
+            @Override
+            public ItemType fromString(String s) {
+                return null;
+            }
+        });
 
         // Setup table columns
         if (colName != null) {
@@ -49,15 +80,14 @@ public class ProductManagementController {
         if (colStartingPrice != null) {
             colStartingPrice.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
-                            String.format("%,d VNĐ", c.getValue().getStartPrice())));
+                            MoneyFormatter.formatVnd(c.getValue().getStartPrice())));
         }
         if (colType != null) {
             colType.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
-                            c.getValue().getType().name()));
+                            EnumFormatter.itemTypeVi(c.getValue().getType())));
         }
 
-        // Listen for row selection
         tblItems.getSelectionModel().selectedItemProperty()
                 .addListener((obs, oldItem, newItem) -> {
                     selectedItem = newItem;
@@ -66,8 +96,22 @@ public class ProductManagementController {
                     }
                 });
 
-        // Load items lúc mở screen
         loadSellerProducts();
+    }
+
+    private void handleNavClick(NavKey key) {
+        switch (key) {
+            case SELLER_OVERVIEW -> SceneNavigator.switchScene("/fxml/SellerDashboard.fxml");
+            case SELLER_PRODUCTS -> { /* đang ở đây */ }
+            case SELLER_AUCTIONS -> SceneNavigator.switchScene("/fxml/SellerAuctions.fxml");
+
+            default -> AlertUtils.showInfo("Sắp ra mắt", "Tính năng này đang được phát triển.");
+        }
+    }
+
+    private void handleLogout() {
+        ClientSession.clear();
+        SceneNavigator.switchScene("/fxml/Login.fxml");
     }
 
     public void loadSellerProducts() {

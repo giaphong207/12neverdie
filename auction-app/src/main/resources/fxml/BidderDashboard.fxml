@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.BidderDashboardController"
+            styleClass="root"
+            prefWidth="1280"
+            prefHeight="800">
+
+    <left>
+        <StackPane fx:id="sidebarContainer"/>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true"
+                    style="-fx-background: transparent; -fx-background-color: transparent;">
+            <VBox spacing="32">
+                <padding>
+                    <Insets top="48" right="48" bottom="48" left="48"/>
+                </padding>
+
+                <!-- Welcome heading -->
+                <VBox spacing="10">
+                    <Label fx:id="welcomeLabel" text="Chào mừng trở lại..." styleClass="title-serif"/>
+                    <Region styleClass="champagne-divider"/>
+                </VBox>
+
+                <!-- Stat cards (3 ô) -->
+                <HBox fx:id="statCardsContainer" spacing="20"/>
+
+                <!-- Featured auctions -->
+                <VBox spacing="16">
+                    <Label text="Phiên đấu giá nổi bật" styleClass="title-serif-medium"/>
+                    <FlowPane fx:id="featuredAuctionsContainer" hgap="20" vgap="20"/>
+                </VBox>
+
+                <!-- Ending soon -->
+                <VBox spacing="16">
+                    <Label text="Phiên kết thúc trong giờ tới" styleClass="title-serif-medium"/>
+                    <VBox fx:id="endingSoonContainer" spacing="12"/>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

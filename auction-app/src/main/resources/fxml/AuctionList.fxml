@@ -2,33 +2,74 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox xmlns="http://javafx.com/javafx/17"
-      xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.auction.client.controller.AuctionListController"
-      spacing="15"
-      style="-fx-padding: 25;">
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.AuctionListController"
+            styleClass="root"
+            prefWidth="1280"
+            prefHeight="800">
 
-    <Label text="DANH SÁCH PHIÊN ĐẤU GIÁ"
-           style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
+    <left>
+        <StackPane fx:id="sidebarContainer"/>
+    </left>
 
-    <ListView fx:id="auctionListView"
-              prefHeight="360"
-              prefWidth="720"
-              VBox.vgrow="ALWAYS"/>
+    <center>
+        <ScrollPane fitToWidth="true"
+                    style="-fx-background: transparent; -fx-background-color: transparent;">
+            <VBox spacing="32">
+                <padding>
+                    <Insets top="48" right="48" bottom="48" left="48"/>
+                </padding>
 
-    <HBox spacing="15" alignment="CENTER_RIGHT">
-        <Button text="Làm mới bảng"
-                onAction="#onRefreshClicked"
-                style="-fx-font-size: 14px;"/>
+                <!-- Header -->
+                <VBox spacing="10">
+                    <Label text="Phiên đấu giá" styleClass="title-serif"/>
+                    <Label fx:id="resultCountLabel"
+                           text="Đang tải..."
+                           styleClass="text-secondary"/>
+                    <Region styleClass="champagne-divider"/>
+                </VBox>
 
-        <Button text="Xem Chi Tiết"
-                onAction="#onOpenDetailClicked"
-                style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"/>
-    </HBox>
+                <!-- Filter bar -->
+                <HBox spacing="16" alignment="CENTER_LEFT">
+                    <TextField fx:id="searchField"
+                               promptText="Tìm theo mã LOT..."
+                               prefWidth="280"
+                               styleClass="underline-input"/>
+                    <ChoiceBox fx:id="statusFilter" prefWidth="200"/>
+                    <ChoiceBox fx:id="typeFilter" prefWidth="200"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="Làm mới"
+                            onAction="#onRefreshClicked"
+                            styleClass="btn-outline"/>
+                </HBox>
 
-</VBox>
+                <!-- Grid container -->
+                <FlowPane fx:id="auctionGrid" hgap="20" vgap="20"/>
+
+                <!-- Empty state -->
+                <VBox fx:id="emptyState" alignment="CENTER" spacing="12" visible="false" managed="false">
+                    <padding>
+                        <Insets top="60" right="20" bottom="60" left="20"/>
+                    </padding>
+                    <Label text="○" style="-fx-font-size: 48px; -fx-text-fill: -fx-text-tertiary;"/>
+                    <Label text="Không có phiên đấu giá phù hợp" styleClass="title-serif-small"/>
+                    <Label text="Hãy thử thay đổi bộ lọc hoặc quay lại sau." styleClass="text-secondary"/>
+                </VBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

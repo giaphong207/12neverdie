@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.SellerDashboardController"
+            styleClass="root"
+            prefWidth="1280"
+            prefHeight="800">
+
+    <left>
+        <StackPane fx:id="sidebarContainer"/>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true"
+                    style="-fx-background: transparent; -fx-background-color: transparent;">
+            <VBox spacing="32">
+                <padding>
+                    <Insets top="48" right="48" bottom="48" left="48"/>
+                </padding>
+
+                <VBox spacing="10">
+                    <Label text="Tổng quan" styleClass="title-serif"/>
+                    <Region styleClass="champagne-divider"/>
+                </VBox>
+
+                <HBox fx:id="statCardsContainer" spacing="20"/>
+
+                <VBox spacing="16">
+                    <Label text="Phiên đấu giá gần đây" styleClass="title-serif-medium"/>
+                    <TableView fx:id="recentAuctionsTable" prefHeight="320">
+                        <columns>
+                            <TableColumn fx:id="colLot" text="Mã LOT" prefWidth="160"/>
+                            <TableColumn fx:id="colCurrentPrice" text="Giá hiện tại" prefWidth="220"/>
+                            <TableColumn fx:id="colStatus" text="Trạng thái" prefWidth="180"/>
+                            <TableColumn fx:id="colEndTime" text="Kết thúc" prefWidth="160"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>
