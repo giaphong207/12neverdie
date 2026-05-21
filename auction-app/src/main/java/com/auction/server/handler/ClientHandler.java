@@ -4,6 +4,7 @@ import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.ItemDao;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
+import com.auction.server.service.AuctionService;
 import com.auction.server.service.AuthService;
 import com.auction.server.service.BidResult;
 import com.auction.server.service.BidService;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +29,7 @@ public class ClientHandler implements Runnable {
     private final BidService bidService;
     private final AuthService authService;
     private final AuctionDao auctionDao;
+    private final AuctionService auctionService;
     private final ItemDao itemDao;
     private final AuctionSubscriptionManager subscriptionManager;
     private final EventBroadcaster broadcaster;
@@ -38,6 +41,7 @@ public class ClientHandler implements Runnable {
                          BidService bidService,
                          AuthService authService,
                          AuctionDao auctionDao,
+                         AuctionService auctionService,
                          ItemDao itemDao,
                          AuctionSubscriptionManager subscriptionManager,
                          EventBroadcaster broadcaster) {
@@ -45,6 +49,7 @@ public class ClientHandler implements Runnable {
         this.bidService = bidService;
         this.authService = authService;
         this.auctionDao = auctionDao;
+        this.auctionService = auctionService;
         this.itemDao = itemDao;
         this.subscriptionManager = subscriptionManager;
         this.broadcaster = broadcaster;
@@ -188,18 +193,16 @@ public class ClientHandler implements Runnable {
 
             System.out.println("[Server] Item mới: " + item.getName() + " | seller: " + req.getSellerId());
 
-            // Tự tạo auction RUNNING 24h cho item này
-            String auctionId = UUID.randomUUID().toString();
-            java.time.LocalDateTime now = java.time.LocalDateTime.now();
-            long minIncrement = Math.max(1000L, req.getStartPrice() / 100); // 1% giá khởi điểm
-            Auction auction = new Auction(
-                    auctionId, itemId, req.getSellerId(),
-                    req.getStartPrice(), minIncrement,
-                    com.auction.shared.model.AuctionStatus.RUNNING,
-                    now, now.plusHours(24));
-            auctionDao.save(auction);
 
-            System.out.println("[Server] Auction mới: " + auctionId + " (RUNNING 24h)");
+            LocalDateTime now = LocalDateTime.now();
+            long minIncrement = Math.max(1000L, req.getStartPrice() / 100); // 1% giá khởi điểm
+            // Tạo Auction qua Service
+            Auction auction = auctionService.createAuction(
+                    req.getSellerId(), itemId,
+                    req.getStartPrice(), minIncrement,
+                    now, now.plusHours(24));
+
+            System.out.println("[Server] Auction mới: " + auction.getId() + " (RUNNING 24h)");
 
             send(new AddItemResponse(true, "Đã thêm sản phẩm và tạo phiên đấu giá 24h", item));
 
