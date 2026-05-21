@@ -215,14 +215,26 @@ public class Auction implements Serializable {
         this.status = AuctionStatus.PAID;
     }
     /**
-     * Gia hạn thời gian kết thúc phiên đấu giá.
-     * Chỉ được gọi bởi AntiSnipingService khi có bid ở giây cuối.
+     * Gia hạn thời gian kết thúc phiên đấu giá (cho anti-sniping).
      *
-     * @param seconds số giây muốn cộng thêm (thường là 60)
+     * Chỉ áp dụng được khi auction đang RUNNING.
+     *
+     * ⚠️ LƯU Ý cho caller:
+     * Sau khi gọi method này, PHẢI gọi {@code lifecycleService.rescheduleClose(auction)}
+     * để scheduler fire đúng theo endTime mới. Nếu không, scheduler vẫn close
+     * auction theo endTime cũ.
+     *
+     * @param seconds số giây muốn cộng thêm (phải dương)
+     * @throws IllegalArgumentException nếu seconds <= 0
+     * @throws IllegalStateException    nếu auction không ở trạng thái RUNNING
      */
     public void extendEndTime(long seconds) {
         if (seconds <= 0) {
             throw new IllegalArgumentException("Số giây gia hạn phải dương");
+        }
+        if (status != AuctionStatus.RUNNING) {
+            throw new IllegalStateException(
+                    "Chỉ có thể gia hạn auction đang RUNNING, hiện tại: " + status);
         }
         this.endTime = this.endTime.plusSeconds(seconds);
     }
