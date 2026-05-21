@@ -1,24 +1,26 @@
 package com.auction.server.service;
 
 import com.auction.shared.model.Auction;
+import java.time.Duration;
 import java.time.LocalDateTime;
 
-/**
- * Interface định nghĩa quy tắc chống "sniping" (bid giây cuối để thắng dễ dàng).
- *
- * Quy tắc:
- *   - Nếu có bid hợp lệ khi phiên còn <= ANTI_SNIPING_TRIGGER_SECONDS giây
- *   - Thì tự động cộng thêm ANTI_SNIPING_EXTENSION_SECONDS giây vào endTime
- *   - Chỉ áp dụng 1 lần cho 1 manual bid, không áp dụng lặp cho auto-bid cascade
- */
 public interface AntiSnipingService {
 
     /**
-     * Kiểm tra và áp dụng gia hạn nếu cần.
-     *
-     * @param auction     phiên đang xử lý (sẽ bị chỉnh endTime trực tiếp nếu trigger)
-     * @param triggerTime thời điểm bid xảy ra (thường là LocalDateTime.now())
-     * @return true nếu đã gia hạn, false nếu không cần
+     * Predicate thuần: kiểm tra có cần gia hạn không (KHÔNG sửa auction).
+     * Tách ra để test dễ và để caller có thể decide không apply.
      */
-    boolean applyExtensionIfNeeded(Auction auction, LocalDateTime triggerTime);
+    boolean shouldExtend(Auction auction, LocalDateTime now);
+
+    /**
+     * Apply gia hạn lên auction (mutate). Chỉ gọi sau khi shouldExtend == true.
+     * KHÔNG tự reschedule scheduler — caller (BidService) phối hợp với LifecycleService.
+     *
+     * @return số giây đã gia hạn (để caller log/broadcast)
+     */
+    long applyExtension(Auction auction);
+
+    /** Cho phép caller đọc config (vd: để log "đã gia hạn 60s"). */
+    Duration getExtensionDuration();
+    Duration getTriggerWindow();
 }
