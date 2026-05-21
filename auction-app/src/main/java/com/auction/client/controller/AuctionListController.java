@@ -7,7 +7,7 @@ import com.auction.client.realtime.AuctionEventObserver;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneNavigator;
 import com.auction.shared.model.Auction;
-import com.auction.shared.network.AuctionUpdateEvent;
+import com.auction.shared.network.AuctionEvent;
 import com.auction.shared.network.SubscribeAuctionListRequest;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -107,7 +107,7 @@ public class AuctionListController implements AuctionEventObserver {
     }
 
     @Override
-    public void onAuctionUpdated(AuctionUpdateEvent event) {
+    public void onAuctionUpdated(AuctionEvent event) {
         Auction updated = event.getAuction();
         Platform.runLater(() -> updateAuctionRow(updated));   // ← Wrap!
     }

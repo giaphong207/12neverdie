@@ -11,11 +11,13 @@ import com.auction.client.util.MoneyParser;
 import com.auction.client.util.SceneNavigator;
 import com.auction.shared.exception.AppException;
 import com.auction.shared.model.*;
-import com.auction.shared.network.AuctionUpdateEvent;
+
+import com.auction.shared.network.AuctionEvent;
 import com.auction.shared.network.BidRequest;
 import com.auction.shared.network.SubscribeAuctionRequest;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
@@ -30,6 +32,8 @@ import javafx.util.Duration;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
 
 public class AuctionDetailController implements AuctionEventObserver {
 
@@ -240,7 +244,7 @@ public class AuctionDetailController implements AuctionEventObserver {
      * HOẶC khi vừa subscribe (server gửi snapshot lần đầu).
      */
     @Override
-    public void onAuctionUpdated(AuctionUpdateEvent event) {
+    public void onAuctionUpdated(AuctionEvent event) {
         Auction updated = event.getAuction();
 
         // Chỉ xử lý nếu đây đúng auction mình đang xem

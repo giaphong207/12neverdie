@@ -47,7 +47,7 @@ public class DefaultBidService implements BidService {
     }
 
     @Override
-    public Auction placeBid(String auctionId, String bidderId, long amount) {
+    public BidResult placeBid(String auctionId, String bidderId, long amount) {
         // ① Validate input
         if (auctionId == null || auctionId.isBlank()) {
             throw new InvalidBidException("auctionId rỗng");
@@ -135,7 +135,7 @@ public class DefaultBidService implements BidService {
                 throw new DataAccessException("Không lấy được connection", e);
             }
 
-            return auction;
+            return new BidResult(auction,manualBid);
 
         } finally {
             lock.unlock();

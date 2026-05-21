@@ -5,6 +5,7 @@ import com.auction.server.dao.ItemDao;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.service.AuthService;
+import com.auction.server.service.BidResult;
 import com.auction.server.service.BidService;
 import com.auction.shared.exception.AppException;
 import com.auction.shared.model.Auction;
@@ -119,7 +120,7 @@ public class ClientHandler implements Runnable {
             System.out.println("[Server] Gửi " + activeAuctions.size()
                     + " auction snapshot cho client " + socket.getRemoteSocketAddress());
             for (Auction a : activeAuctions) {
-                send(new AuctionUpdateEvent(a));
+                send(new AuctionUpdatedEvent(a));
             }
         } catch (Exception e) {
             System.err.println("Lỗi gửi snapshot danh sách: " + e.getMessage());
@@ -131,7 +132,7 @@ public class ClientHandler implements Runnable {
         try {
             Optional<Auction> auctionOpt = auctionDao.findById(req.getAuctionId());
             if (auctionOpt.isPresent()) {
-                send(new AuctionUpdateEvent(auctionOpt.get()));
+                send(new AuctionUpdatedEvent(auctionOpt.get()));
             }
         } catch (Exception e) {
             System.err.println("Lỗi gửi snapshot auction: " + e.getMessage());
@@ -140,12 +141,18 @@ public class ClientHandler implements Runnable {
 
     private void handleBidRequest(BidRequest request) {
         try {
-            Auction updated = bidService.placeBid(
+            BidResult result = bidService.placeBid(
                     request.getAuctionId(),
                     request.getBidderId(),
                     request.getAmount());
-            send(new BidResponse(true, "Đặt giá thành công!", updated));
-            broadcaster.broadcastAuctionUpdate(updated);
+
+            // Trả response cho người vừa bid: chỉ cần Auction state mới
+            send(new BidResponse(true, "Đặt giá thành công!", result.auction()));
+
+            // Broadcast cho mọi subscriber: kèm thông tin Bid để client biết
+            // ai vừa bid bao nhiêu (không chỉ thấy giá đổi)
+            broadcaster.broadcast(new BidPlacedEvent(result.auction(), result.bid()));
+
         } catch (AppException ex) {
             send(new BidResponse(false, ex.getMessage(), null));
         } catch (Exception ex) {
@@ -197,7 +204,7 @@ public class ClientHandler implements Runnable {
             send(new AddItemResponse(true, "Đã thêm sản phẩm và tạo phiên đấu giá 24h", item));
 
             // Broadcast cho mọi Bidder thấy auction mới
-            broadcaster.broadcastAuctionUpdate(auction);
+            broadcaster.broadcast(new AuctionStartedEvent(auction));
         } catch (Exception e) {
             e.printStackTrace();
             send(new AddItemResponse(false, "Lỗi server: " + e.getMessage(), null));

@@ -4,6 +4,7 @@ import com.auction.client.main.ClientApp;
 import com.auction.client.network.RealtimeListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
+import com.auction.client.util.SceneNavigator;
 import com.auction.shared.model.Role;
 import com.auction.shared.network.RegisterRequest;
 import com.auction.shared.network.RegisterResponse;
@@ -80,5 +81,10 @@ public class RegisterController {
         } else {
             AlertUtils.showError("Lỗi", "Phản hồi không hợp lệ");
         }
+    }
+
+    @FXML
+    public void onBackToLoginClicked() {
+        SceneNavigator.switchScene("/fxml/Login.fxml");
     }
 }
