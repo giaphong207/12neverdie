@@ -74,7 +74,7 @@ public class DefaultBidService implements BidService {
 
         try {
             // ③ Update status theo thời gian
-            lifecycleService.updateStatusByTime(auctionId);
+            lifecycleService.syncByTime(auctionId);
 
             // ④ Load auction (kèm bid history)
             Auction auction = auctionDao.findById(auctionId)

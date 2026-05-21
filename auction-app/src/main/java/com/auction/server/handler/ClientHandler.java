@@ -203,8 +203,6 @@ public class ClientHandler implements Runnable {
 
             send(new AddItemResponse(true, "Đã thêm sản phẩm và tạo phiên đấu giá 24h", item));
 
-            // Broadcast cho mọi Bidder thấy auction mới
-            broadcaster.broadcast(new AuctionStartedEvent(auction));
         } catch (Exception e) {
             e.printStackTrace();
             send(new AddItemResponse(false, "Lỗi server: " + e.getMessage(), null));
