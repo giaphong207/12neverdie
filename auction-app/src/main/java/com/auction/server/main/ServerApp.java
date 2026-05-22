@@ -7,10 +7,13 @@ import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.seed.DatabaseSeeder;
 import com.auction.server.service.*;
+import com.auction.shared.model.Auction;
+import com.auction.shared.model.AuctionStatus;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.Duration;
 
 public class ServerApp {
 
@@ -32,10 +35,23 @@ public class ServerApp {
         // ③ Seed data nếu DB trống
         new DatabaseSeeder(userDao, itemDao, auctionDao).seedIfEmpty();
 
-        // ④ Service layer
-        AuctionLifecycleService lifecycleService = new DefaultAuctionLifecycleService(auctionDao);
+        // ④ Realtime + Lock
+        // Khởi tạo dependencies cần trước
         AuctionLockManager lockManager = new AuctionLockManager();
-        AntiSnipingService antiSniping = new DefaultAntiSnipingService();
+        AuctionSubscriptionManager subscriptionManager = new AuctionSubscriptionManager();
+        EventBroadcaster broadcaster = new EventBroadcaster(subscriptionManager);
+
+        // ⑤ Service layer
+        AuctionLifecycleService lifecycleService =
+                new DefaultAuctionLifecycleService(auctionDao, broadcaster, lockManager);
+        AuctionService auctionService =
+                new DefaultAuctionService(auctionDao, lifecycleService, broadcaster);
+
+        // AntiSniping cần Duration
+        AntiSnipingService antiSniping = new DefaultAntiSnipingService(
+                Duration.ofSeconds(60),   // trigger window
+                Duration.ofSeconds(60)    // extension
+        );
         AutoBidService autoBidService = new DefaultAutoBidService(autoBidDao);
         AuthService authService = new DefaultAuthService(userDao);
 
@@ -43,12 +59,24 @@ public class ServerApp {
                 db, auctionDao, bidDao, lifecycleService,
                 lockManager, antiSniping, autoBidService);
 
-        // ⑤ Realtime
-        AuctionSubscriptionManager subscriptionManager = new AuctionSubscriptionManager();
-        EventBroadcaster broadcaster = new EventBroadcaster(subscriptionManager);
+        // ⑥ Re-schedule tasks sau restart cho các auction chưa terminal
+        for (Auction a : auctionDao.findAll()) {
+            AuctionStatus s = a.getStatus();
+            if (s == AuctionStatus.OPEN) {
+                lifecycleService.scheduleStart(a);
+                lifecycleService.scheduleClose(a);
+            } else if (s == AuctionStatus.RUNNING) {
+                lifecycleService.scheduleClose(a);
+            } else if (s == AuctionStatus.FINISHED) {
+                lifecycleService.schedulePaymentTimeout(a);
+            }
+            // PAID, CANCELED → không cần schedule
+        }
 
         // ⑥ Shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("[Shutdown] Đóng scheduler...");
+            lifecycleService.shutdown();
             System.out.println("[Shutdown] Đóng connection pool...");
             db.shutdown();
         }));
@@ -62,7 +90,7 @@ public class ServerApp {
                 System.out.println("Client mới kết nối: " + socket.getRemoteSocketAddress());
 
                 ClientHandler handler = new ClientHandler(
-                        socket, bidService, authService, auctionDao, itemDao,
+                        socket, bidService, authService, auctionDao, auctionService, itemDao,
                         subscriptionManager, broadcaster);
                 new Thread(handler).start();
             }

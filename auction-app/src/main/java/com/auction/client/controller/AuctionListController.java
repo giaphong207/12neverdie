@@ -11,6 +11,7 @@ import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.shared.model.Auction;
+import com.auction.shared.network.AuctionEvent;
 import com.auction.shared.model.AuctionStatus;
 import com.auction.shared.model.Role;
 import com.auction.shared.network.AuctionUpdateEvent;
@@ -205,6 +206,11 @@ public class AuctionListController implements AuctionEventObserver {
             case BIDDER_MINE -> SceneNavigator.switchScene("/fxml/MyAuctions.fxml");
             case BIDDER_WON -> SceneNavigator.switchScene("/fxml/WonAuctions.fxml");
 
+    @Override
+    public void onAuctionUpdated(AuctionEvent event) {
+        Auction updated = event.getAuction();
+        Platform.runLater(() -> updateAuctionRow(updated));   // ← Wrap!
+    }
             // Seller routes
             case SELLER_OVERVIEW -> SceneNavigator.switchScene("/fxml/SellerDashboard.fxml");
             case SELLER_PRODUCTS -> SceneNavigator.switchScene("/fxml/ProductManagement.fxml");

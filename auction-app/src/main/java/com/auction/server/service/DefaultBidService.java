@@ -47,7 +47,7 @@ public class DefaultBidService implements BidService {
     }
 
     @Override
-    public Auction placeBid(String auctionId, String bidderId, long amount) {
+    public BidResult placeBid(String auctionId, String bidderId, long amount) {
         // ① Validate input
         if (auctionId == null || auctionId.isBlank()) {
             throw new InvalidBidException("auctionId rỗng");
@@ -73,12 +73,7 @@ public class DefaultBidService implements BidService {
         }
 
         try {
-            // ③ Update status theo thời gian
-            lifecycleService.updateStatusByTime(auctionId);
-
-            // ④ Load auction (kèm bid history)
-            Auction auction = auctionDao.findById(auctionId)
-                    .orElseThrow(() -> new AuctionNotFoundException(auctionId));
+            Auction auction = lifecycleService.syncByTime(auctionId);
 
             // ⑤ Validate status
             if (!auction.isRunning()) {
@@ -109,8 +104,13 @@ public class DefaultBidService implements BidService {
                     auction.getId(), bidderId, amount, now, BidSource.MANUAL);
             auction.addBid(manualBid);
 
-            // ⑨ Anti-sniping
-            antiSnipingService.applyExtensionIfNeeded(auction, now);
+            // ⑨ Anti-sniping — TRONG CÙNG LOCK
+            if (antiSnipingService.shouldExtend(auction, now)) {
+                long extendedSeconds = antiSnipingService.applyExtension(auction);
+                lifecycleService.rescheduleClose(auction);
+                System.out.println("[BidService] Auction " + auction.getId()
+                        + " gia hạn " + extendedSeconds + "s do anti-sniping");
+            }
 
             // ⑩ AutoBid cascade — TRONG CÙNG LOCK
             autoBidService.resolveAutoBids(auction);
@@ -135,7 +135,7 @@ public class DefaultBidService implements BidService {
                 throw new DataAccessException("Không lấy được connection", e);
             }
 
-            return auction;
+            return new BidResult(auction,manualBid);
 
         } finally {
             lock.unlock();

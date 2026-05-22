@@ -3,7 +3,7 @@ package com.auction.client.realtime;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.auction.shared.network.AuctionUpdateEvent;
+import com.auction.shared.network.AuctionEvent;
 
 import javafx.application.Platform;
 
@@ -46,7 +46,7 @@ public final class AuctionEventBus {
         }
     }
 
-    public void publish(AuctionUpdateEvent event) {
+    public void publish(AuctionEvent event) {
         if (event == null) {
             return;
         }

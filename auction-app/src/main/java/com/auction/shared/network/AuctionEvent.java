@@ -4,11 +4,11 @@ import java.io.Serializable;
 
 import com.auction.shared.model.Auction;
 
-public class AuctionUpdateEvent implements Serializable {
+public abstract class AuctionEvent implements Serializable {
     private static final long serialVersionUID = 1L;
     private final Auction auction;
 
-    public AuctionUpdateEvent(Auction auction) {
+    public AuctionEvent(Auction auction) {
         this.auction = auction;
     }
 

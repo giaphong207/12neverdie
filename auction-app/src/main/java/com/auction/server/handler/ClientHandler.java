@@ -4,7 +4,9 @@ import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.ItemDao;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
+import com.auction.server.service.AuctionService;
 import com.auction.server.service.AuthService;
+import com.auction.server.service.BidResult;
 import com.auction.server.service.BidService;
 import com.auction.shared.exception.AppException;
 import com.auction.shared.model.Auction;
@@ -17,6 +19,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +29,7 @@ public class ClientHandler implements Runnable {
     private final BidService bidService;
     private final AuthService authService;
     private final AuctionDao auctionDao;
+    private final AuctionService auctionService;
     private final ItemDao itemDao;
     private final AuctionSubscriptionManager subscriptionManager;
     private final EventBroadcaster broadcaster;
@@ -37,6 +41,7 @@ public class ClientHandler implements Runnable {
                          BidService bidService,
                          AuthService authService,
                          AuctionDao auctionDao,
+                         AuctionService auctionService,
                          ItemDao itemDao,
                          AuctionSubscriptionManager subscriptionManager,
                          EventBroadcaster broadcaster) {
@@ -44,6 +49,7 @@ public class ClientHandler implements Runnable {
         this.bidService = bidService;
         this.authService = authService;
         this.auctionDao = auctionDao;
+        this.auctionService = auctionService;
         this.itemDao = itemDao;
         this.subscriptionManager = subscriptionManager;
         this.broadcaster = broadcaster;
@@ -119,7 +125,7 @@ public class ClientHandler implements Runnable {
             System.out.println("[Server] Gửi " + activeAuctions.size()
                     + " auction snapshot cho client " + socket.getRemoteSocketAddress());
             for (Auction a : activeAuctions) {
-                send(new AuctionUpdateEvent(a));
+                send(new AuctionUpdatedEvent(a));
             }
         } catch (Exception e) {
             System.err.println("Lỗi gửi snapshot danh sách: " + e.getMessage());
@@ -131,7 +137,7 @@ public class ClientHandler implements Runnable {
         try {
             Optional<Auction> auctionOpt = auctionDao.findById(req.getAuctionId());
             if (auctionOpt.isPresent()) {
-                send(new AuctionUpdateEvent(auctionOpt.get()));
+                send(new AuctionUpdatedEvent(auctionOpt.get()));
             }
         } catch (Exception e) {
             System.err.println("Lỗi gửi snapshot auction: " + e.getMessage());
@@ -140,12 +146,18 @@ public class ClientHandler implements Runnable {
 
     private void handleBidRequest(BidRequest request) {
         try {
-            Auction updated = bidService.placeBid(
+            BidResult result = bidService.placeBid(
                     request.getAuctionId(),
                     request.getBidderId(),
                     request.getAmount());
-            send(new BidResponse(true, "Đặt giá thành công!", updated));
-            broadcaster.broadcastAuctionUpdate(updated);
+
+            // Trả response cho người vừa bid: chỉ cần Auction state mới
+            send(new BidResponse(true, "Đặt giá thành công!", result.auction()));
+
+            // Broadcast cho mọi subscriber: kèm thông tin Bid để client biết
+            // ai vừa bid bao nhiêu (không chỉ thấy giá đổi)
+            broadcaster.broadcast(new BidPlacedEvent(result.auction(), result.bid()));
+
         } catch (AppException ex) {
             send(new BidResponse(false, ex.getMessage(), null));
         } catch (Exception ex) {
@@ -181,23 +193,19 @@ public class ClientHandler implements Runnable {
 
             System.out.println("[Server] Item mới: " + item.getName() + " | seller: " + req.getSellerId());
 
-            // Tự tạo auction RUNNING 24h cho item này
-            String auctionId = UUID.randomUUID().toString();
-            java.time.LocalDateTime now = java.time.LocalDateTime.now();
-            long minIncrement = Math.max(1000L, req.getStartPrice() / 100); // 1% giá khởi điểm
-            Auction auction = new Auction(
-                    auctionId, itemId, req.getSellerId(),
-                    req.getStartPrice(), minIncrement,
-                    com.auction.shared.model.AuctionStatus.RUNNING,
-                    now, now.plusHours(24));
-            auctionDao.save(auction);
 
-            System.out.println("[Server] Auction mới: " + auctionId + " (RUNNING 24h)");
+            LocalDateTime now = LocalDateTime.now();
+            long minIncrement = Math.max(1000L, req.getStartPrice() / 100); // 1% giá khởi điểm
+            // Tạo Auction qua Service
+            Auction auction = auctionService.createAuction(
+                    req.getSellerId(), itemId,
+                    req.getStartPrice(), minIncrement,
+                    now, now.plusHours(24));
+
+            System.out.println("[Server] Auction mới: " + auction.getId() + " (RUNNING 24h)");
 
             send(new AddItemResponse(true, "Đã thêm sản phẩm và tạo phiên đấu giá 24h", item));
 
-            // Broadcast cho mọi Bidder thấy auction mới
-            broadcaster.broadcastAuctionUpdate(auction);
         } catch (Exception e) {
             e.printStackTrace();
             send(new AddItemResponse(false, "Lỗi server: " + e.getMessage(), null));

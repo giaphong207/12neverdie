@@ -6,15 +6,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
-import com.auction.shared.network.AddItemResponse;
-import com.auction.shared.network.AuctionUpdateEvent;
-import com.auction.shared.network.BidResponse;
-import com.auction.shared.network.DeleteItemResponse;
-import com.auction.shared.network.ErrorMessage;
-import com.auction.shared.network.GetSellerItemsResponse;
-import com.auction.shared.network.LoginResponse;
-import com.auction.shared.network.RegisterResponse;
-import com.auction.shared.network.UpdateItemResponse;
+import com.auction.shared.network.*;
 
 import javafx.application.Platform;
 
@@ -55,7 +47,7 @@ public class RealtimeListener implements Runnable {
             try {
                 Object incoming = inputStream.readObject();
 
-                if (incoming instanceof AuctionUpdateEvent event) {
+                if (incoming instanceof AuctionEvent event) {
                     System.out.println("Nhan AuctionUpdateEvent: " + event.getAuction().getId());
                     eventBus.publish(event);
 
