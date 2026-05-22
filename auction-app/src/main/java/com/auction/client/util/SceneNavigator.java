@@ -28,14 +28,14 @@ public final class SceneNavigator {
             }
 
             Parent root = FXMLLoader.load(resource);
-            Scene scene = new Scene(root, 900, 600);
+            Scene scene = new Scene(root, 1280, 800);
 
-            URL cssResource = SceneNavigator.class.getResource("/css/app.css");
-            if (cssResource != null) {
-                scene.getStylesheets().add(cssResource.toExternalForm());
-            }
+            // Apply Library Bronze theme CSS — dùng SceneStyler thống nhất
+            SceneStyler.apply(scene);
 
             stage.setScene(scene);
+            stage.setMinWidth(1024);
+            stage.setMinHeight(720);
         } catch (IOException e) {
             throw new RuntimeException("Failed to load scene: " + fxmlPath, e);
         }

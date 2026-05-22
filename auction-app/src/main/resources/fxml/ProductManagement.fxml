@@ -1,62 +1,94 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<BorderPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.auction.client.controller.ProductManagementController"
-            prefWidth="900"
-            prefHeight="600">
+            styleClass="root"
+            prefWidth="1280"
+            prefHeight="800">
 
-<top>
-    <Label text="Quản lý sản phẩm"
-           style="-fx-font-size: 24px; -fx-font-weight: bold;">
-        <BorderPane.margin>
-            <Insets top="20" right="20" bottom="10" left="20"/>
-        </BorderPane.margin>
-    </Label>
-</top>
+    <left>
+        <StackPane fx:id="sidebarContainer"/>
+    </left>
 
-<center>
-    <TableView fx:id="tblItems">
-        <columns>
-            <TableColumn fx:id="colName" text="Tên sản phẩm" prefWidth="180"/>
-            <TableColumn fx:id="colDescription" text="Mô tả" prefWidth="300"/>
-            <TableColumn fx:id="colStartingPrice" text="Giá khởi điểm" prefWidth="150"/>
-            <TableColumn fx:id="colType" text="Loại" prefWidth="120"/>
-        </columns>
-    </TableView>
-</center>
+    <center>
+        <HBox spacing="24">
+            <padding>
+                <Insets top="48" right="48" bottom="48" left="48"/>
+            </padding>
 
-<right>
-    <VBox spacing="12" prefWidth="300">
-        <padding>
-            <Insets top="20" right="20" bottom="20" left="20"/>
-        </padding>
+            <!-- Cột trái: Danh sách sản phẩm -->
+            <VBox spacing="20" HBox.hgrow="ALWAYS">
 
-        <Label text="Thông tin sản phẩm"
-               style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+                <VBox spacing="10">
+                    <Label text="Sản phẩm của tôi" styleClass="title-serif"/>
+                    <Region styleClass="champagne-divider"/>
+                </VBox>
 
-        <TextField fx:id="txtName" promptText="Tên sản phẩm"/>
+                <TableView fx:id="tblItems" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colName" text="Tên sản phẩm" prefWidth="220"/>
+                        <TableColumn fx:id="colDescription" text="Mô tả" prefWidth="260"/>
+                        <TableColumn fx:id="colStartingPrice" text="Giá khởi điểm" prefWidth="160"/>
+                        <TableColumn fx:id="colType" text="Loại" prefWidth="140"/>
+                    </columns>
+                </TableView>
+            </VBox>
 
-        <TextArea fx:id="txtDescription"
-                  promptText="Mô tả"
-                  prefRowCount="4"
-                  wrapText="true"/>
+            <!-- Cột phải: Form chi tiết -->
+            <VBox styleClass="card" spacing="16" prefWidth="380" minWidth="340" maxWidth="440">
 
-        <TextField fx:id="txtStartingPrice" promptText="Giá khởi điểm"/>
+                <Label text="Chỉnh sửa sản phẩm" styleClass="title-serif-small"/>
+                <Region styleClass="champagne-divider"/>
 
-        <ComboBox fx:id="cbItemType" promptText="Loại sản phẩm" maxWidth="Infinity"/>
+                <VBox spacing="6">
+                    <Label text="TÊN SẢN PHẨM" styleClass="label-tiny-uppercase"/>
+                    <TextField fx:id="txtName"/>
+                </VBox>
 
-        <HBox spacing="8">
-            <Button text="Add" onAction="#onAddClicked"/>
-            <Button text="Update" onAction="#onUpdateClicked"/>
-            <Button text="Delete" onAction="#onDeleteClicked"/>
-            <Button text="Clear" onAction="#onClearClicked"/>
+                <VBox spacing="6">
+                    <Label text="MÔ TẢ" styleClass="label-tiny-uppercase"/>
+                    <TextArea fx:id="txtDescription" prefRowCount="3" wrapText="true"/>
+                </VBox>
+
+                <VBox spacing="6">
+                    <Label text="GIÁ KHỞI ĐIỂM (VND)" styleClass="label-tiny-uppercase"/>
+                    <TextField fx:id="txtStartingPrice"/>
+                </VBox>
+
+                <VBox spacing="6">
+                    <Label text="LOẠI" styleClass="label-tiny-uppercase"/>
+                    <ComboBox fx:id="cbItemType" maxWidth="Infinity" promptText="Chọn loại"/>
+                </VBox>
+
+                <Region prefHeight="8"/>
+
+                <HBox spacing="12">
+                    <Button text="THÊM" styleClass="btn-outline" onAction="#onAddClicked"/>
+                    <Button text="CẬP NHẬT" styleClass="btn-primary" onAction="#onUpdateClicked"/>
+                </HBox>
+
+                <HBox spacing="12">
+                    <Button text="LÀM MỚI" styleClass="btn-text" onAction="#onClearClicked"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="XÓA" styleClass="btn-text-danger" onAction="#onDeleteClicked"/>
+                </HBox>
+            </VBox>
         </HBox>
-    </VBox>
-</right>
+    </center>
 
 </BorderPane>

@@ -1,20 +1,74 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
 
-<VBox alignment="CENTER" spacing="15.0" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" 
-      fx:controller="com.auction.client.controller.LoginController" prefHeight="400.0" prefWidth="600.0">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-    </padding>
+<StackPane xmlns="http://javafx.com/javafx/17"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.auction.client.controller.LoginController"
+           styleClass="root"
+           prefWidth="1280"
+           prefHeight="800">
 
-    <Label text="HỆ THỐNG ĐẤU GIÁ TRỰC TUYẾN" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
-    
-    <TextField fx:id="txtUsername" promptText="Tên đăng nhập" maxWidth="250"/>
-    <PasswordField fx:id="txtPassword" promptText="Mật khẩu" maxWidth="250"/>
-    
-    <Button text="Đăng nhập" onAction="#onLoginClicked" prefWidth="250"/>
-    <Button text="Đăng ký" onAction="#onOpenRegisterClicked" prefWidth="250"/>
-</VBox>
+    <VBox alignment="CENTER" spacing="36" maxWidth="480">
+
+        <VBox alignment="CENTER" spacing="10">
+            <Label text="AuctionHub" styleClass="title-serif"/>
+            <Region styleClass="champagne-divider"/>
+        </VBox>
+
+        <VBox styleClass="card-elevated" spacing="22" maxWidth="440">
+            <padding>
+                <Insets top="40" right="48" bottom="40" left="48"/>
+            </padding>
+
+            <Label text="ĐĂNG NHẬP"
+                   styleClass="title-serif-small"
+                   style="-fx-alignment: center;"
+                   maxWidth="Infinity"
+                   contentDisplay="CENTER"/>
+
+            <VBox spacing="6">
+                <Label text="TÊN ĐĂNG NHẬP" styleClass="label-tiny-uppercase"/>
+                <TextField fx:id="txtUsername"/>
+            </VBox>
+
+            <VBox spacing="6">
+                <Label text="MẬT KHẨU" styleClass="label-tiny-uppercase"/>
+                <PasswordField fx:id="txtPassword"/>
+            </VBox>
+
+            <CheckBox fx:id="chkRemember" text="Ghi nhớ đăng nhập"/>
+
+            <Button text="ĐĂNG NHẬP →"
+                    styleClass="btn-primary"
+                    onAction="#onLoginClicked"
+                    maxWidth="Infinity"/>
+
+            <Button text="Đăng ký tài khoản mới"
+                    styleClass="btn-link"
+                    onAction="#onOpenRegisterClicked"
+                    maxWidth="Infinity"/>
+        </VBox>
+    </VBox>
+
+    <HBox alignment="BOTTOM_RIGHT" spacing="6"
+          StackPane.alignment="BOTTOM_RIGHT"
+          pickOnBounds="false">
+        <padding>
+            <Insets bottom="24" right="32"/>
+        </padding>
+        <Circle radius="3" styleClass="connection-dot"/>
+        <Label text="Đã kết nối máy chủ" styleClass="connection-status"/>
+    </HBox>
+
+</StackPane>

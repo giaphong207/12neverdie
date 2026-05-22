@@ -5,6 +5,7 @@ import com.auction.client.main.ClientApp;
 import com.auction.client.network.RealtimeListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
+import com.auction.client.util.SceneStyler;
 import com.auction.shared.model.Role;
 import com.auction.shared.model.User;
 import com.auction.shared.network.LoginRequest;
@@ -12,6 +13,7 @@ import com.auction.shared.network.LoginResponse;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 
@@ -19,6 +21,7 @@ public class LoginController {
 
     @FXML private TextField txtUsername;
     @FXML private PasswordField txtPassword;
+    @FXML private CheckBox chkRemember;
 
     @FXML
     public void onLoginClicked(javafx.event.ActionEvent event) {
@@ -30,13 +33,11 @@ public class LoginController {
             return;
         }
 
-        // Login chạy trên background thread, không block UI
         new Thread(() -> {
             try {
                 ServerConnection conn = ServerConnection.getInstance();
                 conn.send(new LoginRequest(username, password));
 
-                // Chờ response từ Listener (KHÔNG đọc socket trực tiếp)
                 RealtimeListener listener = ClientApp.getListener();
                 if (listener == null) {
                     Platform.runLater(() ->
@@ -61,7 +62,7 @@ public class LoginController {
                 User user = loginResp.getUser();
                 ClientSession.setCurrentUser(user);
                 AlertUtils.showInfo("Thành công",
-                        "Đăng nhập thành công với quyền " + user.getRole());
+                        "Đăng nhập thành công với quyền " + roleVi(user.getRole()));
                 navigateByRole(event, user);
             } else {
                 AlertUtils.showError("Thất bại", loginResp.getMessage());
@@ -72,26 +73,38 @@ public class LoginController {
         }
     }
 
+    private String roleVi(Role role) {
+        return switch (role) {
+            case ADMIN -> "Quản trị viên";
+            case SELLER -> "Người bán";
+            case BIDDER -> "Người đấu giá";
+        };
+    }
+
     private void navigateByRole(javafx.event.ActionEvent event, User user) {
         try {
             String fxmlPath;
             String title;
 
             if (user.getRole() == Role.SELLER) {
-                fxmlPath = "/fxml/ProductManagement.fxml";
-                title = "Hệ thống Đấu giá - Người Bán";
+                fxmlPath = "/fxml/SellerDashboard.fxml";
+                title = "AuctionHub — Người Bán";
             } else if (user.getRole() == Role.BIDDER) {
-                fxmlPath = "/fxml/AuctionList.fxml";
-                title = "Hệ thống Đấu giá - Người Mua";
+                fxmlPath = "/fxml/BidderDashboard.fxml";
+                title = "AuctionHub — Người Đấu Giá";
             } else {
-                fxmlPath = "/fxml/AuctionList.fxml";
-                title = "Hệ thống Đấu giá - Quản trị viên";
+                fxmlPath = "/fxml/AdminDashboard.fxml";
+                title = "AuctionHub — Quản trị viên";
             }
 
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource(fxmlPath));
             javafx.scene.Parent root = loader.load();
             javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new javafx.scene.Scene(root));
+
+            javafx.scene.Scene scene = new javafx.scene.Scene(root, 1280, 800);
+            SceneStyler.apply(scene);
+
+            stage.setScene(scene);
             stage.setTitle(title);
             stage.show();
 
@@ -107,8 +120,12 @@ public class LoginController {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/Register.fxml"));
             javafx.scene.Parent root = loader.load();
             javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new javafx.scene.Scene(root));
-            stage.setTitle("Đăng ký tài khoản");
+
+            javafx.scene.Scene scene = new javafx.scene.Scene(root, 1280, 800);
+            SceneStyler.apply(scene);
+
+            stage.setScene(scene);
+            stage.setTitle("AuctionHub — Đăng ký tài khoản");
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();

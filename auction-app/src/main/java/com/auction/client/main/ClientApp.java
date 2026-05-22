@@ -5,6 +5,7 @@ import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.SceneStyler;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -16,7 +17,6 @@ public class ClientApp extends Application {
 
     private static RealtimeListener listener;
 
-    /** Getter cho các Controller lấy listener (chờ response). */
     public static RealtimeListener getListener() {
         return listener;
     }
@@ -24,19 +24,21 @@ public class ClientApp extends Application {
     @Override
     public void start(Stage stage) {
         try {
-            // ① Đăng ký stage cho SceneNavigator để các Controller dùng switchScene()
             SceneNavigator.setStage(stage);
 
-            // ② Load màn Login từ FXML
             Parent root = FXMLLoader.load(getClass().getResource("/fxml/Login.fxml"));
-            Scene scene = new Scene(root);
-            stage.setTitle("Hệ thống Đấu giá Trực tuyến");
-            stage.setScene(scene);
+            Scene scene = new Scene(root, 1280, 800);
 
-            // ③ Khởi tạo kết nối mạng và Listener chạy ngầm
+            // Áp dụng theme Library Bronze cho Scene đầu tiên
+            SceneStyler.apply(scene);
+
+            stage.setTitle("AuctionHub — Hệ thống Đấu giá Trực tuyến");
+            stage.setScene(scene);
+            stage.setMinWidth(1024);
+            stage.setMinHeight(720);
+
             initNetwork();
 
-            // ④ Bắt sự kiện khi người dùng tắt cửa sổ
             stage.setOnCloseRequest(event -> {
                 System.out.println("Dang dong ung dung...");
                 if (listener != null) {

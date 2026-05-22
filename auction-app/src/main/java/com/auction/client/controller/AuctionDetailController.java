@@ -34,6 +34,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import com.auction.client.util.EnumFormatter;
+import com.auction.client.util.MoneyFormatter;
+import com.auction.client.util.SidebarBuilder;
+import com.auction.client.util.SidebarBuilder.NavKey;
+import javafx.scene.layout.StackPane;
 
 public class AuctionDetailController implements AuctionEventObserver {
 
@@ -49,6 +54,7 @@ public class AuctionDetailController implements AuctionEventObserver {
     @FXML private TextField bidAmountField;
     @FXML private Label highestBidderLabel;
     @FXML private ListView<String> bidHistoryListView;
+    @FXML private StackPane sidebarContainer;
 
     private Auction currentAuction;
     private Timeline countdownTimeline;
@@ -60,11 +66,24 @@ public class AuctionDetailController implements AuctionEventObserver {
     @FXML private NumberAxis bidPriceAxis;
 
     public void initialize() {
-        // Đăng ký nhận AuctionUpdateEvent realtime từ      (tv3)
-        AuctionEventBus.getInstance().addObserver(this); // (tv3)
+        // Build sidebar theo role
+        if (sidebarContainer != null && ClientSession.getCurrentUser() != null) {
+            var user = ClientSession.getCurrentUser();
+            NavKey activeKey = user.getRole() == Role.BIDDER
+                    ? NavKey.BIDDER_LIVE
+                    : NavKey.SELLER_AUCTIONS;
+            var sidebar = SidebarBuilder.build(
+                    user,
+                    activeKey,
+                    this::handleNavClick,
+                    this::handleLogout
+            );
+            sidebarContainer.getChildren().add(sidebar);
+        }
+
+        AuctionEventBus.getInstance().addObserver(this);
 
         String auctionId = ClientSession.getSelectedAuctionId();
-
         if (auctionId == null || auctionId.isBlank()) {
             messageLabel.setText("Không có auction được chọn.");
             placeBidButton.setDisable(true);
@@ -73,6 +92,30 @@ public class AuctionDetailController implements AuctionEventObserver {
         }
 
         loadAuction(auctionId);
+    }
+
+    private void handleNavClick(NavKey key) {
+        switch (key) {
+            // Bidder routes
+            case BIDDER_HOME -> SceneNavigator.switchScene("/fxml/BidderDashboard.fxml");
+            case BIDDER_LIVE -> SceneNavigator.switchScene("/fxml/AuctionList.fxml");
+
+            // Seller routes
+            case SELLER_OVERVIEW -> SceneNavigator.switchScene("/fxml/SellerDashboard.fxml");
+            case SELLER_PRODUCTS -> SceneNavigator.switchScene("/fxml/ProductManagement.fxml");
+            case SELLER_AUCTIONS -> SceneNavigator.switchScene("/fxml/SellerAuctions.fxml");
+
+            // Admin routes
+            case ADMIN_OVERVIEW -> SceneNavigator.switchScene("/fxml/AdminDashboard.fxml");
+            case ADMIN_AUCTIONS -> SceneNavigator.switchScene("/fxml/AuctionList.fxml");
+
+            default -> AlertUtils.showInfo("Sắp ra mắt", "Tính năng này đang được phát triển.");
+        }
+    }
+
+    private void handleLogout() {
+        ClientSession.clear();
+        SceneNavigator.switchScene("/fxml/Login.fxml");
     }
 
     public void loadAuction(String auctionId) {
@@ -98,11 +141,16 @@ public class AuctionDetailController implements AuctionEventObserver {
     }
 
     private void renderAuction(Auction auction) {
-        itemNameLabel.setText("Item ID: " + auction.getItemId());
-        descriptionLabel.setText("Auction ID: " + auction.getId());
-        sellerLabel.setText("Seller ID: " + auction.getSellerId());
-        currentPriceLabel.setText(String.format("%,d VNĐ", auction.getCurrentPrice()));
-        statusLabel.setText(auction.getStatus().name());
+        itemNameLabel.setText("LOT №" + shortId(auction.getItemId()));
+        descriptionLabel.setText("Mã phiên: " + auction.getId());
+        sellerLabel.setText(auction.getSellerId());
+        currentPriceLabel.setText(MoneyFormatter.formatVnd(auction.getCurrentPrice()));
+
+        // Status badge với style class tương ứng
+        statusLabel.setText(EnumFormatter.auctionStatusVi(auction.getStatus()));
+        statusLabel.getStyleClass().removeAll(
+                "badge-open", "badge-running", "badge-finished", "badge-paid", "badge-canceled");
+        statusLabel.getStyleClass().add(EnumFormatter.auctionStatusBadgeClass(auction.getStatus()));
 
         if (auction.isFinished()) {
             remainingTimeLabel.setText("Đã kết thúc");
@@ -110,12 +158,12 @@ public class AuctionDetailController implements AuctionEventObserver {
             if (auction.getWinnerBidderId() != null) {
                 messageLabel.setText("Người thắng: " + auction.getWinnerBidderId());
             } else {
-                messageLabel.setText("Chưa có người thắng");
+                messageLabel.setText("Phiên đã kết thúc — chưa có người thắng");
             }
         } else {
             placeBidButton.setDisable(auction.getStatus() != AuctionStatus.RUNNING);
             if (auction.getHighestBidderId() != null) {
-                messageLabel.setText("Người đang dẫn đầu: " + auction.getHighestBidderId());
+                messageLabel.setText("Đang dẫn đầu: " + auction.getHighestBidderId());
             } else {
                 messageLabel.setText("Chưa có ai đặt giá");
             }
@@ -123,7 +171,7 @@ public class AuctionDetailController implements AuctionEventObserver {
 
         String leader = auction.getHighestBidderId();
         if (highestBidderLabel != null) {
-            highestBidderLabel.setText("Người dẫn đầu: " + (leader != null ? leader : "Chưa có"));
+            highestBidderLabel.setText("● Người dẫn đầu: " + (leader != null ? leader : "Chưa có"));
         }
 
         if (bidHistoryListView != null) {
@@ -135,11 +183,16 @@ public class AuctionDetailController implements AuctionEventObserver {
                 for (int i = bids.size() - 1; i >= 0; i--) {
                     Bid b = bids.get(i);
                     bidHistoryListView.getItems().add(
-                            b.getBidderId() + " -> " + String.format("%,d VNĐ", b.getAmount())
+                            b.getBidderId() + "   →   " + MoneyFormatter.formatVnd(b.getAmount())
                     );
                 }
             }
         }
+    }
+
+    private String shortId(String id) {
+        if (id == null) return "---";
+        return id.length() > 8 ? id.substring(0, 8) : id;
     }
 
     private void startCountdown(LocalDateTime endTime) {
@@ -176,6 +229,18 @@ public class AuctionDetailController implements AuctionEventObserver {
         }
 
         remainingTimeLabel.setText(CountdownUtil.formatRemaining(remaining));
+
+        // Đổi màu theo trạng thái: bình thường / cảnh báo / khẩn cấp
+        remainingTimeLabel.getStyleClass().removeAll(
+                "countdown-normal", "countdown-warning", "countdown-emergency");
+        long totalSec = remaining.getSeconds();
+        if (totalSec < 60) {
+            remainingTimeLabel.getStyleClass().add("countdown-emergency");
+        } else if (totalSec < 300) {
+            remainingTimeLabel.getStyleClass().add("countdown-warning");
+        } else {
+            remainingTimeLabel.getStyleClass().add("countdown-normal");
+        }
     }
 
     private void handleAuctionExpired() {

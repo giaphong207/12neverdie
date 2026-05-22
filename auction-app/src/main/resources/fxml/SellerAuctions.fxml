@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.SellerAuctionsController"
+            styleClass="root"
+            prefWidth="1280"
+            prefHeight="800">
+
+    <left>
+        <StackPane fx:id="sidebarContainer"/>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true"
+                    style="-fx-background: transparent; -fx-background-color: transparent;">
+            <VBox spacing="32">
+                <padding>
+                    <Insets top="48" right="48" bottom="48" left="48"/>
+                </padding>
+
+                <VBox spacing="10">
+                    <Label text="Phiên đấu giá của tôi" styleClass="title-serif"/>
+                    <Label fx:id="summaryLabel" text="Đang tải..." styleClass="text-secondary"/>
+                    <Region styleClass="champagne-divider"/>
+                </VBox>
+
+                <HBox fx:id="statCardsContainer" spacing="20"/>
+
+                <VBox spacing="16">
+                    <Label text="Tất cả phiên đấu giá" styleClass="title-serif-medium"/>
+                    <FlowPane fx:id="auctionGrid" hgap="20" vgap="20"/>
+                </VBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>
