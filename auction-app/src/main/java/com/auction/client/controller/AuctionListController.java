@@ -214,6 +214,13 @@ public class AuctionListController implements AuctionEventObserver {
         Platform.runLater(() -> updateAuctionRow(updated));   // ← Wrap!
     }
 
+    private void updateAuctionRow(Auction updated) {
+        int idx = indexOfAuction(updated.getId());
+        if (idx >= 0) allAuctions.set(idx, updated);
+        else allAuctions.add(updated);
+        applyFilters();
+    }
+
     private void handleLogout() {
         AuctionEventBus.getInstance().removeObserver(this);
         ClientSession.clear();
