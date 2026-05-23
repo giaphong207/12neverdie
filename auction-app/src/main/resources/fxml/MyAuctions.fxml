@@ -8,7 +8,6 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
@@ -19,74 +18,94 @@
             prefWidth="1280"
             prefHeight="800">
 
+    <!-- === SIDEBAR === -->
     <left>
         <StackPane fx:id="sidebarContainer"/>
     </left>
 
+    <!-- === CONTENT AREA === -->
     <center>
         <VBox spacing="32">
             <padding>
-                <Insets top="48" right="48" bottom="0" left="48"/>
+                <Insets top="40" right="40" bottom="0" left="40"/>
             </padding>
 
-            <VBox spacing="10">
-                <Label text="Phiên đấu giá của tôi" styleClass="title-serif"/>
-                <Label text="Tất cả phiên đấu giá bạn đã tham gia." styleClass="text-secondary"/>
-                <Region styleClass="champagne-divider"/>
+            <!-- === HEADER === -->
+            <VBox spacing="8">
+                <Label text="Phiên đấu giá của tôi" styleClass="title-large"/>
+                <Label text="Tất cả phiên đấu giá bạn đã tham gia." 
+                       styleClass="text-secondary"/>
             </VBox>
 
-            <TabPane fx:id="tabPane" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+            <!-- === TABPANE 3 TAB === -->
+            <TabPane fx:id="tabPane" 
+                     tabClosingPolicy="UNAVAILABLE" 
+                     VBox.vgrow="ALWAYS">
                 <tabs>
+                    <!-- Tab 1: Đang tham gia -->
                     <Tab>
                         <text>Đang tham gia</text>
                         <content>
-                            <ScrollPane fitToWidth="true"
-                                        style="-fx-background: transparent; -fx-background-color: transparent;">
+                            <ScrollPane fitToWidth="true" styleClass="content-scroll">
                                 <VBox spacing="16">
                                     <padding>
                                         <Insets top="20" right="20" bottom="20" left="0"/>
                                     </padding>
                                     <HBox spacing="8" alignment="CENTER_LEFT">
-                                        <Label fx:id="countParticipating" text="0" styleClass="title-serif-medium"/>
+                                        <Label fx:id="countParticipating" 
+                                               text="0" 
+                                               styleClass="title-medium"/>
                                         <Label text="phiên" styleClass="text-secondary"/>
                                     </HBox>
-                                    <FlowPane fx:id="participatingGrid" hgap="20" vgap="20"/>
+                                    <FlowPane fx:id="participatingGrid" 
+                                              hgap="20" 
+                                              vgap="20"/>
                                 </VBox>
                             </ScrollPane>
                         </content>
                     </Tab>
+
+                    <!-- Tab 2: Đã thắng -->
                     <Tab>
                         <text>Đã thắng</text>
                         <content>
-                            <ScrollPane fitToWidth="true"
-                                        style="-fx-background: transparent; -fx-background-color: transparent;">
+                            <ScrollPane fitToWidth="true" styleClass="content-scroll">
                                 <VBox spacing="16">
                                     <padding>
                                         <Insets top="20" right="20" bottom="20" left="0"/>
                                     </padding>
                                     <HBox spacing="8" alignment="CENTER_LEFT">
-                                        <Label fx:id="countWon" text="0" styleClass="title-serif-medium"/>
+                                        <Label fx:id="countWon" 
+                                               text="0" 
+                                               styleClass="title-medium"/>
                                         <Label text="phiên" styleClass="text-secondary"/>
                                     </HBox>
-                                    <FlowPane fx:id="wonGrid" hgap="20" vgap="20"/>
+                                    <FlowPane fx:id="wonGrid" 
+                                              hgap="20" 
+                                              vgap="20"/>
                                 </VBox>
                             </ScrollPane>
                         </content>
                     </Tab>
+
+                    <!-- Tab 3: Đã thua -->
                     <Tab>
                         <text>Đã thua</text>
                         <content>
-                            <ScrollPane fitToWidth="true"
-                                        style="-fx-background: transparent; -fx-background-color: transparent;">
+                            <ScrollPane fitToWidth="true" styleClass="content-scroll">
                                 <VBox spacing="16">
                                     <padding>
                                         <Insets top="20" right="20" bottom="20" left="0"/>
                                     </padding>
                                     <HBox spacing="8" alignment="CENTER_LEFT">
-                                        <Label fx:id="countLost" text="0" styleClass="title-serif-medium"/>
+                                        <Label fx:id="countLost" 
+                                               text="0" 
+                                               styleClass="title-medium"/>
                                         <Label text="phiên" styleClass="text-secondary"/>
                                     </HBox>
-                                    <FlowPane fx:id="lostGrid" hgap="20" vgap="20"/>
+                                    <FlowPane fx:id="lostGrid" 
+                                              hgap="20" 
+                                              vgap="20"/>
                                 </VBox>
                             </ScrollPane>
                         </content>

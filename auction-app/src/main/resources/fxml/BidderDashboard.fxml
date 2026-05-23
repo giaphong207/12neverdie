@@ -6,7 +6,6 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
@@ -17,36 +16,40 @@
             prefWidth="1280"
             prefHeight="800">
 
+    <!-- === SIDEBAR BÊN TRÁI === -->
     <left>
         <StackPane fx:id="sidebarContainer"/>
     </left>
 
+    <!-- === CONTENT AREA Ở GIỮA === -->
     <center>
-        <ScrollPane fitToWidth="true"
-                    style="-fx-background: transparent; -fx-background-color: transparent;">
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
             <VBox spacing="32">
                 <padding>
-                    <Insets top="48" right="48" bottom="48" left="48"/>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
                 </padding>
 
                 <!-- Welcome heading -->
-                <VBox spacing="10">
-                    <Label fx:id="welcomeLabel" text="Chào mừng trở lại..." styleClass="title-serif"/>
-                    <Region styleClass="champagne-divider"/>
-                </VBox>
+                <Label fx:id="welcomeLabel" 
+                       text="Chào mừng trở lại..." 
+                       styleClass="title-large"/>
 
                 <!-- Stat cards (3 ô) -->
                 <HBox fx:id="statCardsContainer" spacing="20"/>
 
-                <!-- Featured auctions -->
+                <!-- Section: Phiên đấu giá nổi bật -->
                 <VBox spacing="16">
-                    <Label text="Phiên đấu giá nổi bật" styleClass="title-serif-medium"/>
-                    <FlowPane fx:id="featuredAuctionsContainer" hgap="20" vgap="20"/>
+                    <Label text="Phiên đấu giá nổi bật" 
+                           styleClass="title-medium"/>
+                    <FlowPane fx:id="featuredAuctionsContainer" 
+                              hgap="20" 
+                              vgap="20"/>
                 </VBox>
 
-                <!-- Ending soon -->
+                <!-- Section: Phiên kết thúc trong giờ tới -->
                 <VBox spacing="16">
-                    <Label text="Phiên kết thúc trong giờ tới" styleClass="title-serif-medium"/>
+                    <Label text="Phiên kết thúc trong giờ tới" 
+                           styleClass="title-medium"/>
                     <VBox fx:id="endingSoonContainer" spacing="12"/>
                 </VBox>
             </VBox>

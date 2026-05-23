@@ -1,0 +1,723 @@
+/* =====================================================
+   PHIÊN ĐẤU GIÁ — APP STYLES
+   Nhóm 12neverdie | Học kỳ II, 2025-2026
+   ===================================================== */
+
+/* === 1. DESIGN TOKENS (biến CSS) === */
+.root {
+    /* Màu nền */
+    -app-bg-main: #FFFFFF;
+    -app-bg-soft: #FAFAF8;
+    -app-bg-card: #F5F5F0;
+    
+    /* Màu text */
+    -app-text-primary: #2C2C2C;
+    -app-text-secondary: #666666;
+    -app-text-muted: #999999;
+    
+    /* Màu nhấn */
+    -app-accent: #A0522D;
+    -app-accent-hover: #8B4513;
+    
+    /* Status */
+    -app-success: #5B8C5A;
+    -app-danger: #B85450;
+    
+    /* Border & Divider */
+    -app-border: #E8E5E0;
+    
+    /* Font chung */
+    -fx-font-family: "Inter", "Segoe UI", "Arial", sans-serif;
+    -fx-font-size: 14px;
+    
+    /* Nền tổng */
+    -fx-background-color: -app-bg-soft;
+}
+
+/* === STATUS DOT (chấm trạng thái) === */
+.status-dot {
+    -fx-fill: -app-success;
+}
+
+/* === 2. TEXT STYLES === */
+
+.title-large {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+}
+
+.title-medium {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+}
+
+.text-body {
+    -fx-font-size: 14px;
+    -fx-text-fill: -app-text-primary;
+}
+
+.text-secondary {
+    -fx-font-size: 14px;
+    -fx-text-fill: -app-text-secondary;
+}
+
+.text-muted {
+    -fx-font-size: 12px;
+    -fx-text-fill: -app-text-muted;
+}
+
+.label-caption {
+    -fx-font-size: 11px;
+    -fx-text-fill: -app-text-muted;
+    -fx-font-weight: bold;
+}
+
+/* === 3. BUTTONS === */
+
+/* Button chính — màu accent (terracotta) */
+.btn-primary {
+    -fx-background-color: -app-accent;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10px 24px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-background-color: -app-accent-hover;
+}
+
+.btn-primary:pressed {
+    -fx-background-color: derive(-app-accent, -25%);
+}
+
+.btn-primary:disabled {
+    -fx-background-color: -app-text-muted;
+    -fx-opacity: 0.6;
+}
+
+/* Button viền — trong suốt, có viền accent */
+.btn-outline {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-accent;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10px 24px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: -app-accent;
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+}
+
+.btn-outline:hover {
+    -fx-background-color: -app-accent;
+    -fx-text-fill: white;
+}
+
+/* Button dạng text — không viền, không nền */
+.btn-text {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 14px;
+    -fx-padding: 8px 12px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+
+.btn-text:hover {
+    -fx-text-fill: -app-accent;
+}
+
+/* Button nguy hiểm — đỏ */
+.btn-danger {
+    -fx-background-color: -app-danger;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10px 24px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-cursor: hand;
+}
+
+.btn-danger:hover {
+    -fx-background-color: derive(-app-danger, -10%);
+}
+
+/* === 4. INPUTS === */
+
+/* TextField và PasswordField — cùng style */
+.text-field,
+.password-field {
+    -fx-background-color: -app-bg-main;
+    -fx-text-fill: -app-text-primary;
+    -fx-prompt-text-fill: -app-text-muted;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 14px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+}
+
+.text-field:focused,
+.password-field:focused {
+    -fx-border-color: -app-accent;
+    -fx-border-width: 1px;
+}
+
+/* TextArea — ô nhập nhiều dòng */
+.text-area {
+    -fx-background-color: -app-bg-main;
+    -fx-text-fill: -app-text-primary;
+    -fx-font-size: 14px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+}
+
+.text-area .content {
+    -fx-background-color: -app-bg-main;
+    -fx-padding: 10px 14px;
+}
+
+.text-area:focused {
+    -fx-border-color: -app-accent;
+}
+
+/* === 5. CHECKBOX === */
+
+.check-box {
+    -fx-font-size: 14px;
+    -fx-text-fill: -app-text-primary;
+    -fx-cursor: hand;
+}
+
+/* Ô vuông của CheckBox */
+.check-box .box {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+}
+
+/* Khi CheckBox được tick */
+.check-box:selected .box {
+    -fx-background-color: -app-accent;
+    -fx-border-color: -app-accent;
+}
+
+/* Dấu tick bên trong khi được chọn */
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+/* === 6. COMBOBOX === */
+
+.combo-box {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+}
+
+.combo-box:focused {
+    -fx-border-color: -app-accent;
+}
+
+/* Vùng hiển thị giá trị đã chọn */
+.combo-box .list-cell {
+    -fx-text-fill: -app-text-primary;
+    -fx-padding: 8px 12px;
+    -fx-background-color: transparent;
+}
+
+/* Mũi tên dropdown */
+.combo-box .arrow {
+    -fx-background-color: -app-text-secondary;
+}
+
+/* Popup hiện ra khi click ComboBox */
+.combo-box-popup .list-view {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+}
+
+/* Mỗi item trong popup */
+.combo-box-popup .list-cell {
+    -fx-text-fill: -app-text-primary;
+    -fx-padding: 8px 12px;
+}
+
+/* Item đang được hover trong popup */
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: -app-bg-card;
+}
+
+/* Item đang được chọn trong popup */
+.combo-box-popup .list-cell:selected {
+    -fx-background-color: -app-accent;
+    -fx-text-fill: white;
+}
+
+/* === CHOICEBOX (giống ComboBox nhưng chỉ chọn) === */
+.choice-box {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-padding: 8px 12px;
+}
+
+.choice-box:focused {
+    -fx-border-color: -app-accent;
+}
+
+.choice-box .label {
+    -fx-text-fill: -app-text-primary;
+}
+
+/* Mũi tên dropdown của ChoiceBox */
+.choice-box .open-button .arrow {
+    -fx-background-color: -app-text-secondary;
+}
+
+/* === 7. CARDS === */
+
+/* Card cơ bản — khung chứa nội dung */
+.card {
+    -fx-background-color: -app-bg-main;
+    -fx-background-radius: 8px;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-padding: 24px;
+}
+
+/* Stat card — thẻ số liệu thống kê ở Dashboard */
+.stat-card {
+    -fx-background-color: -app-bg-main;
+    -fx-background-radius: 8px;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-padding: 20px;
+    -fx-spacing: 8px;
+}
+
+/* Số to trong stat card */
+.stat-card .stat-value {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-accent;
+}
+
+/* Label nhỏ trong stat card */
+.stat-card .stat-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: -app-text-muted;
+}
+
+/* Auction card — card phiên đấu giá */
+.auction-card {
+    -fx-background-color: -app-bg-main;
+    -fx-background-radius: 8px;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-padding: 16px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 4, 0, 0, 2);
+}
+
+/* Auction card khi hover — bóng đậm hơn */
+.auction-card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 4);
+}
+
+/* === TABLEVIEW (bảng dữ liệu) === */
+.table-view {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 0;
+}
+
+/* Header bảng */
+.table-view .column-header {
+    -fx-background-color: -app-bg-card;
+    -fx-padding: 12px 16px;
+    -fx-border-color: transparent transparent -app-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+/* Mỗi dòng */
+.table-view .table-row-cell {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: transparent transparent -app-border transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0;
+}
+
+.table-view .table-row-cell:hover {
+    -fx-background-color: -app-bg-soft;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: -app-bg-card;
+}
+
+.table-view .table-row-cell:selected .text {
+    -fx-fill: -app-text-primary;
+}
+
+/* Cell text trong row */
+.table-view .table-cell {
+    -fx-text-fill: -app-text-primary;
+    -fx-padding: 12px 16px;
+    -fx-border-color: transparent;
+}
+
+/* Dòng trống cuối bảng */
+.table-view .placeholder .label {
+    -fx-text-fill: -app-text-muted;
+}
+
+/* === EMPTY STATE (khi không có dữ liệu) === */
+.empty-state {
+    -fx-background-color: transparent;
+}
+
+.empty-state-icon {
+    -fx-font-size: 48px;
+    -fx-text-fill: -app-text-muted;
+}
+
+/* === COUNTDOWN TEXT (đồng hồ đếm ngược) === */
+.countdown-text {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-text-fill: -app-accent;
+}
+
+/* === PRICE BIG (giá hiện tại) === */
+.price-big {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+}
+
+/* === BADGE (trạng thái phiên đấu giá) === */
+.badge-running {
+    -fx-background-color: -app-success;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4px 12px;
+    -fx-background-radius: 12px;
+}
+
+.badge-ended {
+    -fx-background-color: -app-text-muted;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4px 12px;
+    -fx-background-radius: 12px;
+}
+
+/* === TABPANE === */
+.tab-pane {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 8px 16px;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: -app-bg-card;
+    -fx-border-color: transparent transparent -app-accent transparent;
+    -fx-border-width: 0 0 2 0;
+}
+
+.tab-pane .tab-label {
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -app-accent;
+}
+
+/* === LISTVIEW (bid history) === */
+.list-view {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 8px;
+}
+
+.list-view .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-primary;
+    -fx-padding: 10px 12px;
+}
+
+.list-view .list-cell:hover {
+    -fx-background-color: -app-bg-soft;
+}
+
+.list-view .list-cell:selected {
+    -fx-background-color: -app-bg-card;
+    -fx-text-fill: -app-text-primary;
+}
+
+/* === LINECHART === */
+.chart {
+    -fx-background-color: transparent;
+    -fx-padding: 8px;
+}
+
+.chart-plot-background {
+    -fx-background-color: -app-bg-main;
+}
+
+.chart-series-line {
+    -fx-stroke: -app-accent;
+    -fx-stroke-width: 2px;
+}
+
+.default-color0.chart-line-symbol {
+    -fx-background-color: -app-accent, white;
+}
+
+/* === CONTENT SCROLL (ScrollPane trong content area) === */
+.content-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-padding: 0;
+}
+
+.content-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.content-scroll > .scroll-bar {
+    -fx-background-color: transparent;
+}
+
+/* === 8. SIDEBAR === */
+
+/* Container chính của sidebar */
+.sidebar {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 24px 0;
+    -fx-spacing: 4px;
+    -fx-min-width: 220px;
+    -fx-pref-width: 220px;
+}
+
+/* Logo + tên app trong sidebar */
+.sidebar-logo {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+    -fx-padding: 0 24px 16px 24px;
+}
+
+.sidebar-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: -app-text-muted;
+    -fx-padding: 0 24px 16px 24px;
+}
+
+/* Mỗi nav item trong menu */
+.nav-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 14px;
+    -fx-padding: 12px 24px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3;
+    -fx-alignment: CENTER_LEFT;
+    -fx-max-width: Infinity;
+}
+
+/* Nav item khi rê chuột */
+.nav-item:hover {
+    -fx-background-color: -app-bg-card;
+}
+
+/* Nav item đang ACTIVE (đang ở trang này) */
+.nav-item-active {
+    -fx-background-color: -app-bg-card;
+    -fx-text-fill: -app-accent;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent transparent transparent -app-accent;
+    -fx-border-width: 0 0 0 3;
+}
+
+/* Vùng user info ở cuối sidebar */
+.sidebar-user {
+    -fx-padding: 16px 24px;
+    -fx-spacing: 4px;
+}
+
+.sidebar-username {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+}
+
+.sidebar-role {
+    -fx-font-size: 12px;
+    -fx-text-fill: -app-text-muted;
+}
+
+/* === 9. TOPBAR === */
+
+/* Container chính của topbar */
+.topbar {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 12px 32px;
+    -fx-min-height: 56px;
+    -fx-pref-height: 56px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 16px;
+}
+
+/* Logo "Phiên Đấu Giá" bên trái */
+.topbar-logo {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+}
+
+/* Khu vực bên phải (clock + user) */
+.topbar-right {
+    -fx-spacing: 16px;
+    -fx-alignment: CENTER_RIGHT;
+}
+
+/* Đồng hồ live "21:01:16" */
+.topbar-clock {
+    -fx-font-size: 14px;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-text-fill: -app-text-primary;
+}
+
+/* Ngày tháng "Thứ Năm, 22/05" */
+.topbar-date {
+    -fx-font-size: 12px;
+    -fx-text-fill: -app-text-muted;
+}
+
+/* Tên user "An" */
+.topbar-username {
+    -fx-font-size: 14px;
+    -fx-text-fill: -app-text-primary;
+}
+
+/* Divider dọc giữa các phần */
+.topbar-divider {
+    -fx-background-color: -app-border;
+    -fx-min-width: 1px;
+    -fx-pref-width: 1px;
+    -fx-min-height: 24px;
+    -fx-pref-height: 24px;
+}
+
+/* === 10. NPC SPEECH BUBBLE === */
+
+/* Container chính của NPC (chứa cả avatar + bubble) */
+.npc-container {
+    -fx-spacing: 12px;
+    -fx-alignment: BOTTOM_RIGHT;
+}
+
+/* Speech bubble (bong bóng thoại) */
+.npc-bubble {
+    -fx-background-color: -app-bg-main;
+    -fx-background-radius: 12px;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-padding: 16px 20px;
+    -fx-max-width: 260px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 8, 0, 0, 4);
+}
+
+/* Text trong bubble */
+.npc-message {
+    -fx-font-size: 13px;
+    -fx-text-fill: -app-text-primary;
+    -fx-wrap-text: true;
+}
+
+/* Tên "Bác Tư" trong bubble */
+.npc-name {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-accent;
+}
+
+/* Nút X đóng bubble */
+.npc-close-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 8px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-min-width: 24px;
+    -fx-min-height: 24px;
+}
+
+.npc-close-btn:hover {
+    -fx-text-fill: -app-accent;
+}
+
+/* Avatar Bác Tư (ImageView container) */
+.npc-avatar {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 6, 0, 0, 2);
+}

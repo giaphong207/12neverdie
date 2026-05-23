@@ -1,8 +1,8 @@
 package com.auction.client.util;
 
-import javafx.scene.Scene;
-
 import java.net.URL;
+
+import javafx.scene.Scene;
 
 /**
  * Utility áp dụng theme CSS chung cho mọi Scene trong ứng dụng.
@@ -11,12 +11,13 @@ import java.net.URL;
  */
 public final class SceneStyler {
 
-    private static final String THEME_CSS = "/css/auctionhub-theme.css";
+    private static final String THEME_CSS = "/css/app.css";
 
     private SceneStyler() {}
 
     /**
-     * Áp dụng theme Library Bronze cho Scene.
+     * Áp dụng theme app.css cho Scene.
+     * Theme đơn giản, trung tính, phù hợp dự án sinh viên.
      * Nếu Scene đã có stylesheet này thì bỏ qua (không thêm trùng).
      */
     public static void apply(Scene scene) {
