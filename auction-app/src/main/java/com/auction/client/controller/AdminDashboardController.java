@@ -68,8 +68,8 @@ public class AdminDashboardController implements AuctionEventObserver {
                     new javafx.beans.property.SimpleStringProperty(c.getValue().status));
         }
 
-        renderStats(0, 0, 0, 0);
-        loadMockUsers();
+        renderStats(0, 0, 0, 0); //reset số liệu thống kê
+        loadMockUsers(); //load dữ liệu mẫu
 
         // Vẫn subscribe để có số liệu phiên thật
         AuctionEventBus.getInstance().addObserver(this);
