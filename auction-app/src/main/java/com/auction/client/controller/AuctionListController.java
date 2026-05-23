@@ -11,9 +11,9 @@ import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.shared.model.Auction;
+import com.auction.shared.network.AuctionEvent;
 import com.auction.shared.model.AuctionStatus;
 import com.auction.shared.model.Role;
-import com.auction.shared.network.AuctionUpdateEvent;
 import com.auction.shared.network.SubscribeAuctionListRequest;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -102,16 +102,6 @@ public class AuctionListController implements AuctionEventObserver {
         }
     }
 
-    @Override
-    public void onAuctionUpdated(AuctionUpdateEvent event) {
-        Auction updated = event.getAuction();
-        Platform.runLater(() -> {
-            int idx = indexOfAuction(updated.getId());
-            if (idx >= 0) allAuctions.set(idx, updated);
-            else allAuctions.add(updated);
-            applyFilters();
-        });
-    }
 
     private int indexOfAuction(String id) {
         for (int i = 0; i < allAuctions.size(); i++) {
@@ -216,6 +206,19 @@ public class AuctionListController implements AuctionEventObserver {
 
             default -> AlertUtils.showInfo("Sắp ra mắt", "Tính năng này đang được phát triển.");
         }
+    }
+
+    @Override
+    public void onAuctionUpdated(AuctionEvent event) {
+        Auction updated = event.getAuction();
+        Platform.runLater(() -> updateAuctionRow(updated));   // ← Wrap!
+    }
+
+    private void updateAuctionRow(Auction updated) {
+        int idx = indexOfAuction(updated.getId());
+        if (idx >= 0) allAuctions.set(idx, updated);
+        else allAuctions.add(updated);
+        applyFilters();
     }
 
     private void handleLogout() {

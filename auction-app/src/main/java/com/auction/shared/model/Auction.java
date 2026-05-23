@@ -77,6 +77,7 @@ public class Auction implements Serializable {
         this.bidHistory = new ArrayList<>();
     }
 
+    // ── QUERY (đọc trạng thái) ──────────────
     public String getId() {
         return id;
     }
@@ -125,6 +126,7 @@ public class Auction implements Serializable {
         return Collections.unmodifiableList(bidHistory);
     }
 
+    // ─────────── Nhóm câu hỏi nghiệp vụ — chỉ đọc, không sửa state ───────────
     public boolean isRunning() {
         return status == AuctionStatus.RUNNING;
     }
@@ -141,7 +143,9 @@ public class Auction implements Serializable {
         return status == AuctionStatus.RUNNING
                 && amount >= currentPrice + minIncrement;
     }
+    public Optional<String> determineWinnerId() { return Optional.ofNullable(winnerBidderId);}
 
+    // ── COMMAND (chuyển trạng thái) ─────────
     public void addBid(Bid bid) {
         if (bid == null) {
             throw new IllegalArgumentException("Bid không được null");
@@ -157,30 +161,118 @@ public class Auction implements Serializable {
         currentPrice = bid.getAmount();
         highestBidderId = bid.getBidderId();
     }
-
-    public void updateStatusByTime(LocalDateTime now) {
-        if (now.isBefore(startTime)) {
-            status = AuctionStatus.OPEN;
-            return;
+    /**
+     * Chuyển auction OPEN → RUNNING.
+     * Gọi bởi LifecycleService khi scheduler fire đúng startTime.
+     *
+     * @throws IllegalStateException nếu auction không ở trạng thái OPEN
+     */
+    public void start() {
+        if (status != AuctionStatus.OPEN) {
+            throw new IllegalStateException(
+                    "Chỉ có thể start auction đang OPEN, hiện tại: " + status);
         }
-
-        if (!now.isBefore(startTime) && now.isBefore(endTime)) {
-            status = AuctionStatus.RUNNING;
-            return;
-        }
-
-        if (!now.isBefore(endTime)) {
-            finish();
-        }
+        this.status = AuctionStatus.RUNNING;
     }
 
+    /**
+     * Chuyển auction RUNNING → FINISHED và chốt người thắng.
+     * winnerBidderId được copy từ highestBidderId tại thời điểm này.
+     * Nếu chưa có bid nào, winnerBidderId vẫn null (auction không người thắng).
+     *
+     * @throws IllegalStateException nếu auction không ở trạng thái RUNNING
+     */
     public void finish() {
-        status = AuctionStatus.FINISHED;
-        winnerBidderId = highestBidderId;
+        if (status != AuctionStatus.RUNNING) {
+            throw new IllegalStateException(
+                    "Chỉ có thể finish auction đang RUNNING, hiện tại: " + status);
+        }
+        this.status = AuctionStatus.FINISHED;
+        this.winnerBidderId = this.highestBidderId;
+    }
+    /**
+     * Hủy auction. Không cho hủy nếu đã FINISHED hoặc PAID.
+     *
+     * @throws IllegalStateException nếu auction đã kết thúc hoặc đã thanh toán
+     */
+    public void cancel() {
+        if (status == AuctionStatus.FINISHED || status == AuctionStatus.PAID) {
+            throw new IllegalStateException(
+                    "Không thể hủy auction ở trạng thái: " + status);
+        }
+        this.status = AuctionStatus.CANCELED;
+    }
+    /**
+     * Đánh dấu auction đã thanh toán.
+     *
+     * @throws IllegalStateException nếu auction chưa FINISHED
+     */
+    public void markPaid() {
+        if (status != AuctionStatus.FINISHED) {
+            throw new IllegalStateException(
+                    "Chỉ có thể đánh dấu PAID cho auction đã FINISHED, hiện tại: " + status);
+        }
+        this.status = AuctionStatus.PAID;
+    }
+    /**
+     * Gia hạn thời gian kết thúc phiên đấu giá (cho anti-sniping).
+     *
+     * Chỉ áp dụng được khi auction đang RUNNING.
+     *
+     * ⚠️ LƯU Ý cho caller:
+     * Sau khi gọi method này, PHẢI gọi {@code lifecycleService.rescheduleClose(auction)}
+     * để scheduler fire đúng theo endTime mới. Nếu không, scheduler vẫn close
+     * auction theo endTime cũ.
+     *
+     * @param seconds số giây muốn cộng thêm (phải dương)
+     * @throws IllegalArgumentException nếu seconds <= 0
+     * @throws IllegalStateException    nếu auction không ở trạng thái RUNNING
+     */
+    public void extendEndTime(long seconds) {
+        if (seconds <= 0) {
+            throw new IllegalArgumentException("Số giây gia hạn phải dương");
+        }
+        if (status != AuctionStatus.RUNNING) {
+            throw new IllegalStateException(
+                    "Chỉ có thể gia hạn auction đang RUNNING, hiện tại: " + status);
+        }
+        this.endTime = this.endTime.plusSeconds(seconds);
     }
 
-    public Optional<String> determineWinnerId() {
-        return Optional.ofNullable(winnerBidderId);
+    // ── DAO-ONLY (khôi phục từ DB, bypass validation) ──
+    // ⚠️ CẢNH BÁO: KHÔNG gọi từ business code (Service, Controller...).
+    //   Chỉ JdbcAuctionDao.mapAuction() được phép gọi các method này.
+    /**
+     * Gán currentPrice + highestBidderId + winnerBidderId trực tiếp.
+     * Dùng khi load Auction đang giữa chừng (đã có bid).
+     */
+    public void restoreState(long currentPrice, String highestBidderId, String winnerBidderId) {
+        this.currentPrice = currentPrice;
+        this.highestBidderId = highestBidderId;
+        this.winnerBidderId = winnerBidderId;
+    }
+
+    /**
+     * Gán status trực tiếp (bypass logic chuyển trạng thái theo thời gian).
+     */
+    public void restoreStatus(AuctionStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("Status không được null");
+        }
+        this.status = status;
+    }
+    /**
+     * Khôi phục bid history khi load từ DB.
+     * KHÔNG re-validate (vì auction có thể đã FINISHED).
+     * Chỉ gọi 1 lần ngay sau khi tạo Auction từ ResultSet.
+     */
+    public void restoreBidHistory(java.util.List<Bid> bids) {
+        if (!this.bidHistory.isEmpty()) {
+            throw new IllegalStateException("Bid history đã được nạp rồi");
+        }
+        if (bids != null) {
+            this.bidHistory.addAll(bids);
+        }
     }
 
     @Override
@@ -198,50 +290,5 @@ public class Auction implements Serializable {
                 ", highestBidderId='" + highestBidderId + '\'' +
                 ", winnerBidderId='" + winnerBidderId + '\'' +
                 '}';
-    }
-    /**
-     * Gia hạn thời gian kết thúc phiên đấu giá.
-     * Chỉ được gọi bởi AntiSnipingService khi có bid ở giây cuối.
-     *
-     * @param seconds số giây muốn cộng thêm (thường là 60)
-     */
-    public void extendEndTime(long seconds) {
-        if (seconds <= 0) {
-            throw new IllegalArgumentException("Số giây gia hạn phải dương");
-        }
-        this.endTime = this.endTime.plusSeconds(seconds);
-    }
-    /**
-     * DAO-only: khôi phục bid history khi load từ DB.
-     * KHÔNG re-validate (vì auction có thể đã FINISHED).
-     * Chỉ gọi 1 lần ngay sau khi tạo Auction từ ResultSet.
-     */
-    public void restoreBidHistory(java.util.List<Bid> bids) {
-        if (!this.bidHistory.isEmpty()) {
-            throw new IllegalStateException("Bid history đã được nạp rồi");
-        }
-        if (bids != null) {
-            this.bidHistory.addAll(bids);
-        }
-    }
-
-    /**
-     * DAO-only: gán currentPrice + highestBidderId + winnerBidderId trực tiếp.
-     * Dùng khi load Auction đang giữa chừng (đã có bid).
-     */
-    public void restoreState(long currentPrice, String highestBidderId, String winnerBidderId) {
-        this.currentPrice = currentPrice;
-        this.highestBidderId = highestBidderId;
-        this.winnerBidderId = winnerBidderId;
-    }
-
-    /**
-     * DAO-only: gán status trực tiếp (bypass logic chuyển trạng thái theo thời gian).
-     */
-    public void restoreStatus(AuctionStatus status) {
-        if (status == null) {
-            throw new IllegalArgumentException("Status không được null");
-        }
-        this.status = status;
     }
 }

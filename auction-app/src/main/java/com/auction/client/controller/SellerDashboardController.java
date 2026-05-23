@@ -16,7 +16,7 @@ import com.auction.client.util.StatCardBuilder;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.AuctionStatus;
 import com.auction.shared.model.Item;
-import com.auction.shared.network.AuctionUpdateEvent;
+import com.auction.shared.network.AuctionEvent;
 import com.auction.shared.network.GetSellerItemsRequest;
 import com.auction.shared.network.GetSellerItemsResponse;
 import com.auction.shared.network.SubscribeAuctionListRequest;
@@ -121,7 +121,7 @@ public class SellerDashboardController implements AuctionEventObserver {
     }
 
     @Override
-    public void onAuctionUpdated(AuctionUpdateEvent event) {
+    public void onAuctionUpdated(AuctionEvent event) {
         Auction updated = event.getAuction();
         Platform.runLater(() -> {
             int idx = indexOfAuction(updated.getId());
