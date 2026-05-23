@@ -34,6 +34,11 @@
     -fx-background-color: -app-bg-soft;
 }
 
+/* === STATUS DOT (chấm trạng thái) === */
+.status-dot {
+    -fx-fill: -app-success;
+}
+
 /* === 2. TEXT STYLES === */
 
 .title-large {
@@ -267,6 +272,31 @@
     -fx-text-fill: white;
 }
 
+/* === CHOICEBOX (giống ComboBox nhưng chỉ chọn) === */
+.choice-box {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-padding: 8px 12px;
+}
+
+.choice-box:focused {
+    -fx-border-color: -app-accent;
+}
+
+.choice-box .label {
+    -fx-text-fill: -app-text-primary;
+}
+
+/* Mũi tên dropdown của ChoiceBox */
+.choice-box .open-button .arrow {
+    -fx-background-color: -app-text-secondary;
+}
+
 /* === 7. CARDS === */
 
 /* Card cơ bản — khung chứa nội dung */
@@ -318,6 +348,196 @@
 /* Auction card khi hover — bóng đậm hơn */
 .auction-card:hover {
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 4);
+}
+
+/* === TABLEVIEW (bảng dữ liệu) === */
+.table-view {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 0;
+}
+
+/* Header bảng */
+.table-view .column-header {
+    -fx-background-color: -app-bg-card;
+    -fx-padding: 12px 16px;
+    -fx-border-color: transparent transparent -app-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+/* Mỗi dòng */
+.table-view .table-row-cell {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: transparent transparent -app-border transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0;
+}
+
+.table-view .table-row-cell:hover {
+    -fx-background-color: -app-bg-soft;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: -app-bg-card;
+}
+
+.table-view .table-row-cell:selected .text {
+    -fx-fill: -app-text-primary;
+}
+
+/* Cell text trong row */
+.table-view .table-cell {
+    -fx-text-fill: -app-text-primary;
+    -fx-padding: 12px 16px;
+    -fx-border-color: transparent;
+}
+
+/* Dòng trống cuối bảng */
+.table-view .placeholder .label {
+    -fx-text-fill: -app-text-muted;
+}
+
+/* === EMPTY STATE (khi không có dữ liệu) === */
+.empty-state {
+    -fx-background-color: transparent;
+}
+
+.empty-state-icon {
+    -fx-font-size: 48px;
+    -fx-text-fill: -app-text-muted;
+}
+
+/* === COUNTDOWN TEXT (đồng hồ đếm ngược) === */
+.countdown-text {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-text-fill: -app-accent;
+}
+
+/* === PRICE BIG (giá hiện tại) === */
+.price-big {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+}
+
+/* === BADGE (trạng thái phiên đấu giá) === */
+.badge-running {
+    -fx-background-color: -app-success;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4px 12px;
+    -fx-background-radius: 12px;
+}
+
+.badge-ended {
+    -fx-background-color: -app-text-muted;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4px 12px;
+    -fx-background-radius: 12px;
+}
+
+/* === TABPANE === */
+.tab-pane {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 8px 16px;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: -app-bg-card;
+    -fx-border-color: transparent transparent -app-accent transparent;
+    -fx-border-width: 0 0 2 0;
+}
+
+.tab-pane .tab-label {
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -app-accent;
+}
+
+/* === LISTVIEW (bid history) === */
+.list-view {
+    -fx-background-color: -app-bg-main;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 8px;
+}
+
+.list-view .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-primary;
+    -fx-padding: 10px 12px;
+}
+
+.list-view .list-cell:hover {
+    -fx-background-color: -app-bg-soft;
+}
+
+.list-view .list-cell:selected {
+    -fx-background-color: -app-bg-card;
+    -fx-text-fill: -app-text-primary;
+}
+
+/* === LINECHART === */
+.chart {
+    -fx-background-color: transparent;
+    -fx-padding: 8px;
+}
+
+.chart-plot-background {
+    -fx-background-color: -app-bg-main;
+}
+
+.chart-series-line {
+    -fx-stroke: -app-accent;
+    -fx-stroke-width: 2px;
+}
+
+.default-color0.chart-line-symbol {
+    -fx-background-color: -app-accent, white;
+}
+
+/* === CONTENT SCROLL (ScrollPane trong content area) === */
+.content-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-padding: 0;
+}
+
+.content-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.content-scroll > .scroll-bar {
+    -fx-background-color: transparent;
 }
 
 /* === 8. SIDEBAR === */

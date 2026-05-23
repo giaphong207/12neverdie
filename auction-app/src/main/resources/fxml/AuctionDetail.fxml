@@ -14,7 +14,6 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
@@ -25,58 +24,65 @@
             prefWidth="1280"
             prefHeight="800">
 
+    <!-- === SIDEBAR === -->
     <left>
         <StackPane fx:id="sidebarContainer"/>
     </left>
 
+    <!-- === CONTENT AREA === -->
     <center>
-        <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;">
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
             <VBox spacing="20">
                 <padding>
-                    <Insets top="32" right="48" bottom="48" left="48"/>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
                 </padding>
 
-                <!-- Breadcrumb + back -->
+                <!-- === BREADCRUMB + BACK BUTTON === -->
                 <HBox spacing="8" alignment="CENTER_LEFT">
-                    <Button text="← Quay lại" styleClass="btn-text" onAction="#onBackClicked"/>
-                    <Label text="PHIÊN ĐẤU GIÁ › ĐANG DIỄN RA" styleClass="label-tiny-uppercase"/>
+                    <Button text="← Quay lại" 
+                            styleClass="btn-text" 
+                            onAction="#onBackClicked"/>
+                    <Label text="PHIÊN ĐẤU GIÁ › ĐANG DIỄN RA" 
+                           styleClass="label-caption"/>
                 </HBox>
 
-                <!-- Heading -->
-                <VBox spacing="6">
-                    <Label fx:id="itemNameLabel" text="Đang tải..." styleClass="title-serif"/>
-                    <Region styleClass="champagne-divider"/>
-                </VBox>
+                <!-- === TIÊU ĐỀ === -->
+                <Label fx:id="itemNameLabel" 
+                       text="Đang tải..." 
+                       styleClass="title-large"/>
 
-                <!-- Layout 2 cột: thông tin trái + đặt giá phải -->
+                <!-- === LAYOUT 2 CỘT === -->
                 <HBox spacing="32" VBox.vgrow="ALWAYS">
 
-                    <!-- Cột trái: thông tin sản phẩm + bid history -->
+                    <!-- === CỘT TRÁI: Mô tả + Tabs === -->
                     <VBox spacing="20" HBox.hgrow="ALWAYS">
 
-                        <!-- Description card -->
+                        <!-- Card mô tả -->
                         <VBox styleClass="card" spacing="12">
-                            <Label text="MÔ TẢ" styleClass="label-tiny-uppercase"/>
+                            <Label text="MÔ TẢ" styleClass="label-caption"/>
                             <Label fx:id="descriptionLabel"
                                    text="Đang tải..."
                                    wrapText="true"
                                    styleClass="text-secondary"/>
-                            <Separator styleClass="hairline-divider"/>
+                            <Separator/>
                             <HBox spacing="24">
                                 <VBox spacing="4">
-                                    <Label text="NGƯỜI BÁN" styleClass="label-tiny-uppercase"/>
-                                    <Label fx:id="sellerLabel" text="—"/>
+                                    <Label text="NGƯỜI BÁN" styleClass="label-caption"/>
+                                    <Label fx:id="sellerLabel" 
+                                           text="—" 
+                                           styleClass="text-body"/>
                                 </VBox>
                                 <VBox spacing="4">
-                                    <Label text="TRẠNG THÁI" styleClass="label-tiny-uppercase"/>
-                                    <Label fx:id="statusLabel" text="—" styleClass="badge badge-running"/>
+                                    <Label text="TRẠNG THÁI" styleClass="label-caption"/>
+                                    <Label fx:id="statusLabel" 
+                                           text="—" 
+                                           styleClass="badge-running"/>
                                 </VBox>
                             </HBox>
                         </VBox>
 
                         <!-- Tabs: Lịch sử + Biểu đồ -->
-                        <TabPane tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS"
-                                 style="-fx-background-color: transparent;">
+                        <TabPane tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
                             <Tab text="LỊCH SỬ ĐẤU GIÁ">
                                 <ListView fx:id="bidHistoryListView"/>
                             </Tab>
@@ -96,40 +102,42 @@
                         </TabPane>
                     </VBox>
 
-                    <!-- Cột phải: countdown + giá + đặt giá -->
+                    <!-- === CỘT PHẢI: Countdown + Đặt giá === -->
                     <VBox spacing="16" prefWidth="380" minWidth="340" maxWidth="420">
 
-                        <!-- Card giá + countdown -->
+                        <!-- Card countdown + giá -->
                         <VBox styleClass="card" spacing="14">
-                            <Label text="KẾT THÚC SAU" styleClass="label-tiny-uppercase"/>
+                            <Label text="KẾT THÚC SAU" styleClass="label-caption"/>
                             <Label fx:id="remainingTimeLabel"
                                    text="--:--:--"
-                                   styleClass="countdown-normal"/>
+                                   styleClass="countdown-text"/>
 
-                            <Separator styleClass="hairline-divider"/>
+                            <Separator/>
 
-                            <Label text="GIÁ HIỆN TẠI" styleClass="label-tiny-uppercase"/>
+                            <Label text="GIÁ HIỆN TẠI" styleClass="label-caption"/>
                             <Label fx:id="currentPriceLabel"
                                    text="—"
-                                   styleClass="price-large"/>
+                                   styleClass="price-big"/>
 
                             <Label fx:id="highestBidderLabel"
                                    text="Người dẫn đầu: —"
-                                   styleClass="label-small"/>
+                                   styleClass="text-muted"/>
                         </VBox>
 
                         <!-- Card đặt giá -->
                         <VBox styleClass="card" spacing="14">
-                            <Label text="GIÁ BẠN MUỐN ĐẶT (VND)" styleClass="label-tiny-uppercase"/>
-                            <TextField fx:id="bidAmountField" promptText="Nhập số tiền..."/>
+                            <Label text="GIÁ BẠN MUỐN ĐẶT (VND)" 
+                                   styleClass="label-caption"/>
+                            <TextField fx:id="bidAmountField" 
+                                       promptText="Nhập số tiền..."/>
 
                             <Label fx:id="messageLabel"
                                    text=""
-                                   styleClass="text-italic-note"
+                                   styleClass="text-muted"
                                    wrapText="true"/>
 
                             <Button fx:id="placeBidButton"
-                                    text="ĐẶT GIÁ"
+                                    text="Đặt giá"
                                     styleClass="btn-primary"
                                     onAction="#onPlaceBidClicked"
                                     maxWidth="Infinity"/>

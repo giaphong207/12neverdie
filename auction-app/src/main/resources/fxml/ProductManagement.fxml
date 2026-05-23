@@ -21,71 +21,94 @@
             prefWidth="1280"
             prefHeight="800">
 
+    <!-- === SIDEBAR === -->
     <left>
         <StackPane fx:id="sidebarContainer"/>
     </left>
 
+    <!-- === CONTENT AREA === -->
     <center>
         <HBox spacing="24">
             <padding>
-                <Insets top="48" right="48" bottom="48" left="48"/>
+                <Insets top="40" right="40" bottom="40" left="40"/>
             </padding>
 
-            <!-- Cột trái: Danh sách sản phẩm -->
+            <!-- === CỘT TRÁI: DANH SÁCH SẢN PHẨM === -->
             <VBox spacing="20" HBox.hgrow="ALWAYS">
 
-                <VBox spacing="10">
-                    <Label text="Sản phẩm của tôi" styleClass="title-serif"/>
-                    <Region styleClass="champagne-divider"/>
-                </VBox>
+                <Label text="Sản phẩm của tôi" styleClass="title-large"/>
 
                 <TableView fx:id="tblItems" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="colName" text="Tên sản phẩm" prefWidth="220"/>
-                        <TableColumn fx:id="colDescription" text="Mô tả" prefWidth="260"/>
-                        <TableColumn fx:id="colStartingPrice" text="Giá khởi điểm" prefWidth="160"/>
-                        <TableColumn fx:id="colType" text="Loại" prefWidth="140"/>
+                        <TableColumn fx:id="colName" 
+                                     text="Tên sản phẩm" 
+                                     prefWidth="220"/>
+                        <TableColumn fx:id="colDescription" 
+                                     text="Mô tả" 
+                                     prefWidth="260"/>
+                        <TableColumn fx:id="colStartingPrice" 
+                                     text="Giá khởi điểm" 
+                                     prefWidth="160"/>
+                        <TableColumn fx:id="colType" 
+                                     text="Loại" 
+                                     prefWidth="140"/>
                     </columns>
                 </TableView>
             </VBox>
 
-            <!-- Cột phải: Form chi tiết -->
-            <VBox styleClass="card" spacing="16" prefWidth="380" minWidth="340" maxWidth="440">
+            <!-- === CỘT PHẢI: FORM CHI TIẾT === -->
+            <VBox styleClass="card" 
+                  spacing="16" 
+                  prefWidth="380" 
+                  minWidth="340" 
+                  maxWidth="440">
 
-                <Label text="Chỉnh sửa sản phẩm" styleClass="title-serif-small"/>
-                <Region styleClass="champagne-divider"/>
+                <Label text="Chỉnh sửa sản phẩm" styleClass="title-medium"/>
 
                 <VBox spacing="6">
-                    <Label text="TÊN SẢN PHẨM" styleClass="label-tiny-uppercase"/>
-                    <TextField fx:id="txtName"/>
+                    <Label text="TÊN SẢN PHẨM" styleClass="label-caption"/>
+                    <TextField fx:id="txtName" promptText="Nhập tên sản phẩm"/>
                 </VBox>
 
                 <VBox spacing="6">
-                    <Label text="MÔ TẢ" styleClass="label-tiny-uppercase"/>
-                    <TextArea fx:id="txtDescription" prefRowCount="3" wrapText="true"/>
+                    <Label text="MÔ TẢ" styleClass="label-caption"/>
+                    <TextArea fx:id="txtDescription" 
+                              prefRowCount="3" 
+                              wrapText="true"
+                              promptText="Nhập mô tả sản phẩm"/>
                 </VBox>
 
                 <VBox spacing="6">
-                    <Label text="GIÁ KHỞI ĐIỂM (VND)" styleClass="label-tiny-uppercase"/>
-                    <TextField fx:id="txtStartingPrice"/>
+                    <Label text="GIÁ KHỞI ĐIỂM (VND)" styleClass="label-caption"/>
+                    <TextField fx:id="txtStartingPrice" 
+                               promptText="Nhập giá khởi điểm"/>
                 </VBox>
 
                 <VBox spacing="6">
-                    <Label text="LOẠI" styleClass="label-tiny-uppercase"/>
-                    <ComboBox fx:id="cbItemType" maxWidth="Infinity" promptText="Chọn loại"/>
+                    <Label text="LOẠI" styleClass="label-caption"/>
+                    <ComboBox fx:id="cbItemType" 
+                              maxWidth="Infinity" 
+                              promptText="Chọn loại"/>
                 </VBox>
 
-                <Region prefHeight="8"/>
-
+                <!-- === ACTION BUTTONS === -->
                 <HBox spacing="12">
-                    <Button text="THÊM" styleClass="btn-outline" onAction="#onAddClicked"/>
-                    <Button text="CẬP NHẬT" styleClass="btn-primary" onAction="#onUpdateClicked"/>
+                    <Button text="Thêm" 
+                            styleClass="btn-outline" 
+                            onAction="#onAddClicked"/>
+                    <Button text="Cập nhật" 
+                            styleClass="btn-primary" 
+                            onAction="#onUpdateClicked"/>
                 </HBox>
 
                 <HBox spacing="12">
-                    <Button text="LÀM MỚI" styleClass="btn-text" onAction="#onClearClicked"/>
+                    <Button text="Làm mới" 
+                            styleClass="btn-text" 
+                            onAction="#onClearClicked"/>
                     <Region HBox.hgrow="ALWAYS"/>
-                    <Button text="XÓA" styleClass="btn-text-danger" onAction="#onDeleteClicked"/>
+                    <Button text="Xoá" 
+                            styleClass="btn-danger" 
+                            onAction="#onDeleteClicked"/>
                 </HBox>
             </VBox>
         </HBox>

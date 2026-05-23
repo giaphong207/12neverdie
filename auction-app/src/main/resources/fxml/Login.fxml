@@ -6,8 +6,9 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
@@ -19,56 +20,77 @@
            prefWidth="1280"
            prefHeight="800">
 
-    <VBox alignment="CENTER" spacing="36" maxWidth="480">
+    <!-- === FORM ĐĂNG NHẬP Ở GIỮA === -->
+    <VBox alignment="CENTER" spacing="32" maxWidth="440">
 
-        <VBox alignment="CENTER" spacing="10">
-            <Label text="AuctionHub" styleClass="title-serif"/>
-            <Region styleClass="champagne-divider"/>
-        </VBox>
+        <Label text="Phiên Đấu Giá" styleClass="title-large"/>
 
-        <VBox styleClass="card-elevated" spacing="22" maxWidth="440">
+        <VBox styleClass="card" spacing="20" maxWidth="440">
             <padding>
-                <Insets top="40" right="48" bottom="40" left="48"/>
+                <Insets top="32" right="40" bottom="32" left="40"/>
             </padding>
 
-            <Label text="ĐĂNG NHẬP"
-                   styleClass="title-serif-small"
-                   style="-fx-alignment: center;"
-                   maxWidth="Infinity"
-                   contentDisplay="CENTER"/>
+            <Label text="Đăng nhập"
+                   styleClass="title-medium"
+                   alignment="CENTER"
+                   maxWidth="Infinity"/>
 
             <VBox spacing="6">
-                <Label text="TÊN ĐĂNG NHẬP" styleClass="label-tiny-uppercase"/>
-                <TextField fx:id="txtUsername"/>
+                <Label text="TÊN ĐĂNG NHẬP" styleClass="label-caption"/>
+                <TextField fx:id="txtUsername" promptText="Nhập tên đăng nhập"/>
             </VBox>
 
             <VBox spacing="6">
-                <Label text="MẬT KHẨU" styleClass="label-tiny-uppercase"/>
-                <PasswordField fx:id="txtPassword"/>
+                <Label text="MẬT KHẨU" styleClass="label-caption"/>
+                <PasswordField fx:id="txtPassword" promptText="Nhập mật khẩu"/>
             </VBox>
 
             <CheckBox fx:id="chkRemember" text="Ghi nhớ đăng nhập"/>
 
-            <Button text="ĐĂNG NHẬP →"
+            <Button text="Đăng nhập"
                     styleClass="btn-primary"
                     onAction="#onLoginClicked"
                     maxWidth="Infinity"/>
 
-            <Button text="Đăng ký tài khoản mới"
-                    styleClass="btn-link"
+            <Button text="Chưa có tài khoản? Đăng ký"
+                    styleClass="btn-text"
                     onAction="#onOpenRegisterClicked"
                     maxWidth="Infinity"/>
         </VBox>
     </VBox>
 
-    <HBox alignment="BOTTOM_RIGHT" spacing="6"
-          StackPane.alignment="BOTTOM_RIGHT"
+    <!-- === TRẠNG THÁI KẾT NỐI GÓC DƯỚI-TRÁI === -->
+    <HBox alignment="BOTTOM_LEFT" spacing="6"
+          StackPane.alignment="BOTTOM_LEFT"
           pickOnBounds="false">
         <padding>
-            <Insets bottom="24" right="32"/>
+            <Insets bottom="24" left="32"/>
         </padding>
-        <Circle radius="3" styleClass="connection-dot"/>
-        <Label text="Đã kết nối máy chủ" styleClass="connection-status"/>
+        <Circle radius="3" styleClass="status-dot"/>
+        <Label text="Đã kết nối máy chủ" styleClass="text-muted"/>
     </HBox>
+
+    <!-- === NPC BÁC TƯ GÓC DƯỚI-PHẢI === -->
+    <VBox styleClass="npc-container" 
+          StackPane.alignment="BOTTOM_RIGHT"
+          pickOnBounds="false"
+          maxWidth="320">
+        <padding>
+            <Insets bottom="24" right="24"/>
+        </padding>
+        
+        <VBox styleClass="npc-bubble" spacing="4">
+            <Label text="Bác Tư" styleClass="npc-name"/>
+            <Label text="Chào bạn! Đăng nhập để bắt đầu nhé."
+                   styleClass="npc-message"
+                   wrapText="true"/>
+        </VBox>
+        
+        <ImageView fitWidth="80" fitHeight="80" 
+                   styleClass="npc-avatar"
+                   preserveRatio="true">
+            <Image url="@/images/bac_tu_circle_200.png"/>
+        </ImageView>
+    </VBox>
 
 </StackPane>

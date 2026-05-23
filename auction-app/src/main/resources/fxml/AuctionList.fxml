@@ -20,33 +20,32 @@
             prefWidth="1280"
             prefHeight="800">
 
+    <!-- === SIDEBAR BÊN TRÁI === -->
     <left>
         <StackPane fx:id="sidebarContainer"/>
     </left>
 
+    <!-- === CONTENT AREA Ở GIỮA === -->
     <center>
-        <ScrollPane fitToWidth="true"
-                    style="-fx-background: transparent; -fx-background-color: transparent;">
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
             <VBox spacing="32">
                 <padding>
-                    <Insets top="48" right="48" bottom="48" left="48"/>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
                 </padding>
 
-                <!-- Header -->
-                <VBox spacing="10">
-                    <Label text="Phiên đấu giá" styleClass="title-serif"/>
+                <!-- === HEADER === -->
+                <VBox spacing="8">
+                    <Label text="Phiên đấu giá" styleClass="title-large"/>
                     <Label fx:id="resultCountLabel"
                            text="Đang tải..."
                            styleClass="text-secondary"/>
-                    <Region styleClass="champagne-divider"/>
                 </VBox>
 
-                <!-- Filter bar -->
+                <!-- === FILTER BAR === -->
                 <HBox spacing="16" alignment="CENTER_LEFT">
                     <TextField fx:id="searchField"
                                promptText="Tìm theo mã LOT..."
-                               prefWidth="280"
-                               styleClass="underline-input"/>
+                               prefWidth="280"/>
                     <ChoiceBox fx:id="statusFilter" prefWidth="200"/>
                     <ChoiceBox fx:id="typeFilter" prefWidth="200"/>
                     <Region HBox.hgrow="ALWAYS"/>
@@ -55,17 +54,24 @@
                             styleClass="btn-outline"/>
                 </HBox>
 
-                <!-- Grid container -->
+                <!-- === GRID PHIÊN ĐẤU GIÁ === -->
                 <FlowPane fx:id="auctionGrid" hgap="20" vgap="20"/>
 
-                <!-- Empty state -->
-                <VBox fx:id="emptyState" alignment="CENTER" spacing="12" visible="false" managed="false">
+                <!-- === EMPTY STATE === -->
+                <VBox fx:id="emptyState" 
+                      alignment="CENTER" 
+                      spacing="12" 
+                      visible="false" 
+                      managed="false"
+                      styleClass="empty-state">
                     <padding>
                         <Insets top="60" right="20" bottom="60" left="20"/>
                     </padding>
-                    <Label text="○" style="-fx-font-size: 48px; -fx-text-fill: -fx-text-tertiary;"/>
-                    <Label text="Không có phiên đấu giá phù hợp" styleClass="title-serif-small"/>
-                    <Label text="Hãy thử thay đổi bộ lọc hoặc quay lại sau." styleClass="text-secondary"/>
+                    <Label text="○" styleClass="empty-state-icon"/>
+                    <Label text="Không có phiên đấu giá phù hợp" 
+                           styleClass="title-medium"/>
+                    <Label text="Hãy thử thay đổi bộ lọc hoặc quay lại sau." 
+                           styleClass="text-secondary"/>
                 </VBox>
 
             </VBox>
