@@ -6,7 +6,6 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
@@ -17,31 +16,39 @@
             prefWidth="1280"
             prefHeight="800">
 
+    <!-- === SIDEBAR === -->
     <left>
         <StackPane fx:id="sidebarContainer"/>
     </left>
 
+    <!-- === CONTENT AREA === -->
     <center>
-        <ScrollPane fitToWidth="true"
-                    style="-fx-background: transparent; -fx-background-color: transparent;">
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
             <VBox spacing="32">
                 <padding>
-                    <Insets top="48" right="48" bottom="48" left="48"/>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
                 </padding>
 
-                <VBox spacing="10">
-                    <Label text="Phiên đấu giá của tôi" styleClass="title-serif"/>
-                    <Label fx:id="summaryLabel" text="Đang tải..." styleClass="text-secondary"/>
-                    <Region styleClass="champagne-divider"/>
+                <!-- === HEADER === -->
+                <VBox spacing="8">
+                    <Label text="Phiên đấu giá của tôi" 
+                           styleClass="title-large"/>
+                    <Label fx:id="summaryLabel" 
+                           text="Đang tải..." 
+                           styleClass="text-secondary"/>
                 </VBox>
 
+                <!-- === STAT CARDS === -->
                 <HBox fx:id="statCardsContainer" spacing="20"/>
 
+                <!-- === ALL AUCTIONS GRID === -->
                 <VBox spacing="16">
-                    <Label text="Tất cả phiên đấu giá" styleClass="title-serif-medium"/>
-                    <FlowPane fx:id="auctionGrid" hgap="20" vgap="20"/>
+                    <Label text="Tất cả phiên đấu giá" 
+                           styleClass="title-medium"/>
+                    <FlowPane fx:id="auctionGrid" 
+                              hgap="20" 
+                              vgap="20"/>
                 </VBox>
-
             </VBox>
         </ScrollPane>
     </center>

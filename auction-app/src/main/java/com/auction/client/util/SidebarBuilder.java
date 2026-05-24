@@ -1,6 +1,9 @@
 package com.auction.client.util;
 
+import java.util.function.Consumer;
+
 import com.auction.shared.model.User;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -8,8 +11,6 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-
-import java.util.function.Consumer;
 
 /**
  * Tạo sidebar dùng chung cho cả 3 role (Bidder / Seller / Admin).
@@ -45,7 +46,7 @@ public final class SidebarBuilder {
         // 1. Logo block
         VBox logoBlock = new VBox(4);
         logoBlock.setPadding(new Insets(0, 0, 0, 32));
-        Label logo = new Label("AuctionHub");
+        Label logo = new Label("Phiên Đấu Giá");
         logo.getStyleClass().add("sidebar-logo");
         Label portalLabel = new Label(portalLabelFor(user));
         portalLabel.getStyleClass().add("sidebar-portal-label");
@@ -100,9 +101,9 @@ public final class SidebarBuilder {
     private static String portalLabelFor(User user) {
         if (user == null) return "";
         return switch (user.getRole()) {
-            case BIDDER -> "BIDDER PORTAL";
-            case SELLER -> "SELLER PORTAL";
-            case ADMIN -> "ADMIN PORTAL";
+            case BIDDER -> "Người đấu giá";
+            case SELLER -> "Người bán";
+            case ADMIN -> "Quản trị viên";
         };
     }
 

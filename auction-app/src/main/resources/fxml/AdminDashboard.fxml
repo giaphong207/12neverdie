@@ -7,7 +7,6 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
@@ -18,35 +17,47 @@
             prefWidth="1280"
             prefHeight="800">
 
+    <!-- === SIDEBAR === -->
     <left>
         <StackPane fx:id="sidebarContainer"/>
     </left>
 
+    <!-- === CONTENT AREA === -->
     <center>
-        <ScrollPane fitToWidth="true"
-                    style="-fx-background: transparent; -fx-background-color: transparent;">
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
             <VBox spacing="32">
                 <padding>
-                    <Insets top="48" right="48" bottom="48" left="48"/>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
                 </padding>
 
-                <VBox spacing="10">
-                    <Label text="Tổng quan hệ thống" styleClass="title-serif"/>
+                <!-- === HEADER === -->
+                <VBox spacing="8">
+                    <Label text="Tổng quan hệ thống" styleClass="title-large"/>
                     <Label text="Số liệu hệ thống và hoạt động người dùng trong kỳ hiện tại"
                            styleClass="text-secondary"/>
-                    <Region styleClass="champagne-divider"/>
                 </VBox>
 
+                <!-- === STAT CARDS === -->
                 <HBox fx:id="statCardsContainer" spacing="20"/>
 
+                <!-- === RECENT USERS TABLE === -->
                 <VBox spacing="16">
-                    <Label text="Hoạt động người dùng gần đây" styleClass="title-serif-medium"/>
+                    <Label text="Hoạt động người dùng gần đây" 
+                           styleClass="title-medium"/>
                     <TableView fx:id="usersTable" prefHeight="320">
                         <columns>
-                            <TableColumn fx:id="colUserName" text="Người dùng" prefWidth="220"/>
-                            <TableColumn fx:id="colUserRole" text="Vai trò" prefWidth="180"/>
-                            <TableColumn fx:id="colUserActivity" text="Hoạt động gần nhất" prefWidth="200"/>
-                            <TableColumn fx:id="colUserStatus" text="Trạng thái" prefWidth="160"/>
+                            <TableColumn fx:id="colUserName" 
+                                         text="Người dùng" 
+                                         prefWidth="220"/>
+                            <TableColumn fx:id="colUserRole" 
+                                         text="Vai trò" 
+                                         prefWidth="180"/>
+                            <TableColumn fx:id="colUserActivity" 
+                                         text="Hoạt động gần nhất" 
+                                         prefWidth="200"/>
+                            <TableColumn fx:id="colUserStatus" 
+                                         text="Trạng thái" 
+                                         prefWidth="160"/>
                         </columns>
                     </TableView>
                 </VBox>
