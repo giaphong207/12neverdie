@@ -7,7 +7,6 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
@@ -18,33 +17,43 @@
             prefWidth="1280"
             prefHeight="800">
 
+    <!-- === SIDEBAR === -->
     <left>
         <StackPane fx:id="sidebarContainer"/>
     </left>
 
+    <!-- === CONTENT AREA === -->
     <center>
-        <ScrollPane fitToWidth="true"
-                    style="-fx-background: transparent; -fx-background-color: transparent;">
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
             <VBox spacing="32">
                 <padding>
-                    <Insets top="48" right="48" bottom="48" left="48"/>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
                 </padding>
 
-                <VBox spacing="10">
-                    <Label text="Tổng quan" styleClass="title-serif"/>
-                    <Region styleClass="champagne-divider"/>
-                </VBox>
+                <!-- === HEADER === -->
+                <Label text="Tổng quan" styleClass="title-large"/>
 
+                <!-- === STAT CARDS === -->
                 <HBox fx:id="statCardsContainer" spacing="20"/>
 
+                <!-- === RECENT AUCTIONS TABLE === -->
                 <VBox spacing="16">
-                    <Label text="Phiên đấu giá gần đây" styleClass="title-serif-medium"/>
+                    <Label text="Phiên đấu giá gần đây" 
+                           styleClass="title-medium"/>
                     <TableView fx:id="recentAuctionsTable" prefHeight="320">
                         <columns>
-                            <TableColumn fx:id="colLot" text="Mã LOT" prefWidth="160"/>
-                            <TableColumn fx:id="colCurrentPrice" text="Giá hiện tại" prefWidth="220"/>
-                            <TableColumn fx:id="colStatus" text="Trạng thái" prefWidth="180"/>
-                            <TableColumn fx:id="colEndTime" text="Kết thúc" prefWidth="160"/>
+                            <TableColumn fx:id="colLot" 
+                                         text="Mã LOT" 
+                                         prefWidth="160"/>
+                            <TableColumn fx:id="colCurrentPrice" 
+                                         text="Giá hiện tại" 
+                                         prefWidth="220"/>
+                            <TableColumn fx:id="colStatus" 
+                                         text="Trạng thái" 
+                                         prefWidth="180"/>
+                            <TableColumn fx:id="colEndTime" 
+                                         text="Kết thúc" 
+                                         prefWidth="160"/>
                         </columns>
                     </TableView>
                 </VBox>

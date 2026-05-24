@@ -721,3 +721,244 @@
 .npc-avatar {
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 6, 0, 0, 2);
 }
+
+/* =====================================================
+   SECTION 11 — LEGACY ALIAS
+   Class CSS cũ để code Java + FXML cũ hoạt động
+   ===================================================== */
+
+/* === SIDEBAR (alias từ Java code) === */
+.sidebar-nav-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 14px;
+    -fx-padding: 12px 24px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3;
+    -fx-alignment: CENTER_LEFT;
+    -fx-max-width: Infinity;
+}
+
+.sidebar-nav-item:hover {
+    -fx-background-color: -app-bg-card;
+}
+
+.sidebar-nav-item-active {
+    -fx-background-color: -app-bg-card;
+    -fx-text-fill: -app-accent;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent transparent transparent -app-accent;
+    -fx-border-width: 0 0 0 3;
+    -fx-font-size: 14px;
+    -fx-padding: 12px 24px;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER_LEFT;
+    -fx-max-width: Infinity;
+}
+
+.sidebar-portal-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -app-text-muted;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 16 32;
+}
+
+.sidebar-logout {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-padding: 8 0 0 0;
+}
+
+.sidebar-logout:hover {
+    -fx-text-fill: -app-accent;
+}
+
+/* === TEXT (alias) === */
+.title-serif {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+}
+
+.title-serif-medium {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+}
+
+.title-serif-small {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+}
+
+.label-tiny-uppercase {
+    -fx-font-size: 11px;
+    -fx-text-fill: -app-text-muted;
+    -fx-font-weight: bold;
+}
+
+.text-tertiary {
+    -fx-font-size: 11px;
+    -fx-text-fill: -app-text-muted;
+}
+
+.text-italic-note {
+    -fx-font-size: 12px;
+    -fx-text-fill: -app-text-muted;
+    -fx-font-style: italic;
+}
+
+.label-small {
+    -fx-font-size: 12px;
+    -fx-text-fill: -app-text-muted;
+}
+
+/* === CARDS (alias) === */
+.card-elevated {
+    -fx-background-color: -app-bg-main;
+    -fx-background-radius: 8px;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-padding: 24px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 8, 0, 0, 2);
+}
+
+/* === DIVIDERS (alias — minimal) === */
+.champagne-divider {
+    -fx-background-color: -app-border;
+    -fx-min-height: 1px;
+    -fx-max-height: 1px;
+    -fx-pref-width: 60;
+    -fx-max-width: 60;
+}
+
+.hairline-divider {
+    -fx-background-color: -app-border;
+    -fx-min-height: 1px;
+    -fx-max-height: 1px;
+}
+
+/* === BUTTONS (alias) === */
+.btn-link {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 14px;
+    -fx-padding: 8px 12px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+
+.btn-link:hover {
+    -fx-text-fill: -app-accent;
+}
+
+.btn-text-danger {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-danger;
+    -fx-font-size: 14px;
+    -fx-padding: 8px 12px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+
+.btn-text-danger:hover {
+    -fx-text-fill: derive(-app-danger, -20%);
+}
+
+/* === PRICE (alias) === */
+.price-medium {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-accent;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+}
+
+.price-large {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+}
+
+.countdown-normal {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-text-fill: -app-accent;
+}
+
+/* === BADGE (alias chung) === */
+.badge {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4px 12px;
+    -fx-background-radius: 12px;
+    -fx-background-color: -app-text-muted;
+    -fx-text-fill: white;
+}
+
+/* === INPUT (alias) === */
+.underline-input {
+    -fx-background-color: -app-bg-main;
+    -fx-text-fill: -app-text-primary;
+    -fx-prompt-text-fill: -app-text-muted;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 14px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+}
+
+.underline-input:focused {
+    -fx-border-color: -app-accent;
+}
+
+/* === STATUS DOT (alias) === */
+.connection-dot {
+    -fx-fill: -app-success;
+}
+
+.connection-status {
+    -fx-font-size: 12px;
+    -fx-text-fill: -app-text-muted;
+}
+
+/* =====================================================
+   SECTION 12 — AUCTION CARD HELPERS
+   ===================================================== */
+
+/* === IMAGE PLACEHOLDER (chức năng ảnh thật chưa làm) === */
+.image-placeholder {
+    -fx-background-color: -app-bg-card;
+    -fx-background-radius: 4px;
+}
+
+.image-placeholder-icon {
+    -fx-font-size: 36px;
+    -fx-text-fill: -app-text-muted;
+}
+
+/* === COUNTDOWN STATES (urgent/warning/normal) === */
+.countdown-urgent {
+    -fx-text-fill: -app-danger;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.countdown-warning {
+    -fx-text-fill: -app-accent;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.countdown-normal-text {
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 13px;
+}

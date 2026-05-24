@@ -6,7 +6,6 @@
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
@@ -17,35 +16,45 @@
             prefWidth="1280"
             prefHeight="800">
 
+    <!-- === SIDEBAR === -->
     <left>
         <StackPane fx:id="sidebarContainer"/>
     </left>
 
+    <!-- === CONTENT AREA === -->
     <center>
-        <ScrollPane fitToWidth="true"
-                    style="-fx-background: transparent; -fx-background-color: transparent;">
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
             <VBox spacing="32">
                 <padding>
-                    <Insets top="48" right="48" bottom="48" left="48"/>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
                 </padding>
 
-                <VBox spacing="10">
-                    <Label text="Phiên đấu giá đã thắng" styleClass="title-serif"/>
+                <!-- === HEADER === -->
+                <VBox spacing="8">
+                    <Label text="Phiên đấu giá đã thắng" 
+                           styleClass="title-large"/>
                     <Label fx:id="summaryLabel"
                            text="Đang tải..."
                            styleClass="text-secondary"/>
-                    <Region styleClass="champagne-divider"/>
                 </VBox>
 
+                <!-- === WON AUCTIONS TABLE === -->
                 <TableView fx:id="wonTable" prefHeight="500">
                     <columns>
-                        <TableColumn fx:id="colLot" text="Mã LOT" prefWidth="200"/>
-                        <TableColumn fx:id="colPrice" text="Giá thắng" prefWidth="260"/>
-                        <TableColumn fx:id="colWonAt" text="Thắng lúc" prefWidth="200"/>
-                        <TableColumn fx:id="colStatus" text="Trạng thái" prefWidth="180"/>
+                        <TableColumn fx:id="colLot" 
+                                     text="Mã LOT" 
+                                     prefWidth="200"/>
+                        <TableColumn fx:id="colPrice" 
+                                     text="Giá thắng" 
+                                     prefWidth="260"/>
+                        <TableColumn fx:id="colWonAt" 
+                                     text="Thắng lúc" 
+                                     prefWidth="200"/>
+                        <TableColumn fx:id="colStatus" 
+                                     text="Trạng thái" 
+                                     prefWidth="180"/>
                     </columns>
                 </TableView>
-
             </VBox>
         </ScrollPane>
     </center>

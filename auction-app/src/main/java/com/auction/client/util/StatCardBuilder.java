@@ -28,17 +28,16 @@ public final class StatCardBuilder {
         card.setPadding(new Insets(24));
 
         Label labelNode = new Label(label.toUpperCase());
-        labelNode.getStyleClass().add("label-tiny-uppercase");
+        labelNode.getStyleClass().add("label-caption");
 
         Label valueNode = new Label(value);
-        valueNode.getStyleClass().add("title-serif-medium");
+        valueNode.getStyleClass().add("title-medium");
 
         card.getChildren().addAll(labelNode, valueNode);
 
         if (subtext != null && !subtext.isBlank()) {
             Label subNode = new Label(subtext);
-            subNode.getStyleClass().add("text-tertiary");
-            subNode.setStyle("-fx-font-size: 11px;");
+            subNode.getStyleClass().add("text-muted");
             card.getChildren().add(subNode);
         }
 
