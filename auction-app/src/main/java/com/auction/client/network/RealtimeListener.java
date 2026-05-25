@@ -6,8 +6,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
-import com.auction.shared.network.*;
 
+import com.auction.shared.networkMessage.event.AuctionEvent;
+import com.auction.shared.networkMessage.response.*;
 import javafx.application.Platform;
 
 /**

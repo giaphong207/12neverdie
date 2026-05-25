@@ -9,15 +9,14 @@ import com.auction.client.util.AlertUtils;
 import com.auction.client.util.CountdownUtil;
 import com.auction.client.util.MoneyParser;
 import com.auction.client.util.SceneNavigator;
-import com.auction.shared.exception.AppException;
+import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.*;
 
-import com.auction.shared.network.AuctionEvent;
-import com.auction.shared.network.BidRequest;
-import com.auction.shared.network.SubscribeAuctionRequest;
+import com.auction.shared.networkMessage.event.AuctionEvent;
+import com.auction.shared.networkMessage.request.BidRequest;
+import com.auction.shared.networkMessage.request.SubscribeAuctionRequest;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
@@ -32,7 +31,6 @@ import javafx.util.Duration;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.MoneyFormatter;

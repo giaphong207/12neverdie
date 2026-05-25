@@ -1,18 +1,21 @@
 package com.auction.server.handler;
 
-import com.auction.server.dao.AuctionDao;
-import com.auction.server.dao.ItemDao;
+import com.auction.server.DAO.AuctionDao;
+import com.auction.server.DAO.ItemDao;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.service.AuctionService;
 import com.auction.server.service.AuthService;
 import com.auction.server.service.BidResult;
 import com.auction.server.service.BidService;
-import com.auction.shared.exception.AppException;
+import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.Item;
 import com.auction.shared.model.User;
-import com.auction.shared.network.*;
+import com.auction.shared.networkMessage.event.AuctionUpdatedEvent;
+import com.auction.shared.networkMessage.event.BidPlacedEvent;
+import com.auction.shared.networkMessage.request.*;
+import com.auction.shared.networkMessage.response.*;
 import com.auction.shared.pattern.ItemFactory;
 
 import java.io.IOException;

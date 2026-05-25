@@ -8,8 +8,8 @@ import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneStyler;
 import com.auction.shared.model.Role;
 import com.auction.shared.model.User;
-import com.auction.shared.network.LoginRequest;
-import com.auction.shared.network.LoginResponse;
+import com.auction.shared.networkMessage.request.LoginRequest;
+import com.auction.shared.networkMessage.response.LoginResponse;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;

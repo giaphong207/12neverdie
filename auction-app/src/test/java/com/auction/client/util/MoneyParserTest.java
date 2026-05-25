@@ -1,10 +1,10 @@
 package com.auction.client.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import com.auction.shared.exception.AppExceptions.InvalidMoneyFormatException;
 import org.junit.jupiter.api.Test;
 
-import com.auction.shared.exception.InvalidMoneyFormatException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class MoneyParserTest {
 

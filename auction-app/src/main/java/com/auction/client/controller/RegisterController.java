@@ -6,8 +6,8 @@ import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneStyler;
 import com.auction.shared.model.Role;
-import com.auction.shared.network.RegisterRequest;
-import com.auction.shared.network.RegisterResponse;
+import com.auction.shared.networkMessage.request.RegisterRequest;
+import com.auction.shared.networkMessage.response.RegisterResponse;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;

@@ -1,6 +1,6 @@
 package com.auction.shared.model;
 
-import com.auction.shared.exception.InvalidItemException;
+import com.auction.shared.exception.AppExceptions.InvalidItemException;
 
 import java.io.Serializable;
 

@@ -1,8 +1,8 @@
 package com.auction.server.seed;
 
-import com.auction.server.dao.AuctionDao;
-import com.auction.server.dao.ItemDao;
-import com.auction.server.dao.UserDao;
+import com.auction.server.DAO.AuctionDao;
+import com.auction.server.DAO.ItemDao;
+import com.auction.server.DAO.UserDao;
 import com.auction.shared.model.*;
 import com.auction.shared.pattern.ItemFactory;
 

@@ -9,8 +9,15 @@ import com.auction.client.util.SceneNavigator;
 import com.auction.shared.model.Item;
 import com.auction.shared.model.ItemType;
 import com.auction.shared.model.User;
-import com.auction.shared.network.*;
 
+import com.auction.shared.networkMessage.request.AddItemRequest;
+import com.auction.shared.networkMessage.request.DeleteItemRequest;
+import com.auction.shared.networkMessage.request.GetSellerItemsRequest;
+import com.auction.shared.networkMessage.request.UpdateItemRequest;
+import com.auction.shared.networkMessage.response.AddItemResponse;
+import com.auction.shared.networkMessage.response.DeleteItemResponse;
+import com.auction.shared.networkMessage.response.GetSellerItemsResponse;
+import com.auction.shared.networkMessage.response.UpdateItemResponse;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -21,7 +28,6 @@ import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.MoneyFormatter;
 import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
-import com.auction.shared.model.Role;
 import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 

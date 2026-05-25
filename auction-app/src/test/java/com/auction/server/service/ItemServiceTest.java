@@ -1,6 +1,6 @@
 package com.auction.server.service;
 
-import com.auction.server.dao.ItemDao;
+import com.auction.server.DAO.ItemDao;
 import com.auction.shared.model.Item;
 import com.auction.shared.model.ItemType;
 import com.auction.shared.pattern.ItemFactory;

@@ -1,6 +1,6 @@
 package com.auction.client.realtime;
 
-import com.auction.shared.network.AuctionEvent;
+import com.auction.shared.networkMessage.event.AuctionEvent;
 
 /**
  * Interface cho các component muốn theo dõi cập nhật phiên đấu giá

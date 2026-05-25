@@ -1,6 +1,6 @@
 package com.auction.client.util;
 
-import com.auction.shared.exception.InvalidMoneyFormatException;
+import com.auction.shared.exception.AppExceptions.InvalidMoneyFormatException;
 
 public final class MoneyParser {
     
