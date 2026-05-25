@@ -2,7 +2,7 @@ package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
 import com.auction.client.main.ClientApp;
-import com.auction.client.network.RealtimeListener;
+import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneStyler;
@@ -38,7 +38,7 @@ public class LoginController {
                 ServerConnection conn = ServerConnection.getInstance();
                 conn.send(new LoginRequest(username, password));
 
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 if (listener == null) {
                     Platform.runLater(() ->
                             AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo"));

@@ -2,7 +2,7 @@ package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
 import com.auction.client.main.ClientApp;
-import com.auction.client.network.RealtimeListener;
+import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneNavigator;
@@ -127,7 +127,7 @@ public class ProductManagementController {
                 ServerConnection conn = ServerConnection.getInstance();
                 conn.send(new GetSellerItemsRequest(currentUser.getId()));
 
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> handleGetItemsResponse(response));
@@ -190,7 +190,7 @@ public class ProductManagementController {
                 ServerConnection conn = ServerConnection.getInstance();
                 conn.send(new AddItemRequest(name, description, startPrice, type, currentUser.getId()));
 
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> handleAddResponse(response));
@@ -241,7 +241,7 @@ public class ProductManagementController {
                 conn.send(new UpdateItemRequest(
                         selectedItem.getId(), name, description, startPrice, type, currentUser.getId()));
 
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> handleUpdateResponse(response));
@@ -279,7 +279,7 @@ public class ProductManagementController {
                 ServerConnection conn = ServerConnection.getInstance();
                 conn.send(new DeleteItemRequest(itemId));
 
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> handleDeleteResponse(response));

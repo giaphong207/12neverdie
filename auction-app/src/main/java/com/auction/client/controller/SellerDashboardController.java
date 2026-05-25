@@ -2,7 +2,7 @@ package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
 import com.auction.client.main.ClientApp;
-import com.auction.client.network.RealtimeListener;
+import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
@@ -101,7 +101,7 @@ public class SellerDashboardController implements AuctionEventObserver {
         new Thread(() -> {
             try {
                 ServerConnection.getInstance().send(new GetSellerItemsRequest(user.getId()));
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> {

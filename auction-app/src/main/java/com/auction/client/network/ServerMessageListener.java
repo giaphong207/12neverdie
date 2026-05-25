@@ -21,7 +21,7 @@ import javafx.application.Platform;
  *    đẩy vào queue cho ProductManagementController
  *  - ErrorMessage: hiển thị alert
  */
-public class RealtimeListener implements Runnable {
+public class ServerMessageListener implements Runnable {
 
     private final ObjectInputStream inputStream;
     private final AuctionEventBus eventBus;
@@ -30,7 +30,7 @@ public class RealtimeListener implements Runnable {
     /** Hàng đợi response trả về cho các controller (Login/Register/Bid/Item). */
     private final BlockingQueue<Object> responseQueue = new LinkedBlockingQueue<>();
 
-    public RealtimeListener(ObjectInputStream inputStream, AuctionEventBus eventBus) {
+    public ServerMessageListener(ObjectInputStream inputStream, AuctionEventBus eventBus) {
         this.inputStream = inputStream;
         this.eventBus = eventBus;
     }
