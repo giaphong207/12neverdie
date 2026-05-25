@@ -10,14 +10,9 @@ import com.auction.shared.model.Item;
 import com.auction.shared.model.ItemType;
 import com.auction.shared.model.User;
 
-import com.auction.shared.networkMessage.request.AddItemRequest;
-import com.auction.shared.networkMessage.request.DeleteItemRequest;
-import com.auction.shared.networkMessage.request.GetSellerItemsRequest;
-import com.auction.shared.networkMessage.request.UpdateItemRequest;
-import com.auction.shared.networkMessage.response.AddItemResponse;
-import com.auction.shared.networkMessage.response.DeleteItemResponse;
-import com.auction.shared.networkMessage.response.GetSellerItemsResponse;
-import com.auction.shared.networkMessage.response.UpdateItemResponse;
+import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Responses.*;
+
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -146,11 +141,11 @@ public class ProductManagementController {
 
     private void handleGetItemsResponse(Object response) {
         if (response instanceof GetSellerItemsResponse resp) {
-            if (resp.isSuccess()) {
-                List<Item> items = resp.getItems();
+            if (resp.success()) {
+                List<Item> items = resp.items();
                 tblItems.setItems(FXCollections.observableArrayList(items));
             } else {
-                AlertUtils.showError("Lỗi", resp.getMessage());
+                AlertUtils.showError("Lỗi", resp.message());
             }
         }
     }
@@ -209,12 +204,12 @@ public class ProductManagementController {
 
     private void handleAddResponse(Object response) {
         if (response instanceof AddItemResponse resp) {
-            if (resp.isSuccess()) {
-                AlertUtils.showInfo("Thành công", resp.getMessage());
+            if (resp.success()) {
+                AlertUtils.showInfo("Thành công", resp.message());
                 clearForm();
                 loadSellerProducts();
             } else {
-                AlertUtils.showError("Lỗi", resp.getMessage());
+                AlertUtils.showError("Lỗi", resp.message());
             }
         }
     }
@@ -260,12 +255,12 @@ public class ProductManagementController {
 
     private void handleUpdateResponse(Object response) {
         if (response instanceof UpdateItemResponse resp) {
-            if (resp.isSuccess()) {
-                AlertUtils.showInfo("Thành công", resp.getMessage());
+            if (resp.success()) {
+                AlertUtils.showInfo("Thành công", resp.message());
                 clearForm();
                 loadSellerProducts();
             } else {
-                AlertUtils.showError("Lỗi", resp.getMessage());
+                AlertUtils.showError("Lỗi", resp.message());
             }
         }
     }
@@ -298,12 +293,12 @@ public class ProductManagementController {
 
     private void handleDeleteResponse(Object response) {
         if (response instanceof DeleteItemResponse resp) {
-            if (resp.isSuccess()) {
-                AlertUtils.showInfo("Thành công", resp.getMessage());
+            if (resp.success()) {
+                AlertUtils.showInfo("Thành công", resp.message());
                 clearForm();
                 loadSellerProducts();
             } else {
-                AlertUtils.showError("Lỗi", resp.getMessage());
+                AlertUtils.showError("Lỗi", resp.message());
             }
         }
     }

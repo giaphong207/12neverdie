@@ -15,10 +15,9 @@ import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.StatCardBuilder;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.Item;
-import com.auction.shared.networkMessage.event.AuctionEvent;
-import com.auction.shared.networkMessage.request.GetSellerItemsRequest;
-import com.auction.shared.networkMessage.response.GetSellerItemsResponse;
-import com.auction.shared.networkMessage.request.SubscribeAuctionListRequest;
+import com.auction.shared.networkMessage.AuctionEvents.*;
+import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Responses.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -106,8 +105,8 @@ public class SellerDashboardController implements AuctionEventObserver {
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> {
-                    if (response instanceof GetSellerItemsResponse resp && resp.isSuccess()) {
-                        List<Item> items = resp.getItems();
+                    if (response instanceof GetSellerItemsResponse resp && resp.success()) {
+                        List<Item> items = resp.items();
                         sellerItemCount = items == null ? 0 : items.size();
                         recompute();
                     }

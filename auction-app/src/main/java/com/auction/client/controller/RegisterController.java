@@ -6,8 +6,9 @@ import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneStyler;
 import com.auction.shared.model.Role;
-import com.auction.shared.networkMessage.request.RegisterRequest;
-import com.auction.shared.networkMessage.response.RegisterResponse;
+
+import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Responses.*;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -82,11 +83,11 @@ public class RegisterController {
 
     private void handleRegisterResponse(Object response, javafx.event.ActionEvent event) {
         if (response instanceof RegisterResponse regResp) {
-            if (regResp.isSuccess()) {
+            if (regResp.success()) {
                 AlertUtils.showInfo("Thành công", "Đăng ký thành công! Vui lòng đăng nhập.");
                 openLoginScreen(event);
             } else {
-                AlertUtils.showError("Thất bại", regResp.getMessage());
+                AlertUtils.showError("Thất bại", regResp.message());
             }
         } else {
             AlertUtils.showError("Lỗi", "Phản hồi không hợp lệ");

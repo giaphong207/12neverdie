@@ -12,9 +12,9 @@ import com.auction.client.util.SceneNavigator;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.*;
 
-import com.auction.shared.networkMessage.event.AuctionEvent;
-import com.auction.shared.networkMessage.request.BidRequest;
-import com.auction.shared.networkMessage.request.SubscribeAuctionRequest;
+import com.auction.shared.networkMessage.AuctionEvents.*;
+import com.auction.shared.networkMessage.Requests.*;
+
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;

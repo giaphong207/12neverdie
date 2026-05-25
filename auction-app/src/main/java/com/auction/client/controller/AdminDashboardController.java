@@ -12,7 +12,6 @@ import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.StatCardBuilder;
 import com.auction.shared.model.Auction;
 import com.auction.shared.networkMessage.event.AuctionEvent;
-import com.auction.shared.networkMessage.request.SubscribeAuctionListRequest;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;

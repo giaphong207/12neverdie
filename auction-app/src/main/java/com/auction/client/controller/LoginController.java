@@ -8,8 +8,8 @@ import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneStyler;
 import com.auction.shared.model.Role;
 import com.auction.shared.model.User;
-import com.auction.shared.networkMessage.request.LoginRequest;
-import com.auction.shared.networkMessage.response.LoginResponse;
+import com.auction.shared.networkMessage.Requests.LoginRequest;
+import com.auction.shared.networkMessage.Responses.LoginResponse;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -58,14 +58,14 @@ public class LoginController {
 
     private void handleLoginResponse(Object response, javafx.event.ActionEvent event) {
         if (response instanceof LoginResponse loginResp) {
-            if (loginResp.isSuccess()) {
-                User user = loginResp.getUser();
+            if (loginResp.success()) {
+                User user = loginResp.user();
                 ClientSession.setCurrentUser(user);
                 AlertUtils.showInfo("Thành công",
                         "Đăng nhập thành công với quyền " + roleVi(user.getRole()));
                 navigateByRole(event, user);
             } else {
-                AlertUtils.showError("Thất bại", loginResp.getMessage());
+                AlertUtils.showError("Thất bại", loginResp.message());
             }
         } else {
             AlertUtils.showError("Lỗi", "Phản hồi không hợp lệ: " +

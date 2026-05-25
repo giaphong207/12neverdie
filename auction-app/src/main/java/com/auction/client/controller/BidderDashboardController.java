@@ -13,8 +13,9 @@ import com.auction.client.util.StatCardBuilder;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.AuctionStatus;
 import com.auction.shared.model.Bid;
-import com.auction.shared.networkMessage.event.AuctionEvent;
-import com.auction.shared.networkMessage.request.SubscribeAuctionListRequest;
+import com.auction.shared.networkMessage.AuctionEvents.*;
+import com.auction.shared.networkMessage.Requests.*;
+
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;

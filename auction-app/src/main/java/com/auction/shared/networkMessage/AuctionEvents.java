@@ -1,4 +1,4 @@
-package com.auction.shared.networkMessage.event;
+package com.auction.shared.networkMessage;
 
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.Bid;

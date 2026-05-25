@@ -12,9 +12,9 @@ import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.Item;
 import com.auction.shared.model.User;
-import com.auction.shared.networkMessage.event.AuctionEvents.*;
-import com.auction.shared.networkMessage.request.*;
-import com.auction.shared.networkMessage.response.*;
+import com.auction.shared.networkMessage.AuctionEvents.*;
+import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Responses.*;
 import com.auction.shared.pattern.ItemFactory;
 
 import java.io.IOException;
@@ -96,7 +96,7 @@ public class ClientHandler implements Runnable {
 
     private void handleLogin(LoginRequest req) {
         try {
-            User user = authService.login(req.getUsername(), req.getPassword());
+            User user = authService.login(req.username(), req.password());
             if (user != null) {
                 send(new LoginResponse(true, "Đăng nhập thành công", user));
             } else {
@@ -109,7 +109,7 @@ public class ClientHandler implements Runnable {
 
     private void handleRegister(RegisterRequest req) {
         try {
-            User user = authService.register(req.getUsername(), req.getPassword(), req.getRole());
+            User user = authService.register(req.username(), req.password(), req.role());
             if (user != null) {
                 send(new RegisterResponse(true, "Đăng ký thành công", user));
             } else {
@@ -135,9 +135,9 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleSubscribeAuction(SubscribeAuctionRequest req) {
-        subscriptionManager.subscribeAuction(req.getAuctionId(), this);
+        subscriptionManager.subscribeAuction(req.auctionId(), this);
         try {
-            Optional<Auction> auctionOpt = auctionDao.findById(req.getAuctionId());
+            Optional<Auction> auctionOpt = auctionDao.findById(req.auctionId());
             if (auctionOpt.isPresent()) {
                 send(new AuctionUpdatedEvent(auctionOpt.get()));
             }
@@ -149,9 +149,9 @@ public class ClientHandler implements Runnable {
     private void handleBidRequest(BidRequest request) {
         try {
             BidResult result = bidService.placeBid(
-                    request.getAuctionId(),
-                    request.getBidderId(),
-                    request.getAmount());
+                    request.auctionId(),
+                    request.bidderId(),
+                    request.amount());
 
             // Trả response cho người vừa bid: chỉ cần Auction state mới
             send(new BidResponse(true, "Đặt giá thành công!", result.auction()));
@@ -173,15 +173,15 @@ public class ClientHandler implements Runnable {
     private void handleAddItem(AddItemRequest req) {
         try {
             // Validate
-            if (req.getName() == null || req.getName().isBlank()) {
+            if (req.name() == null || req.name().isBlank()) {
                 send(new AddItemResponse(false, "Tên sản phẩm không được rỗng", null));
                 return;
             }
-            if (req.getStartPrice() <= 0) {
+            if (req.startPrice() <= 0) {
                 send(new AddItemResponse(false, "Giá khởi điểm phải > 0", null));
                 return;
             }
-            if (req.getType() == null) {
+            if (req.type() == null) {
                 send(new AddItemResponse(false, "Phải chọn loại sản phẩm", null));
                 return;
             }
@@ -189,19 +189,19 @@ public class ClientHandler implements Runnable {
             // Tạo item
             String itemId = UUID.randomUUID().toString();
             Item item = ItemFactory.createItem(
-                    req.getType(), itemId, req.getSellerId(),
-                    req.getName(), req.getDescription(), req.getStartPrice());
+                    req.type(), itemId, req.sellerId(),
+                    req.name(), req.description(), req.startPrice());
             itemDao.save(item);
 
-            System.out.println("[Server] Item mới: " + item.getName() + " | seller: " + req.getSellerId());
+            System.out.println("[Server] Item mới: " + item.getName() + " | seller: " + req.sellerId());
 
 
             LocalDateTime now = LocalDateTime.now();
-            long minIncrement = Math.max(1000L, req.getStartPrice() / 100); // 1% giá khởi điểm
+            long minIncrement = Math.max(1000L, req.startPrice() / 100); // 1% giá khởi điểm
             // Tạo Auction qua Service
             Auction auction = auctionService.createAuction(
-                    req.getSellerId(), itemId,
-                    req.getStartPrice(), minIncrement,
+                    req.sellerId(), itemId,
+                    req.startPrice(), minIncrement,
                     now, now.plusHours(24));
 
             System.out.println("[Server] Auction mới: " + auction.getId() + " (RUNNING 24h)");
@@ -216,12 +216,12 @@ public class ClientHandler implements Runnable {
 
     private void handleUpdateItem(UpdateItemRequest req) {
         try {
-            if (req.getName() == null || req.getName().isBlank()) {
+            if (req.name() == null || req.name().isBlank()) {
                 send(new UpdateItemResponse(false, "Tên sản phẩm không được rỗng", null));
                 return;
             }
 
-            Optional<Item> existing = itemDao.findById(req.getItemId());
+            Optional<Item> existing = itemDao.findById(req.itemId());
             if (existing.isEmpty()) {
                 send(new UpdateItemResponse(false, "Sản phẩm không tồn tại", null));
                 return;
@@ -229,8 +229,8 @@ public class ClientHandler implements Runnable {
 
             // Tạo item mới với cùng id → save() sẽ UPSERT
             Item updated = ItemFactory.createItem(
-                    req.getType(), req.getItemId(), req.getSellerId(),
-                    req.getName(), req.getDescription(), req.getStartPrice());
+                    req.type(), req.itemId(), req.sellerId(),
+                    req.name(), req.description(), req.startPrice());
             itemDao.save(updated);
 
             send(new UpdateItemResponse(true, "Đã cập nhật sản phẩm", updated));
@@ -242,13 +242,13 @@ public class ClientHandler implements Runnable {
 
     private void handleDeleteItem(DeleteItemRequest req) {
         try {
-            Optional<Item> existing = itemDao.findById(req.getItemId());
+            Optional<Item> existing = itemDao.findById(req.itemId());
             if (existing.isEmpty()) {
                 send(new DeleteItemResponse(false, "Sản phẩm không tồn tại"));
                 return;
             }
 
-            itemDao.deleteById(req.getItemId());
+            itemDao.deleteById(req.itemId());
             send(new DeleteItemResponse(true, "Đã xoá sản phẩm"));
         } catch (Exception e) {
             // Có thể fail nếu item đang được dùng trong auction (FK RESTRICT)
@@ -263,7 +263,7 @@ public class ClientHandler implements Runnable {
 
     private void handleGetSellerItems(GetSellerItemsRequest req) {
         try {
-            List<Item> items = itemDao.findBySellerId(req.getSellerId());
+            List<Item> items = itemDao.findBySellerId(req.sellerId());
             send(new GetSellerItemsResponse(true, "OK", items));
         } catch (Exception e) {
             e.printStackTrace();
