@@ -6,7 +6,7 @@ import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.AuctionStatus;
-import com.auction.shared.networkMessage.event.*;
+import com.auction.shared.networkMessage.event.AuctionEvents.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;

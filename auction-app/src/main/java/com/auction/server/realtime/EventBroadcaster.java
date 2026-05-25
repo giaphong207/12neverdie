@@ -1,7 +1,7 @@
 package com.auction.server.realtime;
 
 import com.auction.server.handler.ClientHandler;
-import com.auction.shared.networkMessage.event.AuctionEvent;
+import com.auction.shared.networkMessage.event.AuctionEvents.*;
 
 public class EventBroadcaster {
     private final AuctionSubscriptionManager subscriptionManager;
