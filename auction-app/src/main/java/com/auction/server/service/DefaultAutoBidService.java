@@ -1,6 +1,6 @@
 package com.auction.server.service;
 
-import com.auction.server.dao.AutoBidDao;
+import com.auction.server.DAO.AutoBidDao;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.AutoBidConfig;
 import com.auction.shared.model.Bid;

@@ -2,14 +2,16 @@ package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
 import com.auction.client.main.ClientApp;
-import com.auction.client.network.RealtimeListener;
+import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneNavigator;
 import com.auction.shared.model.Item;
 import com.auction.shared.model.ItemType;
 import com.auction.shared.model.User;
-import com.auction.shared.network.*;
+
+import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Responses.*;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -21,7 +23,6 @@ import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.MoneyFormatter;
 import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
-import com.auction.shared.model.Role;
 import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 
@@ -126,7 +127,7 @@ public class ProductManagementController {
                 ServerConnection conn = ServerConnection.getInstance();
                 conn.send(new GetSellerItemsRequest(currentUser.getId()));
 
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> handleGetItemsResponse(response));
@@ -140,11 +141,11 @@ public class ProductManagementController {
 
     private void handleGetItemsResponse(Object response) {
         if (response instanceof GetSellerItemsResponse resp) {
-            if (resp.isSuccess()) {
-                List<Item> items = resp.getItems();
+            if (resp.success()) {
+                List<Item> items = resp.items();
                 tblItems.setItems(FXCollections.observableArrayList(items));
             } else {
-                AlertUtils.showError("Lỗi", resp.getMessage());
+                AlertUtils.showError("Lỗi", resp.message());
             }
         }
     }
@@ -189,7 +190,7 @@ public class ProductManagementController {
                 ServerConnection conn = ServerConnection.getInstance();
                 conn.send(new AddItemRequest(name, description, startPrice, type, currentUser.getId()));
 
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> handleAddResponse(response));
@@ -203,12 +204,12 @@ public class ProductManagementController {
 
     private void handleAddResponse(Object response) {
         if (response instanceof AddItemResponse resp) {
-            if (resp.isSuccess()) {
-                AlertUtils.showInfo("Thành công", resp.getMessage());
+            if (resp.success()) {
+                AlertUtils.showInfo("Thành công", resp.message());
                 clearForm();
                 loadSellerProducts();
             } else {
-                AlertUtils.showError("Lỗi", resp.getMessage());
+                AlertUtils.showError("Lỗi", resp.message());
             }
         }
     }
@@ -240,7 +241,7 @@ public class ProductManagementController {
                 conn.send(new UpdateItemRequest(
                         selectedItem.getId(), name, description, startPrice, type, currentUser.getId()));
 
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> handleUpdateResponse(response));
@@ -254,12 +255,12 @@ public class ProductManagementController {
 
     private void handleUpdateResponse(Object response) {
         if (response instanceof UpdateItemResponse resp) {
-            if (resp.isSuccess()) {
-                AlertUtils.showInfo("Thành công", resp.getMessage());
+            if (resp.success()) {
+                AlertUtils.showInfo("Thành công", resp.message());
                 clearForm();
                 loadSellerProducts();
             } else {
-                AlertUtils.showError("Lỗi", resp.getMessage());
+                AlertUtils.showError("Lỗi", resp.message());
             }
         }
     }
@@ -278,7 +279,7 @@ public class ProductManagementController {
                 ServerConnection conn = ServerConnection.getInstance();
                 conn.send(new DeleteItemRequest(itemId));
 
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> handleDeleteResponse(response));
@@ -292,12 +293,12 @@ public class ProductManagementController {
 
     private void handleDeleteResponse(Object response) {
         if (response instanceof DeleteItemResponse resp) {
-            if (resp.isSuccess()) {
-                AlertUtils.showInfo("Thành công", resp.getMessage());
+            if (resp.success()) {
+                AlertUtils.showInfo("Thành công", resp.message());
                 clearForm();
                 loadSellerProducts();
             } else {
-                AlertUtils.showError("Lỗi", resp.getMessage());
+                AlertUtils.showError("Lỗi", resp.message());
             }
         }
     }

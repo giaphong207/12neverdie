@@ -1,6 +1,6 @@
 package com.auction.client.main;
 
-import com.auction.client.network.RealtimeListener;
+import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
@@ -15,9 +15,9 @@ import javafx.stage.Stage;
 
 public class ClientApp extends Application {
 
-    private static RealtimeListener listener;
+    private static ServerMessageListener listener;
 
-    public static RealtimeListener getListener() {
+    public static ServerMessageListener getListener() {
         return listener;
     }
 
@@ -59,7 +59,7 @@ public class ClientApp extends Application {
             ServerConnection connection = ServerConnection.getInstance();
             connection.connect("localhost", 9999);
 
-            listener = new RealtimeListener(connection.getInputStream(), AuctionEventBus.getInstance());
+            listener = new ServerMessageListener(connection.getInputStream(), AuctionEventBus.getInstance());
             Thread listenerThread = new Thread(listener);
             listenerThread.setDaemon(true);
             listenerThread.start();

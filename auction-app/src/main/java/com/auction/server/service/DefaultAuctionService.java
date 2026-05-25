@@ -1,11 +1,10 @@
 package com.auction.server.service;
 
-import com.auction.server.dao.AuctionDao;
+import com.auction.server.DAO.AuctionDao;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.AuctionStatus;
-import com.auction.shared.network.AuctionEndedEvent;
-import com.auction.shared.network.AuctionStartedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.*;
 
 import java.time.LocalDateTime;
 import java.util.List;

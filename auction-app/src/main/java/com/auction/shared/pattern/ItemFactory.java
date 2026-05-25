@@ -1,5 +1,5 @@
 package com.auction.shared.pattern;
-import com.auction.shared.exception.InvalidItemException;
+import com.auction.shared.exception.AppExceptions.InvalidItemException;
 import com.auction.shared.model.*;
 
 public final class ItemFactory {

@@ -1,13 +1,14 @@
 package com.auction.client.controller;
 
 import com.auction.client.main.ClientApp;
-import com.auction.client.network.RealtimeListener;
+import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneStyler;
 import com.auction.shared.model.Role;
-import com.auction.shared.network.RegisterRequest;
-import com.auction.shared.network.RegisterResponse;
+
+import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Responses.*;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -62,7 +63,7 @@ public class RegisterController {
                 ServerConnection conn = ServerConnection.getInstance();
                 conn.send(new RegisterRequest(username, password, role));
 
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 if (listener == null) {
                     Platform.runLater(() ->
                             AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo"));
@@ -82,11 +83,11 @@ public class RegisterController {
 
     private void handleRegisterResponse(Object response, javafx.event.ActionEvent event) {
         if (response instanceof RegisterResponse regResp) {
-            if (regResp.isSuccess()) {
+            if (regResp.success()) {
                 AlertUtils.showInfo("Thành công", "Đăng ký thành công! Vui lòng đăng nhập.");
                 openLoginScreen(event);
             } else {
-                AlertUtils.showError("Thất bại", regResp.getMessage());
+                AlertUtils.showError("Thất bại", regResp.message());
             }
         } else {
             AlertUtils.showError("Lỗi", "Phản hồi không hợp lệ");

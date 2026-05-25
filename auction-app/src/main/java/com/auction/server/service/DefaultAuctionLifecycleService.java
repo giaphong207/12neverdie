@@ -1,12 +1,12 @@
 package com.auction.server.service;
 
-import com.auction.server.dao.AuctionDao;
+import com.auction.server.DAO.AuctionDao;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.concurrency.AuctionLockManager;
-import com.auction.shared.exception.AuctionNotFoundException;
+import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.AuctionStatus;
-import com.auction.shared.network.*;
+import com.auction.shared.networkMessage.AuctionEvents.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;

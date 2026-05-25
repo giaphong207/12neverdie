@@ -1,7 +1,7 @@
 package com.auction.server.main;
 
 import com.auction.server.concurrency.AuctionLockManager;
-import com.auction.server.dao.*;
+import com.auction.server.DAO.*;
 import com.auction.server.handler.ClientHandler;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;

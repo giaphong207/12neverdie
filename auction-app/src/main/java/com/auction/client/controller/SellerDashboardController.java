@@ -2,7 +2,7 @@ package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
 import com.auction.client.main.ClientApp;
-import com.auction.client.network.RealtimeListener;
+import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
@@ -14,15 +14,12 @@ import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.StatCardBuilder;
 import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
 import com.auction.shared.model.Item;
-import com.auction.shared.network.AuctionEvent;
-import com.auction.shared.network.GetSellerItemsRequest;
-import com.auction.shared.network.GetSellerItemsResponse;
-import com.auction.shared.network.SubscribeAuctionListRequest;
+import com.auction.shared.networkMessage.AuctionEvents.*;
+import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Responses.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
@@ -104,12 +101,12 @@ public class SellerDashboardController implements AuctionEventObserver {
         new Thread(() -> {
             try {
                 ServerConnection.getInstance().send(new GetSellerItemsRequest(user.getId()));
-                RealtimeListener listener = ClientApp.getListener();
+                ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> {
-                    if (response instanceof GetSellerItemsResponse resp && resp.isSuccess()) {
-                        List<Item> items = resp.getItems();
+                    if (response instanceof GetSellerItemsResponse resp && resp.success()) {
+                        List<Item> items = resp.items();
                         sellerItemCount = items == null ? 0 : items.size();
                         recompute();
                     }
