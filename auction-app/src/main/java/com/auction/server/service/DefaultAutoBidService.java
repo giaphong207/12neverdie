@@ -4,6 +4,7 @@ import com.auction.server.DAO.AutoBidDao;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.AutoBidConfig;
 import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -156,12 +157,11 @@ public class DefaultAutoBidService implements AutoBidService {
 
             nextAmount = Math.min(nextAmount, chosen.getMaxAmount());
 
-            Bid autoBid = new Bid(
-                    UUID.randomUUID().toString(),
+            Bid autoBid = Bid.createNew(
                     auction.getId(),
                     chosen.getBidderId(),
                     nextAmount,
-                    LocalDateTime.now()
+                    BidSource.AUTO
             );
 
             auction.addBid(autoBid);
