@@ -11,6 +11,7 @@ import com.auction.shared.model.Auction;
 import com.auction.shared.model.AuctionStatus;
 
 import java.io.IOException;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.Duration;
@@ -94,6 +95,25 @@ public class ServerApp {
                         subscriptionManager, broadcaster);
                 new Thread(handler).start();
             }
+        } catch (BindException e) {
+            System.err.println();
+            System.err.println("================================================================");
+            System.err.println(" [Lỗi] Port " + port + " đã bị chiếm — không thể start Server.");
+            System.err.println("================================================================");
+            System.err.println(" Nguyên nhân thường gặp:");
+            System.err.println("   • Bạn đã chạy ServerApp trước đó nhưng chưa dừng hẳn.");
+            System.err.println("   • IntelliJ vẫn còn process Java treo nền sau khi Stop.");
+            System.err.println();
+            System.err.println(" Cách xử lý nhanh (macOS/Linux):");
+            System.err.println("   1) Tìm PID đang giữ port:   lsof -i :" + port);
+            System.err.println("   2) Kill process đó:         kill -9 <PID>");
+            System.err.println("   Hoặc gọn hơn:               pkill -9 -f ServerApp");
+            System.err.println();
+            System.err.println(" Trên Windows:");
+            System.err.println("   netstat -ano | findstr :" + port);
+            System.err.println("   taskkill /F /PID <PID>");
+            System.err.println("================================================================");
+            System.exit(1);
         } catch (IOException e) {
             System.err.println("Lỗi Server: " + e.getMessage());
             e.printStackTrace();
