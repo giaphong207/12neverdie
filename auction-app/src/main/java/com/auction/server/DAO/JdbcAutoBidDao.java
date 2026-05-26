@@ -2,6 +2,7 @@ package com.auction.server.DAO;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
 import com.auction.shared.model.bid.AutoBidConfig;
+import com.auction.shared.model.bid.AutoBidConfigMapper;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -147,40 +148,15 @@ public class JdbcAutoBidDao implements AutoBidDao {
         }
     }
 
-    /**
-     * Map row → AutoBidConfig.
-     *
-     * KHÓ: AutoBidConfig có field `createdAt` final (set trong constructor = now()).
-     * Khi load từ DB, ta cần gán createdAt từ DB → dùng reflection.
-     *
-     * Đây là workaround vì model không có constructor đầy đủ.
-     * Alternative: thêm constructor protected/package-private trong AutoBidConfig.
-     */
     private AutoBidConfig mapConfig(ResultSet rs) throws SQLException {
-        AutoBidConfig cfg = new AutoBidConfig(
+        return AutoBidConfigMapper.fromDb(
                 rs.getString("id"),
                 rs.getString("auction_id"),
                 rs.getString("bidder_id"),
                 rs.getLong("max_amount"),
-                rs.getLong("increment")
+                rs.getLong("increment"),
+                rs.getBoolean("enabled"),
+                rs.getTimestamp("created_at").toLocalDateTime()
         );
-
-        if (!rs.getBoolean("enabled")) {
-            cfg.disable();
-        }
-
-        // Set lại createdAt từ DB (final field → cần reflection)
-        try {
-            Field f = AutoBidConfig.class.getDeclaredField("createdAt");
-            f.setAccessible(true);
-            f.set(cfg, rs.getTimestamp("created_at").toLocalDateTime());
-        } catch (ReflectiveOperationException e) {
-            // Chấp nhận — createdAt sẽ là now(), chỉ ảnh hưởng tie-break
-            // của auto-bid (cùng priority chọn cái tạo trước)
-            System.err.println("[JdbcAutoBidDao] Cannot restore createdAt: "
-                    + e.getMessage());
-        }
-
-        return cfg;
     }
 }

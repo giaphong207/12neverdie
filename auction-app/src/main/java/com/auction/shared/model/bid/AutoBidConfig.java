@@ -54,21 +54,38 @@ public class AutoBidConfig implements Serializable {
         this.enabled = true;
         this.createdAt = LocalDateTime.now();
     }
-
+    AutoBidConfig(String id,
+                  String auctionId,
+                  String bidderId,
+                  long maxAmount,
+                  long increment,
+                  boolean enabled,
+                  LocalDateTime createdAt) {
+        this.id = id;
+        this.auctionId = auctionId;
+        this.bidderId = bidderId;
+        this.maxAmount = maxAmount;
+        this.increment = increment;
+        this.enabled = enabled;
+        this.createdAt = createdAt;
+    }
     /**
      * Rule (theo phân công tuần 5):
      *   canOutbid = enabled
      *            && bidderId != currentHighestBidderId
      *            && maxAmount >= currentPrice + increment
      */
-    public boolean canOutbid(long currentPrice, String currentHighestBidderId) {
+    public boolean canOutbid(long currentPrice, String currentHighestBidderId, long minIncrement) {
         if (!enabled) return false;
         if (bidderId.equals(currentHighestBidderId)) return false;
-        return maxAmount >= currentPrice + increment;
+        long step = Math.max(this.increment, minIncrement);
+        return maxAmount >= currentPrice + step;
     }
 
-    public long nextBidAmount(long currentPrice) {
-        return currentPrice + increment;
+    public long calculateNextAmount(long currentPrice, long runnerUpMaxAmount, long minIncrement) {
+        long step = Math.max(this.increment, minIncrement);
+        long target = Math.max(currentPrice + step, runnerUpMaxAmount + step);
+        return Math.min(target, this.maxAmount);
     }
 
     public void disable() { this.enabled = false; }
