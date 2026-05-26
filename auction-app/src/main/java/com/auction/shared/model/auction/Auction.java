@@ -1,7 +1,7 @@
 package com.auction.shared.model.auction;
 
 import com.auction.shared.model.bid.Bid;
-
+import com.auction.shared.exception.AppExceptions.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -13,21 +13,16 @@ public class Auction implements Serializable {
     private final String id;
     private final String itemId;
     private final String sellerId;
-
     private final long startPrice;
-    private long currentPrice;
     private final long minIncrement;
-
-    private AuctionStatus status;
-
     private final LocalDateTime startTime;
-    private LocalDateTime endTime; // xóa final để anti-sniping có thể gia hạn
-
-    private String highestBidderId;
-    private String winnerBidderId;
-
     private final List<Bid> bidHistory;
 
+    private AuctionStatus status;
+    private long currentPrice;
+    private LocalDateTime endTime; // xóa final để anti-sniping có thể gia hạn
+    private String highestBidderId;
+    private String winnerBidderId;
     public Auction(String id,
                    String itemId,
                    String sellerId,
@@ -79,6 +74,31 @@ public class Auction implements Serializable {
         this.bidHistory = new ArrayList<>();
     }
 
+    Auction(String id,
+            String itemId,
+            String sellerId,
+            long startPrice,
+            long currentPrice,
+            long minIncrement,
+            AuctionStatus status,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            String highestBidderId,
+            String winnerBidderId,
+            List<Bid> bidHistory){
+        this.id = id;
+        this.itemId = itemId;
+        this.sellerId = sellerId;
+        this.startPrice = startPrice;
+        this.currentPrice = currentPrice;
+        this.minIncrement = minIncrement;
+        this.status = status;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.highestBidderId = highestBidderId;
+        this.winnerBidderId = winnerBidderId;
+        this.bidHistory = bidHistory;
+    }
     // ── QUERY (đọc trạng thái) ──────────────
     public String getId() {
         return id;
@@ -150,13 +170,13 @@ public class Auction implements Serializable {
     // ── COMMAND (chuyển trạng thái) ─────────
     public void addBid(Bid bid) {
         if (bid == null) {
-            throw new IllegalArgumentException("Bid không được null");
+            throw new InvalidBidException("Bid không được null");
         }
         if (!id.equals(bid.getAuctionId())) {
-            throw new IllegalArgumentException("Bid không thuộc auction này");
+            throw new InvalidBidException("Bid không thuộc auction này");
         }
         if (!canAcceptBid(bid.getAmount())) {
-            throw new IllegalArgumentException("Giá bid không hợp lệ");
+            throw new InvalidBidException("Giá bid không hợp lệ");
         }
 
         bidHistory.add(bid);
@@ -239,42 +259,6 @@ public class Auction implements Serializable {
                     "Chỉ có thể gia hạn auction đang RUNNING, hiện tại: " + status);
         }
         this.endTime = this.endTime.plusSeconds(seconds);
-    }
-
-    // ── DAO-ONLY (khôi phục từ DB, bypass validation) ──
-    // ⚠️ CẢNH BÁO: KHÔNG gọi từ business code (Service, Controller...).
-    //   Chỉ JdbcAuctionDao.mapAuction() được phép gọi các method này.
-    /**
-     * Gán currentPrice + highestBidderId + winnerBidderId trực tiếp.
-     * Dùng khi load Auction đang giữa chừng (đã có bid).
-     */
-    public void restoreState(long currentPrice, String highestBidderId, String winnerBidderId) {
-        this.currentPrice = currentPrice;
-        this.highestBidderId = highestBidderId;
-        this.winnerBidderId = winnerBidderId;
-    }
-
-    /**
-     * Gán status trực tiếp (bypass logic chuyển trạng thái theo thời gian).
-     */
-    public void restoreStatus(AuctionStatus status) {
-        if (status == null) {
-            throw new IllegalArgumentException("Status không được null");
-        }
-        this.status = status;
-    }
-    /**
-     * Khôi phục bid history khi load từ DB.
-     * KHÔNG re-validate (vì auction có thể đã FINISHED).
-     * Chỉ gọi 1 lần ngay sau khi tạo Auction từ ResultSet.
-     */
-    public void restoreBidHistory(java.util.List<Bid> bids) {
-        if (!this.bidHistory.isEmpty()) {
-            throw new IllegalStateException("Bid history đã được nạp rồi");
-        }
-        if (bids != null) {
-            this.bidHistory.addAll(bids);
-        }
     }
 
     @Override

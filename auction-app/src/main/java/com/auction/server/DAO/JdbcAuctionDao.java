@@ -2,6 +2,7 @@ package com.auction.server.DAO;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
 import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionMapper;
 import com.auction.shared.model.auction.AuctionStatus;
 
 import java.sql.Connection;
@@ -65,10 +66,9 @@ public class JdbcAuctionDao implements AuctionDao {
                 if (!rs.next()) {
                     return Optional.empty();
                 }
-                Auction a = mapAuction(rs);
-                // Load bid history riêng
-                a.restoreBidHistory(bidDao.findByAuctionId(id));
-                return Optional.of(a);
+                AuctionEntity entity = mapAuction(rs);
+                entity.setBidHistory(bidDao.findByAuctionId(id));
+                return Optional.of(AuctionMapper.toDomain(entity));
             }
 
         } catch (SQLException e) {
@@ -180,10 +180,9 @@ public class JdbcAuctionDao implements AuctionDao {
 
             List<Auction> result = new ArrayList<>();
             while (rs.next()) {
-                Auction a = mapAuction(rs);
-                // Load bid history cho mỗi auction
-                a.restoreBidHistory(bidDao.findByAuctionId(a.getId()));
-                result.add(a);
+                AuctionEntity entity = mapAuction(rs);
+                entity.setBidHistory(bidDao.findByAuctionId(entity.getId()));
+                result.add(AuctionMapper.toDomain(entity));
             }
             return result;
 
@@ -192,35 +191,23 @@ public class JdbcAuctionDao implements AuctionDao {
         }
     }
 
-    /**
-     * Map 1 row ResultSet → Auction.
-     * Vì constructor gốc ép currentPrice = startPrice và status mặc định,
-     * ta dùng restoreState() + restoreStatus() để gán giá trị thật từ DB.
-     */
-    private Auction mapAuction(ResultSet rs) throws SQLException {
-        // Constructor cần status truyền vào — dùng tạm RUNNING, sẽ restore lại
-        Auction a = new Auction(
-                rs.getString("id"),
-                rs.getString("item_id"),
-                rs.getString("seller_id"),
-                rs.getLong("start_price"),
-                rs.getLong("min_increment"),
-                AuctionStatus.RUNNING,                    // sẽ restore
-                rs.getTimestamp("start_time").toLocalDateTime(),
-                rs.getTimestamp("end_time").toLocalDateTime()
-        );
+    private AuctionEntity mapAuction(ResultSet rs) throws SQLException {
+        AuctionEntity entity = new AuctionEntity();
 
-        // Restore status đúng từ DB
-        a.restoreStatus(AuctionStatus.valueOf(rs.getString("status")));
+        entity.setId(rs.getString("id"));
+        entity.setItemId(rs.getString("item_id"));
+        entity.setSellerId(rs.getString("seller_id"));
+        entity.setStartPrice(rs.getLong("start_price"));
+        entity.setCurrentPrice(rs.getLong("current_price"));
+        entity.setMinIncrement(rs.getLong("min_increment"));
+        entity.setStatus(AuctionStatus.valueOf(rs.getString("status")));
+        entity.setStartTime(rs.getTimestamp("start_time").toLocalDateTime());
+        entity.setEndTime(rs.getTimestamp("end_time").toLocalDateTime());
+        entity.setHighestBidderId(rs.getString("highest_bidder_id"));
+        entity.setWinnerBidderId(rs.getString("winner_bidder_id"));
+        // bidHistory để trống — sẽ set sau khi load từ BidDao
 
-        // Restore state (currentPrice, highest/winner bidder)
-        a.restoreState(
-                rs.getLong("current_price"),
-                rs.getString("highest_bidder_id"),    // có thể null
-                rs.getString("winner_bidder_id")      // có thể null
-        );
-
-        return a;
+        return entity;
     }
 
     /**
