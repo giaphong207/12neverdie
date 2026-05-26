@@ -24,6 +24,14 @@ public class LoginController {
     @FXML private CheckBox chkRemember;
 
     @FXML
+    public void initialize() {
+        // U18: auto-focus username + cho phép Enter để submit
+        Platform.runLater(() -> txtUsername.requestFocus());
+        txtPassword.setOnAction(this::onLoginClicked);
+        txtUsername.setOnAction(e -> txtPassword.requestFocus());
+    }
+
+    @FXML
     public void onLoginClicked(javafx.event.ActionEvent event) {
         String username = txtUsername.getText();
         String password = txtPassword.getText();

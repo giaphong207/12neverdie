@@ -59,7 +59,7 @@
                     onAction="#onRegisterClicked"
                     maxWidth="Infinity"/>
 
-            <Label text="Quản trị viên không cho phép tự đăng ký"
+            <Label text="Chỉ có thể tự đăng ký vai trò Người đấu giá hoặc Người bán. Tài khoản Quản trị viên do hệ thống cấp."
                    styleClass="text-muted"
                    alignment="CENTER"
                    maxWidth="Infinity"

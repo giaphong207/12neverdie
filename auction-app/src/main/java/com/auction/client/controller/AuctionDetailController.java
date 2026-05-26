@@ -26,6 +26,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
 import javafx.util.Duration;
 
 import java.io.IOException;
@@ -56,6 +57,7 @@ public class AuctionDetailController implements AuctionEventObserver {
 
     private Auction currentAuction;
     private Timeline countdownTimeline;
+    private Timeline bidResetTimeline;
     private boolean expiredHandled = false;
     private String currentAuctionId;
 
@@ -80,6 +82,22 @@ public class AuctionDetailController implements AuctionEventObserver {
         }
 
         AuctionEventBus.getInstance().addObserver(this);
+
+        // U7: chỉ cho phép số, dấu chấm/phẩy, khoảng trắng — chặn ký tự lạ ngay khi gõ
+        bidAmountField.setTextFormatter(new TextFormatter<>(change ->
+                change.getControlNewText().matches("[0-9.,\\s]*") ? change : null));
+
+        // U3+U4: tự cleanup observer + countdown khi node rời stage
+        // (xảy ra khi user click sidebar chuyển scene, không chỉ khi click "Quay lại")
+        sidebarContainer.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.windowProperty().addListener((o, oldW, newW) -> {
+                    if (oldW != null && newW == null) {
+                        dispose();
+                    }
+                });
+            }
+        });
 
         String auctionId = ClientSession.getSelectedAuctionId();
         if (auctionId == null || auctionId.isBlank()) {
@@ -119,8 +137,6 @@ public class AuctionDetailController implements AuctionEventObserver {
     public void loadAuction(String auctionId) {
         this.currentAuctionId = auctionId;
         this.expiredHandled = false;
-
-        AuctionEventBus.getInstance().addObserver(this);
 
         try {
             ServerConnection.getInstance()
@@ -287,18 +303,39 @@ public class AuctionDetailController implements AuctionEventObserver {
                 return;
             }
 
+            // U2: chặn double-bid — disable nút ngay khi click
+            placeBidButton.setDisable(true);
+            messageLabel.setText("Đang gửi yêu cầu đặt giá...");
+
             ServerConnection.getInstance().send(new BidRequest(currentAuction.getId(),currentUser.getId(),amount));
             if (bidAmountField != null) { bidAmountField.clear(); }
 
-            messageLabel.setText("Đã gửi yêu cầu đặt giá. Đang chờ server xử lý...");
+            // Safety net: nếu sau 5s không có event update từ server thì re-enable
+            scheduleBidButtonReset();
         } catch (AppException ex) {
+            placeBidButton.setDisable(false);
             AlertUtils.showError("Lỗi đặt giá", ex.getMessage());
         } catch (IOException ex) {
+            placeBidButton.setDisable(false);
             AlertUtils.showError("Lỗi kết nối", "Không gửi được yêu cầu đặt giá: " + ex.getMessage());
         } catch (Exception ex) {
+            placeBidButton.setDisable(false);
             AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
             ex.printStackTrace();
         }
+    }
+
+    private void scheduleBidButtonReset() {
+        if (bidResetTimeline != null) {
+            bidResetTimeline.stop();
+        }
+        bidResetTimeline = new Timeline(new KeyFrame(Duration.seconds(5), e -> {
+            if (currentAuction != null && currentAuction.getStatus() == AuctionStatus.RUNNING) {
+                placeBidButton.setDisable(false);
+            }
+        }));
+        bidResetTimeline.setCycleCount(1);
+        bidResetTimeline.play();
     }
 
     /**
@@ -338,6 +375,11 @@ public class AuctionDetailController implements AuctionEventObserver {
     }
 
     public void dispose() {
+        stopCountdown();
+        if (bidResetTimeline != null) {
+            bidResetTimeline.stop();
+            bidResetTimeline = null;
+        }
         AuctionEventBus.getInstance().removeObserver(this);
     }
     private void renderBidHistoryChart(Auction auction) {

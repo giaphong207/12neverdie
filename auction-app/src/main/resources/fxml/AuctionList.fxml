@@ -47,7 +47,6 @@
                                promptText="Tìm theo mã LOT..."
                                prefWidth="280"/>
                     <ChoiceBox fx:id="statusFilter" prefWidth="200"/>
-                    <ChoiceBox fx:id="typeFilter" prefWidth="200"/>
                     <Region HBox.hgrow="ALWAYS"/>
                     <Button text="Làm mới"
                             onAction="#onRefreshClicked"

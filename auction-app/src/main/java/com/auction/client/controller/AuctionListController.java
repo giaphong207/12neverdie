@@ -36,14 +36,10 @@ public class AuctionListController implements AuctionEventObserver {
     @FXML private Label resultCountLabel;
     @FXML private TextField searchField;
     @FXML private ChoiceBox<AuctionStatus> statusFilter;
-    @FXML private ChoiceBox<String> typeFilter;
     @FXML private FlowPane auctionGrid;
     @FXML private VBox emptyState;
 
     private final List<Auction> allAuctions = new ArrayList<>();
-
-    // Filter "Tất cả" cho status & type
-    private static final String TYPE_ALL = "Tất cả loại";
 
     @FXML
     public void initialize() {
@@ -79,16 +75,6 @@ public class AuctionListController implements AuctionEventObserver {
         statusFilter.getSelectionModel().selectFirst();
         statusFilter.setOnAction(e -> applyFilters());
 
-        // Setup filter type
-        typeFilter.setItems(FXCollections.observableArrayList(
-                TYPE_ALL,
-                "Đồ điện tử",
-                "Tác phẩm nghệ thuật",
-                "Phương tiện"
-        ));
-        typeFilter.getSelectionModel().selectFirst();
-        typeFilter.setOnAction(e -> applyFilters());
-
         // Setup search
         searchField.textProperty().addListener((obs, oldV, newV) -> applyFilters());
 
@@ -111,25 +97,15 @@ public class AuctionListController implements AuctionEventObserver {
 
     private void applyFilters() {
         AuctionStatus selectedStatus = statusFilter.getSelectionModel().getSelectedItem();
-        String selectedType = typeFilter.getSelectionModel().getSelectedItem();
         String search = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
 
         List<Auction> filtered = new ArrayList<>();
         for (Auction a : allAuctions) {
-            // Status filter
             if (selectedStatus != null && a.getStatus() != selectedStatus) continue;
 
-            // Search filter (theo auction ID)
             if (!search.isEmpty()) {
                 boolean matchId = a.getId() != null && a.getId().toLowerCase().contains(search);
                 if (!matchId) continue;
-            }
-
-            // Type filter — vì code không có field type trên Auction, ta skip filter này khi user chọn "Tất cả"
-            // Phase 5 có thể nâng cấp thêm: lookup Item.type qua itemId
-            if (selectedType != null && !TYPE_ALL.equals(selectedType)) {
-                // Bỏ qua phần filter type tạm thời — sẽ làm sau khi có ItemDao client-side
-                // Hiện tại tất cả auctions sẽ qua filter này
             }
 
             filtered.add(a);
