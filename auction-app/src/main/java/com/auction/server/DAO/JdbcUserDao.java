@@ -1,11 +1,8 @@
 package com.auction.server.DAO;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
-import com.auction.shared.model.Admin;
-import com.auction.shared.model.Bidder;
-import com.auction.shared.model.Role;
-import com.auction.shared.model.Seller;
-import com.auction.shared.model.User;
+import com.auction.shared.factory.UserFactory;
+import com.auction.shared.model.user.*;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -118,7 +115,7 @@ public class JdbcUserDao implements UserDao {
             ps.setString(1, user.getId());
             ps.setString(2, user.getUsername());
             ps.setString(3, user.getPassword());
-            ps.setString(4, user.getRole().name());
+            ps.setString(4, UserFactory.toRole(user).name());
 
             int affected = ps.executeUpdate();
             System.out.println("[JdbcUserDao] save() affected " + affected + " row(s)");
@@ -133,10 +130,10 @@ public class JdbcUserDao implements UserDao {
      * Dựa vào cột 'role' để tạo Bidder/Seller/Admin.
      */
     private User mapUser(ResultSet rs) throws SQLException {
+        Role role       = Role.valueOf(rs.getString("role"));
         String id       = rs.getString("id");
         String username = rs.getString("username");
         String password = rs.getString("password");
-        Role role       = Role.valueOf(rs.getString("role"));
 
         return switch (role) {
             case BIDDER -> new Bidder(id, username, password);

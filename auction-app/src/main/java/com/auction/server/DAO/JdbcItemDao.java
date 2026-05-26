@@ -1,9 +1,9 @@
 package com.auction.server.DAO;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
-import com.auction.shared.model.Item;
-import com.auction.shared.model.ItemType;
-import com.auction.shared.pattern.ItemFactory;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.factory.ItemFactory;
+import com.auction.shared.model.item.ItemType;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -119,7 +119,7 @@ public class JdbcItemDao implements ItemDao {
             ps.setString(3, item.getName());
             ps.setString(4, item.getDescription());
             ps.setLong  (5, item.getStartPrice());     // BIGINT → setLong
-            ps.setString(6, item.getType().name());
+            ps.setString(6, ItemFactory.toItemType(item).name());
 
             int affected = ps.executeUpdate();
             System.out.println("[JdbcItemDao] save() affected " + affected + " row(s)");

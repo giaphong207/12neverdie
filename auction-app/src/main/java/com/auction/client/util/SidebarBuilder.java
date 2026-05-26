@@ -2,7 +2,8 @@ package com.auction.client.util;
 
 import java.util.function.Consumer;
 
-import com.auction.shared.model.User;
+import com.auction.shared.factory.UserFactory;
+import com.auction.shared.model.user.User;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -80,7 +81,7 @@ public final class SidebarBuilder {
         userBox.setPadding(new Insets(16, 32, 0, 32));
         Label usernameLabel = new Label(user != null ? user.getUsername() : "Người dùng");
         usernameLabel.getStyleClass().add("sidebar-username");
-        Label roleLabel = new Label(user != null ? EnumFormatter.roleVi(user.getRole()) : "");
+        Label roleLabel = new Label(user != null ? EnumFormatter.roleVi(UserFactory.toRole(user)) : "");
         roleLabel.getStyleClass().add("sidebar-role");
 
         Button logoutBtn = new Button("Đăng xuất →");
@@ -100,7 +101,7 @@ public final class SidebarBuilder {
 
     private static String portalLabelFor(User user) {
         if (user == null) return "";
-        return switch (user.getRole()) {
+        return switch (UserFactory.toRole(user)) {
             case BIDDER -> "Người đấu giá";
             case SELLER -> "Người bán";
             case ADMIN -> "Quản trị viên";
@@ -109,7 +110,7 @@ public final class SidebarBuilder {
 
     private static java.util.List<NavItem> navItemsFor(User user) {
         if (user == null) return java.util.List.of();
-        return switch (user.getRole()) {
+        return switch (UserFactory.toRole(user)) {
             case BIDDER -> java.util.List.of(
                     new NavItem(NavKey.BIDDER_HOME, "Trang chủ"),
                     new NavItem(NavKey.BIDDER_LIVE, "Phiên đang diễn ra"),

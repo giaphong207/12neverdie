@@ -1,7 +1,7 @@
 package com.auction.server.service;
 
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
 
 import java.time.Duration;
 import java.time.LocalDateTime;

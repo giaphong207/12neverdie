@@ -3,9 +3,16 @@ package com.auction.server.seed;
 import com.auction.server.DAO.AuctionDao;
 import com.auction.server.DAO.ItemDao;
 import com.auction.server.DAO.UserDao;
-import com.auction.shared.model.*;
-import com.auction.shared.pattern.ItemFactory;
+import com.auction.shared.factory.ItemFactory;
 
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.model.item.ItemType;
+import com.auction.shared.model.user.Admin;
+import com.auction.shared.model.user.Bidder;
+import com.auction.shared.model.user.Seller;
+import com.auction.shared.model.user.User;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.time.LocalDateTime;

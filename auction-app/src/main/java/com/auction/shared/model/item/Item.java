@@ -1,18 +1,17 @@
-package com.auction.shared.model;
+package com.auction.shared.model.item;
 
 import com.auction.shared.exception.AppExceptions.InvalidItemException;
 
 import java.io.Serializable;
 
-public abstract class Item implements Serializable {
+public sealed abstract class Item implements Serializable permits ElectronicsItem, ArtItem, VehicleItem {
     private String id;
     private String sellerId;
     private String name;
     private String description;
     private long startPrice;
-    private ItemType type;
 
-    protected Item(String id, String sellerId, String name, String description, long startPrice, ItemType type) {
+    protected Item(String id, String sellerId, String name, String description, long startPrice) {
         if (id == null || id.isBlank()) {
             throw new InvalidItemException("Phải có ID");
         }
@@ -33,16 +32,11 @@ public abstract class Item implements Serializable {
             throw new InvalidItemException("Giá khởi điểm không được âm");
         }
 
-        if (type == null) {
-            throw new InvalidItemException("Phải điền tên loại sản phẩm");
-        }
-
         this.id = id;
         this.sellerId = sellerId;
         this.name = name;
         this.description = description;
         this.startPrice = startPrice;
-        this.type = type;
     }
 
     public String getId() {
@@ -63,10 +57,6 @@ public abstract class Item implements Serializable {
 
     public long getStartPrice() {
         return startPrice;
-    }
-
-    public ItemType getType() {
-        return type;
     }
 
     public void updateBasicInfo(String name, String description, long startPrice) {
@@ -95,7 +85,6 @@ public abstract class Item implements Serializable {
                 ", Name: '" + name + '\'' +
                 ", Description: '" + description + '\'' +
                 ", StartPrice: " + startPrice +
-                ", Type: " + type +
                 '}';
     }
 }

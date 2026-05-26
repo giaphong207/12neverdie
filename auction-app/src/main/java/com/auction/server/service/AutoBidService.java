@@ -1,7 +1,7 @@
 package com.auction.server.service;
 
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AutoBidConfig;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.bid.AutoBidConfig;
 
 import java.util.List;
 

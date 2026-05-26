@@ -81,9 +81,9 @@ public class ServerMessageListener implements Runnable {
                     responseQueue.offer(incoming);
 
                 } else if (incoming instanceof ErrorMessage error) {
-                    System.err.println("Nhan loi tu server: " + error.getMessage());
+                    System.err.println("Nhan loi tu server: " + error.message());
                     Platform.runLater(() ->
-                            AlertUtils.showError("Lỗi từ Server", error.getMessage()));
+                            AlertUtils.showError("Lỗi từ Server", error.message()));
 
                 } else {
                     System.out.println("Nhan object khong xac dinh: " +

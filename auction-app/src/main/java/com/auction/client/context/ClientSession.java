@@ -1,6 +1,6 @@
 package com.auction.client.context;
 
-import com.auction.shared.model.User;
+import com.auction.shared.model.user.User;
 
 /**
  * Quản lý phiên làm việc của người dùng trên toàn ứng dụng.

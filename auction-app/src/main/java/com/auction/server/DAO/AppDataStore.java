@@ -4,10 +4,10 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.auction.shared.model.User;
-import com.auction.shared.model.Item;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AutoBidConfig;
+import com.auction.shared.model.user.User;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.bid.AutoBidConfig;
 
 public class AppDataStore implements Serializable {
     private static final long serialVersionUID = 1L;

@@ -10,8 +10,13 @@ import com.auction.client.util.CountdownUtil;
 import com.auction.client.util.MoneyParser;
 import com.auction.client.util.SceneNavigator;
 import com.auction.shared.exception.AppExceptions.*;
-import com.auction.shared.model.*;
 
+import com.auction.shared.factory.UserFactory;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.user.Role;
+import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
 
@@ -67,7 +72,7 @@ public class AuctionDetailController implements AuctionEventObserver {
         // Build sidebar theo role
         if (sidebarContainer != null && ClientSession.getCurrentUser() != null) {
             var user = ClientSession.getCurrentUser();
-            NavKey activeKey = user.getRole() == Role.BIDDER
+            NavKey activeKey = UserFactory.toRole(user) == Role.BIDDER
                     ? NavKey.BIDDER_LIVE
                     : NavKey.SELLER_AUCTIONS;
             var sidebar = SidebarBuilder.build(
@@ -282,7 +287,7 @@ public class AuctionDetailController implements AuctionEventObserver {
                 AlertUtils.showWarning("Chưa đăng nhập", "Vui lòng đăng nhập để tham gia đấu giá.");
                 return;
             }
-            if (currentUser.getRole() != Role.BIDDER) {
+            if (UserFactory.toRole(currentUser) != Role.BIDDER) {
                 AlertUtils.showError("Lỗi Quyền", "Chỉ tài khoản BIDDER mới được đặt giá!");
                 return;
             }

@@ -1,7 +1,7 @@
-package com.auction.shared.pattern;
+package com.auction.shared.factory;
 
 import com.auction.shared.exception.AppExceptions.InvalidItemException;
-import com.auction.shared.model.*;
+import com.auction.shared.model.item.*;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -58,7 +58,7 @@ class ItemFactoryTest {
         assertEquals("iPhone 15", item.getName());
         assertEquals("Dien thoai moi", item.getDescription());
         assertEquals(15000000L, item.getStartPrice());
-        assertEquals(ItemType.ELECTRONICS, item.getType());
+        assertEquals(ItemType.ELECTRONICS, ItemFactory.toItemType(item));
     }
     @Test
     void shouldThrowExceptionWhenItemTypeIsNull() {
@@ -160,7 +160,7 @@ class ItemFactoryTest {
         assertEquals("Laptop", item.getName());
         assertEquals("Laptop gaming", item.getDescription());
         assertEquals(1000, item.getStartPrice());
-        assertEquals(ItemType.ELECTRONICS, item.getType());
+        assertEquals(ItemType.ELECTRONICS, ItemFactory.toItemType(item));
     }
 
 

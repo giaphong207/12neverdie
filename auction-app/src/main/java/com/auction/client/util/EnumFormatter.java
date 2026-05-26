@@ -1,8 +1,10 @@
 package com.auction.client.util;
 
-import com.auction.shared.model.AuctionStatus;
-import com.auction.shared.model.ItemType;
-import com.auction.shared.model.Role;
+import com.auction.shared.factory.UserFactory;
+import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.item.ItemType;
+import com.auction.shared.model.user.Role;
+import com.auction.shared.model.user.User;
 
 /**
  * Chuyển enum tiếng Anh thành chuỗi tiếng Việt cho UI.
@@ -44,7 +46,6 @@ public final class EnumFormatter {
             case CANCELED -> "badge-canceled";
         };
     }
-
     public static String roleVi(Role role) {
         if (role == null) return "";
         return switch (role) {
@@ -53,4 +54,9 @@ public final class EnumFormatter {
             case BIDDER -> "Người đấu giá";
         };
     }
+    public static String userTypeVi(User user) {
+        if (user == null) return "";
+        return roleVi(UserFactory.toRole(user));
+    }
+
 }

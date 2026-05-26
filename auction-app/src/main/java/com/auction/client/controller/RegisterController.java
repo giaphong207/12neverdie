@@ -5,8 +5,8 @@ import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneStyler;
-import com.auction.shared.model.Role;
 
+import com.auction.shared.model.user.Role;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Responses.*;
 

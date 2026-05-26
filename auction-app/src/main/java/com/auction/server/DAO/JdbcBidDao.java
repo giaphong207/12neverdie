@@ -1,8 +1,8 @@
 package com.auction.server.DAO;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
-import com.auction.shared.model.Bid;
-import com.auction.shared.model.BidSource;
+import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

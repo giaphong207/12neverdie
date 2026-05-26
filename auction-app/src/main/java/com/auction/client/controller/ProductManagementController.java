@@ -6,9 +6,10 @@ import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneNavigator;
-import com.auction.shared.model.Item;
-import com.auction.shared.model.ItemType;
-import com.auction.shared.model.User;
+import com.auction.shared.factory.ItemFactory;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.model.item.ItemType;
+import com.auction.shared.model.user.User;
 
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Responses.*;
@@ -86,7 +87,7 @@ public class ProductManagementController {
         if (colType != null) {
             colType.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
-                            EnumFormatter.itemTypeVi(c.getValue().getType())));
+                            EnumFormatter.itemTypeVi(ItemFactory.toItemType(c.getValue()))));
         }
 
         tblItems.getSelectionModel().selectedItemProperty()
@@ -317,7 +318,7 @@ public class ProductManagementController {
         txtName.setText(item.getName());
         txtDescription.setText(item.getDescription());
         txtStartingPrice.setText(String.valueOf(item.getStartPrice()));
-        cbItemType.setValue(item.getType());
+        cbItemType.setValue(ItemFactory.toItemType(item));
     }
 
     private void clearForm() {

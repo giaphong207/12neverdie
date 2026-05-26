@@ -4,8 +4,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.function.Consumer;
 
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;

@@ -7,8 +7,8 @@ import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.seed.DatabaseSeeder;
 import com.auction.server.service.*;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
 
 import java.io.IOException;
 import java.net.ServerSocket;

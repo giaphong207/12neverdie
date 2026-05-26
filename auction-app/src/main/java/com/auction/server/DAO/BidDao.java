@@ -1,6 +1,6 @@
 package com.auction.server.DAO;
 
-import com.auction.shared.model.Bid;
+import com.auction.shared.model.bid.Bid;
 
 import java.sql.Connection;
 import java.util.List;

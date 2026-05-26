@@ -4,10 +4,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AutoBidConfig;
-import com.auction.shared.model.Bid;
-import com.auction.shared.model.BidSource;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.bid.AutoBidConfig;
+import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
 
 /**
  * Factory tạo scenario phức tạp nhiều bước cho integration test.

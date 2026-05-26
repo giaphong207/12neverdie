@@ -1,7 +1,7 @@
 package com.auction.server.DAO;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
-import com.auction.shared.model.AutoBidConfig;
+import com.auction.shared.model.bid.AutoBidConfig;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;

@@ -9,13 +9,13 @@ import com.auction.server.service.AuthService;
 import com.auction.server.service.BidResult;
 import com.auction.server.service.BidService;
 import com.auction.shared.exception.AppExceptions.*;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.Item;
-import com.auction.shared.model.User;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Responses.*;
-import com.auction.shared.pattern.ItemFactory;
+import com.auction.shared.factory.ItemFactory;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;

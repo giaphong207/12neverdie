@@ -5,9 +5,9 @@ import com.auction.server.DAO.AuctionDao;
 import com.auction.server.DAO.BidDao;
 import com.auction.server.DAO.Database;
 import com.auction.shared.exception.AppExceptions.*;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.Bid;
-import com.auction.shared.model.BidSource;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;

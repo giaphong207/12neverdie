@@ -1,6 +1,6 @@
 package com.auction.server.DAO;
 
-import com.auction.shared.model.Item;
+import com.auction.shared.model.item.Item;
 import java.util.List;
 import java.util.Optional;
 

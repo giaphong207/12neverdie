@@ -1,7 +1,6 @@
 package com.auction.server.service;
 
-import com.auction.shared.model.Auction;
-import java.util.List;
+import com.auction.shared.model.auction.Auction;
 
 public interface AuctionLifecycleService {
 

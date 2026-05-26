@@ -4,8 +4,8 @@ import com.auction.server.DAO.AuctionDao;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.shared.exception.AppExceptions.*;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 
 import java.time.Duration;

@@ -10,10 +10,11 @@ import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
-import com.auction.shared.model.Auction;
+import com.auction.shared.factory.UserFactory;
+import com.auction.shared.model.auction.Auction;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
-import com.auction.shared.model.AuctionStatus;
+import com.auction.shared.model.auction.AuctionStatus;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -50,7 +51,7 @@ public class AuctionListController implements AuctionEventObserver {
         // Sidebar tuỳ theo role
         if (sidebarContainer != null && ClientSession.getCurrentUser() != null) {
             var user = ClientSession.getCurrentUser();
-            NavKey activeKey = switch (user.getRole()) {
+            NavKey activeKey = switch (UserFactory.toRole(user)) {
                 case BIDDER -> NavKey.BIDDER_LIVE;
                 case ADMIN -> NavKey.ADMIN_AUCTIONS;
                 default -> NavKey.BIDDER_LIVE;

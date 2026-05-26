@@ -4,12 +4,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.auction.server.DAO.UserDao;
-import com.auction.shared.model.Admin;
-import com.auction.shared.model.Bidder;
-import com.auction.shared.model.Role;
-import com.auction.shared.model.Seller;
-import com.auction.shared.model.User;
 
+import com.auction.shared.model.user.*;
 import org.mindrot.jbcrypt.BCrypt;
 
 public class DefaultAuthService implements AuthService {
