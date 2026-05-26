@@ -28,9 +28,9 @@ public class Bid implements Serializable {
         if (amount <= 0)
             throw new IllegalArgumentException("Số tiền Bid phải dương");
         if (createdAt == null)
-            throw new IllegalArgumentException("createdAt không được null");
+            throw new IllegalArgumentException("Không được không có thời gian tạo Bid");
         if (source == null)
-            throw new IllegalArgumentException("source không được null");
+            throw new IllegalArgumentException("Phải chọn loại Bid");
 
         this.id = id;
         this.auctionId = auctionId;
