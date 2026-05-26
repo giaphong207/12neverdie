@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.user.Admin;
 import com.auction.shared.model.item.ArtItem;
 import com.auction.shared.model.auction.Auction;
@@ -166,39 +167,44 @@ public final class DemoDataSeeder {
         LocalDateTime base = now.minusMinutes(8);
 
         auction.addBid(new Bid(
-                UUID.randomUUID().toString(),
+                "B-" + UUID.randomUUID().toString().substring(0, 8),
                 ID_AUCTION_CHART,
                 ID_BIDDER1,
                 10_200_000L,
-                base
+                base,
+                BidSource.MANUAL
         ));
         auction.addBid(new Bid(
-                UUID.randomUUID().toString(),
+                "B-" + UUID.randomUUID().toString().substring(0, 8),
                 ID_AUCTION_CHART,
                 ID_BIDDER2,
                 10_400_000L,
-                base.plusSeconds(30)
+                base.plusSeconds(30),
+                BidSource.MANUAL
         ));
         auction.addBid(new Bid(
-                UUID.randomUUID().toString(),
+                "B-" + UUID.randomUUID().toString().substring(0, 8),
                 ID_AUCTION_CHART,
                 ID_BIDDER1,
                 10_600_000L,
-                base.plusSeconds(60)
+                base.plusSeconds(60),
+                BidSource.MANUAL
         ));
         auction.addBid(new Bid(
-                UUID.randomUUID().toString(),
+                "B-" + UUID.randomUUID().toString().substring(0, 8),
                 ID_AUCTION_CHART,
                 ID_BIDDER3,
                 10_800_000L,
-                base.plusSeconds(90)
+                base.plusSeconds(90),
+                BidSource.MANUAL
         ));
         auction.addBid(new Bid(
-                UUID.randomUUID().toString(),
+                "B-" + UUID.randomUUID().toString().substring(0, 8),
                 ID_AUCTION_CHART,
                 ID_BIDDER2,
                 11_000_000L,
-                base.plusSeconds(120)
+                base.plusSeconds(120),
+                BidSource.MANUAL
         ));
 
         return auction;
@@ -227,11 +233,12 @@ public final class DemoDataSeeder {
         );
 
         auction.addBid(new Bid(
-                UUID.randomUUID().toString(),
+                "B-" + UUID.randomUUID().toString().substring(0, 8),
                 ID_AUCTION_ANTISNIPING,
                 ID_BIDDER1,
                 3_100_000L,
-                now.minusMinutes(15)
+                now.minusMinutes(15),
+                BidSource.MANUAL
         ));
 
         return auction;
@@ -278,19 +285,21 @@ public final class DemoDataSeeder {
         );
 
         auction.addBid(new Bid(
-                UUID.randomUUID().toString(),
+                "B-" + UUID.randomUUID().toString().substring(0, 8),
                 ID_AUCTION_STRESS,
                 ID_BIDDER1,
                 5_100_000L,
-                now.minusMinutes(50)
+                now.minusMinutes(50),
+                BidSource.MANUAL
         ));
 
         auction.addBid(new Bid(
-                UUID.randomUUID().toString(),
+                "B-" + UUID.randomUUID().toString().substring(0, 8),
                 ID_AUCTION_STRESS,
                 ID_BIDDER2,
                 5_200_000L,
-                now.minusMinutes(30)
+                now.minusMinutes(30),
+                BidSource.MANUAL
         ));
 
         return auction;

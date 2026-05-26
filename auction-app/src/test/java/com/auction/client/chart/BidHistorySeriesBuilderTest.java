@@ -1,6 +1,7 @@
 package com.auction.client.chart;
 
 import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
 import javafx.scene.chart.XYChart;
 import org.junit.jupiter.api.Test;
 
@@ -116,6 +117,6 @@ class BidHistorySeriesBuilderTest {
             long amount,
             LocalDateTime createdAt
     ) {
-        return new Bid(id, auctionId, bidderId, amount, createdAt);
+        return new Bid(id, auctionId, bidderId, amount, createdAt, BidSource.MANUAL);
     }
 }

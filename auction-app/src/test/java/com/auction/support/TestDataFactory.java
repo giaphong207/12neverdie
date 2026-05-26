@@ -65,28 +65,13 @@ public final class TestDataFactory {
 
     // ── Bid ───────────────────────────────────────────────────────────────────
 
-    /** Bid MANUAL timestamp hiện tại. */
     public static Bid bid(String auctionId, String bidderId, long amount) {
-        return new Bid(
-                UUID.randomUUID().toString(),
-                auctionId,
-                bidderId,
-                amount,
-                LocalDateTime.now(),
-                BidSource.MANUAL
-        );
+        return Bid.createNew(auctionId, bidderId, amount, BidSource.MANUAL);
     }
 
-    /** Bid AUTO. */
     public static Bid autoBid(String auctionId, String bidderId, long amount) {
-        return new Bid(
-                UUID.randomUUID().toString(),
-                auctionId,
-                bidderId,
-                amount,
-                LocalDateTime.now(),
-                BidSource.AUTO
-        );
+        return Bid.createNew(auctionId, bidderId, amount, BidSource.AUTO);
+
     }
 
     // ── AutoBidConfig ─────────────────────────────────────────────────────────

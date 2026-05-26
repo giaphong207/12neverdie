@@ -95,14 +95,11 @@ public class DefaultBidService implements BidService {
 
             // ⑧ Tạo manual bid
             int sizeBefore = auction.getBidHistory().size();
-            LocalDateTime now = LocalDateTime.now();
-            Bid manualBid = new Bid(
-                    "B-" + UUID.randomUUID().toString().substring(0, 8),
-                    auction.getId(), bidderId, amount, now, BidSource.MANUAL);
+            Bid manualBid = Bid.createNew(auction.getId(), bidderId, amount, BidSource.MANUAL);
             auction.addBid(manualBid);
 
             // ⑨ Anti-sniping — TRONG CÙNG LOCK
-            if (antiSnipingService.shouldExtend(auction, now)) {
+            if (antiSnipingService.shouldExtend(auction, manualBid.getCreatedAt())) {
                 long extendedSeconds = antiSnipingService.applyExtension(auction);
                 lifecycleService.rescheduleClose(auction);
                 System.out.println("[BidService] Auction " + auction.getId()
