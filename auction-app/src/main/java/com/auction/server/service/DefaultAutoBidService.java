@@ -1,6 +1,7 @@
 package com.auction.server.service;
 
 import com.auction.server.DAO.AutoBidDao;
+import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.AutoBidConfig;
 import com.auction.shared.model.bid.Bid;
@@ -12,43 +13,20 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
-/**
- * Implementation của AutoBidService.
- *
- * Thuật toán resolveAutoBids() (theo file phân công tuần 5):
- *
- *   while true:
- *     tìm tất cả AutoBidConfig của auction có thể outbid currentPrice
- *     bỏ config của current highest bidder
- *     nếu không còn ai -> dừng
- *
- *     chọn config có maxAmount cao nhất
- *     nếu bằng nhau -> chọn config tạo sớm hơn
- *
- *     nextAmount = currentPrice + chosen.increment
- *     nếu nextAmount > chosen.maxAmount -> dừng
- *
- *     tạo Bid và auction.addBid(autoBid)
- *
- * Safety: tối đa MAX_CASCADE_ITERATIONS lần lặp để tránh vòng lặp vô hạn.
- *
- * GHI CHÚ về Bid và Auction của TV2:
- *   - Bid là IMMUTABLE: phải tạo qua constructor có đủ 5 tham số.
- *   - Auction.addBid() đã tự validate qua canAcceptBid() và tự cập nhật
- *     currentPrice + highestBidderId. Mình không cần làm thêm.
- *   - Auction.getBidHistory() trả unmodifiableList -> KHÔNG được .add() vào,
- *     phải gọi auction.addBid() để lưu.
- */
 public class DefaultAutoBidService implements AutoBidService {
 
-    /** Trần số vòng lặp để tránh cascade chạy vô hạn vì lỗi config. */
     private static final int MAX_CASCADE_ITERATIONS = 1000;
+    private static final long LOCK_TIMEOUT_SECONDS = 2L;
 
     private final AutoBidDao autoBidDao;
-
-    public DefaultAutoBidService(AutoBidDao autoBidDao) {
+    private final AuctionLockManager lockManager;
+    public DefaultAutoBidService(AutoBidDao autoBidDao,
+                                 AuctionLockManager lockManager) {
         this.autoBidDao = autoBidDao;
+        this.lockManager = lockManager;
     }
 
     // ==================== CRUD ====================
@@ -56,29 +34,37 @@ public class DefaultAutoBidService implements AutoBidService {
     @Override
     public void upsertConfig(String auctionId, String bidderId,
                              long maxAmount, long increment) {
-        // Constructor của AutoBidConfig đã validate maxAmount > 0 và increment > 0
-        // nên không cần validate lại ở đây.
+        ReentrantLock lock = lockManager.getLock(auctionId);
+        boolean acquired;
+        try {
+            acquired = lock.tryLock(LOCK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Bị gián đoạn khi chờ lock cho auction " + auctionId);
+        }
+        if (!acquired) {
+            throw new IllegalStateException("Hệ thống đang bận, vui lòng thử lại");
+        }
 
-        Optional<AutoBidConfig> existing =
-                autoBidDao.findByAuctionIdAndBidderId(auctionId, bidderId);
+        try {
+            // === logic cũ giữ nguyên ===
+            Optional<AutoBidConfig> existing =
+                    autoBidDao.findByAuctionIdAndBidderId(auctionId, bidderId);
 
-        if (existing.isPresent()) {
-            // Cập nhật config cũ, GIỮ id và createdAt cũ để tie-break
-            // "tạo sớm hơn" vẫn dùng được createdAt gốc.
-            AutoBidConfig cfg = existing.get();
-            cfg.updateMaxAmount(maxAmount);
-            cfg.updateIncrement(increment);
-            cfg.enable();
-            autoBidDao.save(cfg);
-        } else {
-            AutoBidConfig cfg = new AutoBidConfig(
-                    UUID.randomUUID().toString(),
-                    auctionId,
-                    bidderId,
-                    maxAmount,
-                    increment
-            );
-            autoBidDao.save(cfg);
+            if (existing.isPresent()) {
+                AutoBidConfig cfg = existing.get();
+                cfg.updateMaxAmount(maxAmount);
+                cfg.updateIncrement(increment);
+                cfg.enable();
+                autoBidDao.save(cfg);
+            } else {
+                AutoBidConfig cfg = new AutoBidConfig(
+                        UUID.randomUUID().toString(),
+                        auctionId, bidderId, maxAmount, increment);
+                autoBidDao.save(cfg);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -89,13 +75,29 @@ public class DefaultAutoBidService implements AutoBidService {
 
     @Override
     public boolean disableConfig(String auctionId, String bidderId) {
-        Optional<AutoBidConfig> existing =
-                autoBidDao.findByAuctionIdAndBidderId(auctionId, bidderId);
-        if (existing.isEmpty()) return false;
-        AutoBidConfig cfg = existing.get();
-        cfg.disable();
-        autoBidDao.save(cfg);
-        return true;
+        ReentrantLock lock = lockManager.getLock(auctionId);
+        boolean acquired;
+        try {
+            acquired = lock.tryLock(LOCK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Bị gián đoạn khi chờ lock cho auction " + auctionId);
+        }
+        if (!acquired) {
+            throw new IllegalStateException("Hệ thống đang bận, vui lòng thử lại");
+        }
+
+        try {
+            Optional<AutoBidConfig> existing =
+                    autoBidDao.findByAuctionIdAndBidderId(auctionId, bidderId);
+            if (existing.isEmpty()) return false;
+            AutoBidConfig cfg = existing.get();
+            cfg.disable();
+            autoBidDao.save(cfg);
+            return true;
+        } finally {
+            lock.unlock();
+        }
     }
 
     // ==================== Cascade resolve ====================
@@ -103,9 +105,7 @@ public class DefaultAutoBidService implements AutoBidService {
     @Override
     public boolean resolveAutoBids(Auction auction) {
         List<AutoBidConfig> configs = autoBidDao.findByAuctionId(auction.getId());
-        if (configs.isEmpty()) {
-            return false;
-        }
+        if (configs.isEmpty()) return false;
 
         boolean anyAutoBidPlaced = false;
         int iterations = 0;
@@ -113,49 +113,25 @@ public class DefaultAutoBidService implements AutoBidService {
         while (iterations++ < MAX_CASCADE_ITERATIONS) {
             long currentPrice = auction.getCurrentPrice();
             String currentLeaderId = auction.getHighestBidderId();
+            long minIncrement = auction.getMinIncrement();
 
-            List<AutoBidConfig> candidates = new ArrayList<>();
+            // Filter + sort
+            List<AutoBidConfig> candidates = configs.stream()
+                    .filter(c -> c.canOutbid(currentPrice, currentLeaderId, minIncrement))
+                    .sorted(Comparator.comparingLong(AutoBidConfig::getMaxAmount).reversed()
+                            .thenComparing(AutoBidConfig::getCreatedAt))
+                    .toList();
 
-            for (AutoBidConfig cfg : configs) {
-                if (!cfg.isEnabled()) {
-                    continue;
-                }
+            if (candidates.isEmpty()) break;
 
-                if (cfg.getBidderId().equals(currentLeaderId)) {
-                    continue;
-                }
-
-                long step = Math.max(cfg.getIncrement(), auction.getMinIncrement());
-
-                if (cfg.getMaxAmount() >= currentPrice + step) {
-                    candidates.add(cfg);
-                }
-            }
-
-            if (candidates.isEmpty()) {
-                break;
-            }
-
-            candidates.sort(
-                    Comparator.comparingLong(AutoBidConfig::getMaxAmount).reversed()
-                            .thenComparing(AutoBidConfig::getCreatedAt)
-            );
-
+            // Pick chosen + runner-up
             AutoBidConfig chosen = candidates.get(0);
+            long runnerUpMaxAmount = candidates.size() > 1
+                    ? candidates.get(1).getMaxAmount()
+                    : currentPrice;
 
-            long step = Math.max(chosen.getIncrement(), auction.getMinIncrement());
-
-            long runnerUpMaxAmount = currentPrice;
-            if (candidates.size() > 1) {
-                runnerUpMaxAmount = candidates.get(1).getMaxAmount();
-            }
-
-            long nextAmount = Math.max(
-                    currentPrice + step,
-                    runnerUpMaxAmount + step
-            );
-
-            nextAmount = Math.min(nextAmount, chosen.getMaxAmount());
+            // Calculate + place bid
+            long nextAmount = chosen.calculateNextAmount(currentPrice, runnerUpMaxAmount, minIncrement);
 
             Bid autoBid = Bid.createNew(
                     auction.getId(),
@@ -163,7 +139,6 @@ public class DefaultAutoBidService implements AutoBidService {
                     nextAmount,
                     BidSource.AUTO
             );
-
             auction.addBid(autoBid);
             anyAutoBidPlaced = true;
         }

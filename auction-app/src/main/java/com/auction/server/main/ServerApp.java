@@ -52,7 +52,7 @@ public class ServerApp {
                 Duration.ofSeconds(60),   // trigger window
                 Duration.ofSeconds(60)    // extension
         );
-        AutoBidService autoBidService = new DefaultAutoBidService(autoBidDao);
+        AutoBidService autoBidService = new DefaultAutoBidService(autoBidDao,lockManager);
         AuthService authService = new DefaultAuthService(userDao);
 
         BidService bidService = new DefaultBidService(

@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.bid.AutoBidConfig;
+import com.auction.shared.model.bid.AutoBidConfigMapper;
 import com.auction.shared.model.bid.Bid;
 import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.user.Bidder;
@@ -91,28 +92,19 @@ public final class TestDataFactory {
         );
     }
 
-    /**
-     * AutoBidConfig với createdAt tùy chỉnh — dùng cho tie-break test.
-     *
-     * AutoBidConfig.createdAt là final nên không có setCreatedAt().
-     * Workaround: tạo subclass ẩn danh override getCreatedAt().
-     * Chỉ dùng trong test — không dùng trong production code.
-     */
-    public static AutoBidConfig autoBidConfigCreatedAt(String auctionId, String bidderId,
-                                                        long maxAmount, long increment,
-                                                        LocalDateTime createdAt) {
-        return new AutoBidConfig(
+    public static AutoBidConfig autoBidConfigCreatedAt(
+            String auctionId, String bidderId,
+            long maxAmount, long increment,
+            LocalDateTime createdAt) {
+        return AutoBidConfigMapper.fromDb(
                 UUID.randomUUID().toString(),
                 auctionId,
                 bidderId,
                 maxAmount,
-                increment
-        ) {
-            @Override
-            public LocalDateTime getCreatedAt() {
-                return createdAt;
-            }
-        };
+                increment,
+                true,        // enabled mặc định
+                createdAt
+        );
     }
 
     // ── User ──────────────────────────────────────────────────────────────────
