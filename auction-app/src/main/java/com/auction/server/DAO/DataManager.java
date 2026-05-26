@@ -3,9 +3,9 @@ package com.auction.server.DAO;
 import java.io.File;
 
 import com.auction.server.seed.DemoDataSeeder;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.Item;
-import com.auction.shared.model.User;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.model.user.User;
 
 public final class DataManager {
 

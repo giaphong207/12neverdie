@@ -1,4 +1,4 @@
-package com.auction.shared.model;
+package com.auction.shared.model.bid;
 
 /**
  * Phân biệt nguồn gốc của một bid.

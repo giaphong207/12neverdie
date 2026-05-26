@@ -3,13 +3,13 @@ package com.auction.support;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
-import com.auction.shared.model.AutoBidConfig;
-import com.auction.shared.model.Bid;
-import com.auction.shared.model.BidSource;
-import com.auction.shared.model.Bidder;
-import com.auction.shared.model.User;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.bid.AutoBidConfig;
+import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
+import com.auction.shared.model.user.Bidder;
+import com.auction.shared.model.user.User;
 
 public final class TestDataFactory {
 

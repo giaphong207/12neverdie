@@ -1,8 +1,9 @@
 package com.auction.server.service;
 
 import com.auction.server.DAO.UserDao;
-import com.auction.shared.model.Role;
-import com.auction.shared.model.User;
+import com.auction.shared.factory.UserFactory;
+import com.auction.shared.model.user.Role;
+import com.auction.shared.model.user.User;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,7 +31,7 @@ class AuthServiceTest {
         User user = authService.register("alice", "pwd123", Role.BIDDER);
         assertNotNull(user);
         assertEquals("alice", user.getUsername());
-        assertEquals(Role.BIDDER, user.getRole());
+        assertEquals(Role.BIDDER, UserFactory.toRole(user));
         assertTrue(user.getPassword().startsWith("$2"),
                 "Password phải là BCrypt hash");
     }
@@ -48,7 +49,7 @@ class AuthServiceTest {
         authService.register("charlie", "secret", Role.SELLER);
         User result = authService.login("charlie", "secret");
         assertNotNull(result);
-        assertEquals(Role.SELLER, result.getRole());
+        assertEquals(Role.SELLER, UserFactory.toRole(result));
     }
 
     @Test
@@ -83,9 +84,9 @@ class AuthServiceTest {
     @Test
     @DisplayName("Register 3 role tạo đúng")
     void register_all_three_roles() {
-        assertEquals(Role.BIDDER, authService.register("b", "p", Role.BIDDER).getRole());
-        assertEquals(Role.SELLER, authService.register("s", "p", Role.SELLER).getRole());
-        assertEquals(Role.ADMIN, authService.register("a", "p", Role.ADMIN).getRole());
+        assertEquals(Role.BIDDER, UserFactory.toRole(authService.register("b", "p", Role.BIDDER)));
+        assertEquals(Role.SELLER, UserFactory.toRole(authService.register("s", "p", Role.SELLER)));
+        assertEquals(Role.ADMIN, UserFactory.toRole(authService.register("a", "p", Role.ADMIN)));
     }
 
     // ===== FAKE DAO =====

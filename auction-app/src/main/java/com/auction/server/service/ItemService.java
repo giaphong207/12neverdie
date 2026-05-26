@@ -1,5 +1,5 @@
 package com.auction.server.service;
-import com.auction.shared.model.Item;
+import com.auction.shared.model.item.Item;
 import java.util.List;
 
 

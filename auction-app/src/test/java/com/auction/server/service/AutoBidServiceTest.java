@@ -1,7 +1,7 @@
 package com.auction.server.service;
 
 import com.auction.server.DAO.AutoBidDao;
-import com.auction.shared.model.AutoBidConfig;
+import com.auction.shared.model.bid.AutoBidConfig;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

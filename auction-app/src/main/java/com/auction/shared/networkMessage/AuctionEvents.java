@@ -1,7 +1,7 @@
 package com.auction.shared.networkMessage;
 
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.Bid;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.bid.Bid;
 
 import java.io.Serializable;
 

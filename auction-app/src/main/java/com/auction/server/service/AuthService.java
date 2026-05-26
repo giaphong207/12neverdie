@@ -1,7 +1,7 @@
 package com.auction.server.service;
 
-import com.auction.shared.model.Role;
-import com.auction.shared.model.User;
+import com.auction.shared.model.user.Role;
+import com.auction.shared.model.user.User;
 
 public interface AuthService {
     User login(String username, String password);

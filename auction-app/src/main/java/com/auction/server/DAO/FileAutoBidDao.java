@@ -1,6 +1,6 @@
 package com.auction.server.DAO;
 
-import com.auction.shared.model.AutoBidConfig;
+import com.auction.shared.model.bid.AutoBidConfig;
 
 import java.util.ArrayList;
 import java.util.List;

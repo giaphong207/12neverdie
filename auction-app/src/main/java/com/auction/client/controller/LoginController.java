@@ -5,9 +5,12 @@ import com.auction.client.main.ClientApp;
 import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
+import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.SceneStyler;
-import com.auction.shared.model.Role;
-import com.auction.shared.model.User;
+import com.auction.shared.factory.UserFactory;
+import com.auction.shared.model.user.Bidder;
+import com.auction.shared.model.user.Seller;
+import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.Requests.LoginRequest;
 import com.auction.shared.networkMessage.Responses.LoginResponse;
 
@@ -62,7 +65,7 @@ public class LoginController {
                 User user = loginResp.user();
                 ClientSession.setCurrentUser(user);
                 AlertUtils.showInfo("Thành công",
-                        "Đăng nhập thành công với quyền " + roleVi(user.getRole()));
+                        "Đăng nhập thành công với quyền " + EnumFormatter.roleVi(UserFactory.toRole(user)));
                 navigateByRole(event, user);
             } else {
                 AlertUtils.showError("Thất bại", loginResp.message());
@@ -73,23 +76,15 @@ public class LoginController {
         }
     }
 
-    private String roleVi(Role role) {
-        return switch (role) {
-            case ADMIN -> "Quản trị viên";
-            case SELLER -> "Người bán";
-            case BIDDER -> "Người đấu giá";
-        };
-    }
-
     private void navigateByRole(javafx.event.ActionEvent event, User user) {
         try {
             String fxmlPath;
             String title;
 
-            if (user.getRole() == Role.SELLER) {
+            if (user instanceof Seller) {
                 fxmlPath = "/fxml/SellerDashboard.fxml";
                 title = "AuctionHub — Người Bán";
-            } else if (user.getRole() == Role.BIDDER) {
+            } else if (user instanceof Bidder) {
                 fxmlPath = "/fxml/BidderDashboard.fxml";
                 title = "AuctionHub — Người Đấu Giá";
             } else {

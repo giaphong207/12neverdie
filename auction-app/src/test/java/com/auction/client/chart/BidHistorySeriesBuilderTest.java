@@ -1,6 +1,6 @@
 package com.auction.client.chart;
 
-import com.auction.shared.model.Bid;
+import com.auction.shared.model.bid.Bid;
 import javafx.scene.chart.XYChart;
 import org.junit.jupiter.api.Test;
 

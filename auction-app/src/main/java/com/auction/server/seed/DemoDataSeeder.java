@@ -5,17 +5,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.auction.shared.model.Admin;
-import com.auction.shared.model.ArtItem;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AuctionStatus;
-import com.auction.shared.model.Bid;
-import com.auction.shared.model.Bidder;
-import com.auction.shared.model.ElectronicsItem;
-import com.auction.shared.model.Item;
-import com.auction.shared.model.Seller;
-import com.auction.shared.model.User;
-import com.auction.shared.model.VehicleItem;
+import com.auction.shared.model.user.Admin;
+import com.auction.shared.model.item.ArtItem;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.user.Bidder;
+import com.auction.shared.model.item.ElectronicsItem;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.model.user.Seller;
+import com.auction.shared.model.user.User;
+import com.auction.shared.model.item.VehicleItem;
 
 /**
  * Tạo dữ liệu demo cho 4 scenario tuần 5.

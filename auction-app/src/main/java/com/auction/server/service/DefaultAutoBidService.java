@@ -1,9 +1,9 @@
 package com.auction.server.service;
 
 import com.auction.server.DAO.AutoBidDao;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.AutoBidConfig;
-import com.auction.shared.model.Bid;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.bid.AutoBidConfig;
+import com.auction.shared.model.bid.Bid;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

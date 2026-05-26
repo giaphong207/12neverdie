@@ -1,7 +1,7 @@
 package com.auction.shared.networkMessage;
 
-import com.auction.shared.model.ItemType;
-import com.auction.shared.model.Role;
+import com.auction.shared.model.item.ItemType;
+import com.auction.shared.model.user.Role;
 
 import java.io.Serializable;
 
@@ -13,7 +13,7 @@ public class Requests {
     public static record AddItemRequest(String name, String description, long startPrice,
                                  ItemType type, String sellerId) implements Serializable{}
     public static record UpdateItemRequest(String itemId, String name, String description,
-                                    long startPrice, ItemType type, String sellerId) implements Serializable {}
+                                           long startPrice, ItemType type, String sellerId) implements Serializable {}
     public static record BidRequest(String auctionId, String bidderId, long amount) implements Serializable {}
     public static record SetAutoBidRequest(String auctionId, String bidderId, long maxAmount, long increment) implements Serializable{}
     public static record SubscribeAuctionListRequest() implements Serializable {}

@@ -2,7 +2,8 @@ package com.auction.server.service;
 
 import com.auction.server.DAO.ItemDao;
 import com.auction.shared.exception.AppExceptions.*;
-import com.auction.shared.model.Item;
+import com.auction.shared.factory.ItemFactory;
+import com.auction.shared.model.item.Item;
 
 import java.util.List;
 
@@ -81,7 +82,7 @@ public class DefaultItemService implements ItemService{
             throw new InvalidItemException("Giá khởi điểm phải lớn hơn 0");
         }
 
-        if (item.getType() == null) {
+        if (ItemFactory.toItemType(item) == null) {
             throw new InvalidItemException("Loại sản phẩm không được để trống");
         }
     }

@@ -1,10 +1,10 @@
 package com.auction.server.service;
 
 import com.auction.server.DAO.ItemDao;
-import com.auction.shared.model.Item;
-import com.auction.shared.model.ItemType;
-import com.auction.shared.pattern.ItemFactory;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.factory.ItemFactory;
 
+import com.auction.shared.model.item.ItemType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

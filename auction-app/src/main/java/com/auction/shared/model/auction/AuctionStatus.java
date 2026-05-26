@@ -1,4 +1,4 @@
-package com.auction.shared.model;
+package com.auction.shared.model.auction;
 
 public enum AuctionStatus {
     OPEN,
