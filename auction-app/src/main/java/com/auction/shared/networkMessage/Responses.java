@@ -27,6 +27,33 @@ public class Responses {
     public static record DeleteItemResponse(boolean success, String message) implements Serializable {}
     public static record AddItemResponse(boolean success, String message, Item item) implements Serializable {}
     public static record UpdateItemResponse(boolean success, String message, Item item) implements Serializable {}
+    public sealed interface AddItemResult extends Serializable
+            permits AddItemResult.Success, AddItemResult.Failure {
+
+        record Success(Item item) implements AddItemResult {}
+        record Failure(String reason) implements AddItemResult {}
+    }
+
+    public sealed interface UpdateItemResult extends Serializable
+            permits UpdateItemResult.Success, UpdateItemResult.Failure {
+
+        record Success(Item item) implements UpdateItemResult {}
+        record Failure(String reason) implements UpdateItemResult {}
+    }
+
+    public sealed interface DeleteItemResult extends Serializable
+            permits DeleteItemResult.Success, DeleteItemResult.Failure {
+
+        record Success() implements DeleteItemResult {}
+        record Failure(String reason) implements DeleteItemResult {}
+    }
+
+    public sealed interface GetSellerItemsResult extends Serializable
+            permits GetSellerItemsResult.Success, GetSellerItemsResult.Failure {
+
+        record Success(List<Item> items) implements GetSellerItemsResult {}
+        record Failure(String reason) implements GetSellerItemsResult {}
+    }
     public static record BidResponse(boolean success, String message, Auction updatedAuction) implements Serializable {}
     public sealed interface BidResult extends Serializable
             permits BidResult.Success, BidResult.Failure {
@@ -34,6 +61,7 @@ public class Responses {
         record Success(Auction auction) implements BidResult {}
         record Failure(String reason) implements BidResult {}
     }
+
     public static record SetAutoBidResponse(boolean success, String message) implements Serializable {}
     public static record ErrorMessage(String message) implements Serializable {}
 }

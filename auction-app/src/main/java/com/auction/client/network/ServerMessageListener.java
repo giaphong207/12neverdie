@@ -64,19 +64,19 @@ public class ServerMessageListener implements Runnable {
                     System.out.println("Nhan BidResult -> day vao queue");
                     responseQueue.offer(incoming);
 
-                } else if (incoming instanceof AddItemResponse) {
+                } else if (incoming instanceof AddItemResult) {
                     System.out.println("Nhan AddItemResponse -> day vao queue");
                     responseQueue.offer(incoming);
 
-                } else if (incoming instanceof UpdateItemResponse) {
+                } else if (incoming instanceof UpdateItemResult) {
                     System.out.println("Nhan UpdateItemResponse -> day vao queue");
                     responseQueue.offer(incoming);
 
-                } else if (incoming instanceof DeleteItemResponse) {
+                } else if (incoming instanceof DeleteItemResult) {
                     System.out.println("Nhan DeleteItemResponse -> day vao queue");
                     responseQueue.offer(incoming);
 
-                } else if (incoming instanceof GetSellerItemsResponse) {
+                } else if (incoming instanceof GetSellerItemsResult) {
                     System.out.println("Nhan GetSellerItemsResponse -> day vao queue");
                     responseQueue.offer(incoming);
 

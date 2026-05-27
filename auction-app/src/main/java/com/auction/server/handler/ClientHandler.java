@@ -174,15 +174,15 @@ public class ClientHandler implements Runnable {
         try {
             // Validate
             if (req.name() == null || req.name().isBlank()) {
-                send(new AddItemResponse(false, "Tên sản phẩm không được rỗng", null));
+                send(new AddItemResult.Failure("Tên sản phẩm không được rỗng"));
                 return;
             }
             if (req.startPrice() <= 0) {
-                send(new AddItemResponse(false, "Giá khởi điểm phải > 0", null));
+                send(new AddItemResult.Failure("Giá khởi điểm phải > 0"));
                 return;
             }
             if (req.type() == null) {
-                send(new AddItemResponse(false, "Phải chọn loại sản phẩm", null));
+                send(new AddItemResult.Failure("Phải chọn loại sản phẩm"));
                 return;
             }
 
@@ -195,10 +195,8 @@ public class ClientHandler implements Runnable {
 
             System.out.println("[Server] Item mới: " + item.getName() + " | seller: " + req.sellerId());
 
-
             LocalDateTime now = LocalDateTime.now();
-            long minIncrement = Math.max(1000L, req.startPrice() / 100); // 1% giá khởi điểm
-            // Tạo Auction qua Service
+            long minIncrement = Math.max(1000L, req.startPrice() / 100);
             Auction auction = auctionService.createAuction(
                     req.sellerId(), itemId,
                     req.startPrice(), minIncrement,
@@ -206,37 +204,36 @@ public class ClientHandler implements Runnable {
 
             System.out.println("[Server] Auction mới: " + auction.getId() + " (RUNNING 24h)");
 
-            send(new AddItemResponse(true, "Đã thêm sản phẩm và tạo phiên đấu giá 24h", item));
+            send(new AddItemResult.Success(item));
 
         } catch (Exception e) {
             e.printStackTrace();
-            send(new AddItemResponse(false, "Lỗi server: " + e.getMessage(), null));
+            send(new AddItemResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
 
     private void handleUpdateItemRequest(UpdateItemRequest req) {
         try {
             if (req.name() == null || req.name().isBlank()) {
-                send(new UpdateItemResponse(false, "Tên sản phẩm không được rỗng", null));
+                send(new UpdateItemResult.Failure("Tên sản phẩm không được rỗng"));
                 return;
             }
 
             Optional<Item> existing = itemDao.findById(req.itemId());
             if (existing.isEmpty()) {
-                send(new UpdateItemResponse(false, "Sản phẩm không tồn tại", null));
+                send(new UpdateItemResult.Failure("Sản phẩm không tồn tại"));
                 return;
             }
 
-            // Tạo item mới với cùng id → save() sẽ UPSERT
             Item updated = ItemFactory.createItem(
                     req.type(), req.itemId(), req.sellerId(),
                     req.name(), req.description(), req.startPrice());
             itemDao.save(updated);
 
-            send(new UpdateItemResponse(true, "Đã cập nhật sản phẩm", updated));
+            send(new UpdateItemResult.Success(updated));
         } catch (Exception e) {
             e.printStackTrace();
-            send(new UpdateItemResponse(false, "Lỗi server: " + e.getMessage(), null));
+            send(new UpdateItemResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
 
@@ -244,19 +241,18 @@ public class ClientHandler implements Runnable {
         try {
             Optional<Item> existing = itemDao.findById(req.itemId());
             if (existing.isEmpty()) {
-                send(new DeleteItemResponse(false, "Sản phẩm không tồn tại"));
+                send(new DeleteItemResult.Failure("Sản phẩm không tồn tại"));
                 return;
             }
 
             itemDao.deleteById(req.itemId());
-            send(new DeleteItemResponse(true, "Đã xoá sản phẩm"));
+            send(new DeleteItemResult.Success());
         } catch (Exception e) {
-            // Có thể fail nếu item đang được dùng trong auction (FK RESTRICT)
             String msg = e.getMessage();
             if (msg != null && msg.contains("foreign key")) {
-                send(new DeleteItemResponse(false, "Không xoá được: sản phẩm đang có trong phiên đấu giá"));
+                send(new DeleteItemResult.Failure("Không xoá được: sản phẩm đang có trong phiên đấu giá"));
             } else {
-                send(new DeleteItemResponse(false, "Lỗi server: " + msg));
+                send(new DeleteItemResult.Failure("Lỗi server: " + msg));
             }
         }
     }

@@ -105,10 +105,17 @@ public class SellerDashboardController implements AuctionEventObserver {
                 Object response = listener.waitForResponse();
 
                 Platform.runLater(() -> {
-                    if (response instanceof GetSellerItemsResponse resp && resp.success()) {
-                        List<Item> items = resp.items();
-                        sellerItemCount = items == null ? 0 : items.size();
-                        recompute();
+                    if (response instanceof GetSellerItemsResult result) {
+                        switch (result) {
+                            case GetSellerItemsResult.Success s -> {
+                                List<Item> items = s.items();
+                                sellerItemCount = items == null ? 0 : items.size();
+                                recompute();
+                            }
+                            case GetSellerItemsResult.Failure f -> {
+                                System.err.println("Không load được items: " + f.reason());
+                            }
+                        }
                     }
                 });
             } catch (Exception e) {

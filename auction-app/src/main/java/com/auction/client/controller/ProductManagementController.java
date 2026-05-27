@@ -131,7 +131,7 @@ public class ProductManagementController {
                 ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
-                Platform.runLater(() -> handleGetItemsResponse(response));
+                Platform.runLater(() -> handleGetSellerItemsResult(response));
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
@@ -140,13 +140,15 @@ public class ProductManagementController {
         }).start();
     }
 
-    private void handleGetItemsResponse(Object response) {
-        if (response instanceof GetSellerItemsResponse resp) {
-            if (resp.success()) {
-                List<Item> items = resp.items();
-                tblItems.setItems(FXCollections.observableArrayList(items));
-            } else {
-                AlertUtils.showError("Lỗi", resp.message());
+    private void handleGetSellerItemsResult(Object response) {
+        if (response instanceof GetSellerItemsResult result) {
+            switch (result) {
+                case GetSellerItemsResult.Success s -> {
+                    tblItems.setItems(FXCollections.observableArrayList(s.items()));
+                }
+                case GetSellerItemsResult.Failure f -> {
+                    AlertUtils.showError("Lỗi", f.reason());
+                }
             }
         }
     }
@@ -194,7 +196,7 @@ public class ProductManagementController {
                 ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
-                Platform.runLater(() -> handleAddResponse(response));
+                Platform.runLater(() -> handleAddItemResult(response));
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
@@ -203,14 +205,17 @@ public class ProductManagementController {
         }).start();
     }
 
-    private void handleAddResponse(Object response) {
-        if (response instanceof AddItemResponse resp) {
-            if (resp.success()) {
-                AlertUtils.showInfo("Thành công", resp.message());
-                clearForm();
-                loadSellerProducts();
-            } else {
-                AlertUtils.showError("Lỗi", resp.message());
+    private void handleAddItemResult(Object response) {
+        if (response instanceof AddItemResult result) {
+            switch (result) {
+                case AddItemResult.Success s -> {
+                    AlertUtils.showInfo("Thành công", "Đã thêm sản phẩm và tạo phiên đấu giá 24h");
+                    clearForm();
+                    loadSellerProducts();
+                }
+                case AddItemResult.Failure f -> {
+                    AlertUtils.showError("Lỗi", f.reason());
+                }
             }
         }
     }
@@ -245,7 +250,7 @@ public class ProductManagementController {
                 ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
-                Platform.runLater(() -> handleUpdateResponse(response));
+                Platform.runLater(() -> handleUpdateItemResult(response));
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
@@ -254,14 +259,17 @@ public class ProductManagementController {
         }).start();
     }
 
-    private void handleUpdateResponse(Object response) {
-        if (response instanceof UpdateItemResponse resp) {
-            if (resp.success()) {
-                AlertUtils.showInfo("Thành công", resp.message());
-                clearForm();
-                loadSellerProducts();
-            } else {
-                AlertUtils.showError("Lỗi", resp.message());
+    private void handleUpdateItemResult(Object response) {
+        if (response instanceof UpdateItemResult result) {
+            switch (result) {
+                case UpdateItemResult.Success s -> {
+                    AlertUtils.showInfo("Thành công", "Đã cập nhật sản phẩm");
+                    clearForm();
+                    loadSellerProducts();
+                }
+                case UpdateItemResult.Failure f -> {
+                    AlertUtils.showError("Lỗi", f.reason());
+                }
             }
         }
     }
