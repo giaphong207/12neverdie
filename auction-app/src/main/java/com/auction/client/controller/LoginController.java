@@ -11,8 +11,8 @@ import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
-import com.auction.shared.networkMessage.Requests.LoginRequest;
-import com.auction.shared.networkMessage.Responses.LoginResponse;
+import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Responses.*;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -49,7 +49,7 @@ public class LoginController {
                 }
 
                 Object response = listener.waitForResponse();
-                Platform.runLater(() -> handleLoginResponse(response, event));
+                Platform.runLater(() -> handleLoginResult(response, event));
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -59,16 +59,19 @@ public class LoginController {
         }).start();
     }
 
-    private void handleLoginResponse(Object response, javafx.event.ActionEvent event) {
-        if (response instanceof LoginResponse loginResp) {
-            if (loginResp.success()) {
-                User user = loginResp.user();
-                ClientSession.setCurrentUser(user);
-                AlertUtils.showInfo("Thành công",
-                        "Đăng nhập thành công với quyền " + EnumFormatter.roleVi(UserFactory.toRole(user)));
-                navigateByRole(event, user);
-            } else {
-                AlertUtils.showError("Thất bại", loginResp.message());
+    private void handleLoginResult(Object response, javafx.event.ActionEvent event) {
+        if (response instanceof LoginResult result) {
+            switch (result) {
+                case LoginResult.Success s -> {
+                    User user = s.user();
+                    ClientSession.setCurrentUser(user);
+                    AlertUtils.showInfo("Thành công",
+                            "Đăng nhập thành công với quyền " + EnumFormatter.roleVi(UserFactory.toRole(user)));
+                    navigateByRole(event, user);
+                }
+                case LoginResult.Failure f -> {
+                    AlertUtils.showError("Thất bại", f.reason());
+                }
             }
         } else {
             AlertUtils.showError("Lỗi", "Phản hồi không hợp lệ: " +

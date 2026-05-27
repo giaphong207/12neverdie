@@ -10,6 +10,19 @@ import java.util.List;
 public class Responses {
     public static record LoginResponse(boolean success, String message, User user) implements Serializable {}
     public static record RegisterResponse(boolean success, String message, User user) implements Serializable {}
+    public sealed interface LoginResult extends Serializable
+            permits LoginResult.Success, LoginResult.Failure {
+
+        record Success(User user) implements LoginResult {}
+        record Failure(String reason) implements LoginResult {}
+    }
+
+    public sealed interface RegisterResult extends Serializable
+            permits RegisterResult.Success, RegisterResult.Failure {
+
+        record Success(User user) implements RegisterResult {}
+        record Failure(String reason) implements RegisterResult {}
+    }
     public static record GetSellerItemsResponse(boolean success, String message, List<Item> items) implements Serializable {}
     public static record DeleteItemResponse(boolean success, String message) implements Serializable {}
     public static record AddItemResponse(boolean success, String message, Item item) implements Serializable {}

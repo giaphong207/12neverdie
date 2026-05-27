@@ -98,12 +98,12 @@ public class ClientHandler implements Runnable {
         try {
             User user = authService.login(req.username(), req.password());
             if (user != null) {
-                send(new LoginResponse(true, "Đăng nhập thành công", user));
+                send(new LoginResult.Success(user));
             } else {
-                send(new LoginResponse(false, "Sai tên đăng nhập hoặc mật khẩu", null));
+                send(new LoginResult.Failure("Sai tên đăng nhập hoặc mật khẩu"));
             }
         } catch (Exception e) {
-            send(new LoginResponse(false, "Lỗi server: " + e.getMessage(), null));
+            send(new LoginResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
 
@@ -111,12 +111,12 @@ public class ClientHandler implements Runnable {
         try {
             User user = authService.register(req.username(), req.password(), req.role());
             if (user != null) {
-                send(new RegisterResponse(true, "Đăng ký thành công", user));
+                send(new RegisterResult.Success(user));
             } else {
-                send(new RegisterResponse(false, "Tên đăng nhập đã tồn tại", null));
+                send(new RegisterResult.Failure("Tên đăng nhập đã tồn tại"));
             }
         } catch (Exception e) {
-            send(new RegisterResponse(false, "Lỗi server: " + e.getMessage(), null));
+            send(new RegisterResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
 

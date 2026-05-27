@@ -71,7 +71,7 @@ public class RegisterController {
                 }
 
                 Object response = listener.waitForResponse();
-                Platform.runLater(() -> handleRegisterResponse(response, event));
+                Platform.runLater(() -> handleRegisterResult(response, event));
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -81,13 +81,16 @@ public class RegisterController {
         }).start();
     }
 
-    private void handleRegisterResponse(Object response, javafx.event.ActionEvent event) {
-        if (response instanceof RegisterResponse regResp) {
-            if (regResp.success()) {
-                AlertUtils.showInfo("Thành công", "Đăng ký thành công! Vui lòng đăng nhập.");
-                openLoginScreen(event);
-            } else {
-                AlertUtils.showError("Thất bại", regResp.message());
+    private void handleRegisterResult(Object response, javafx.event.ActionEvent event) {
+        if (response instanceof RegisterResult result) {
+            switch (result) {
+                case RegisterResult.Success s -> {
+                    AlertUtils.showInfo("Thành công", "Đăng ký thành công! Vui lòng đăng nhập.");
+                    openLoginScreen(event);
+                }
+                case RegisterResult.Failure f -> {
+                    AlertUtils.showError("Thất bại", f.reason());
+                }
             }
         } else {
             AlertUtils.showError("Lỗi", "Phản hồi không hợp lệ");
