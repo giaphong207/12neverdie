@@ -15,6 +15,12 @@ public class Responses {
     public static record AddItemResponse(boolean success, String message, Item item) implements Serializable {}
     public static record UpdateItemResponse(boolean success, String message, Item item) implements Serializable {}
     public static record BidResponse(boolean success, String message, Auction updatedAuction) implements Serializable {}
+    public sealed interface BidResult extends Serializable
+            permits BidResult.Success, BidResult.Failure {
+
+        record Success(Auction auction) implements BidResult {}
+        record Failure(String reason) implements BidResult {}
+    }
     public static record SetAutoBidResponse(boolean success, String message) implements Serializable {}
     public static record ErrorMessage(String message) implements Serializable {}
 }
