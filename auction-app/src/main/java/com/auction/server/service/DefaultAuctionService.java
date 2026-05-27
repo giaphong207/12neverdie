@@ -51,16 +51,14 @@ public class DefaultAuctionService implements AuctionService {
 
         auctionDao.save(auction);
 
-        // Schedule tasks — KEY của refactor
         if (initialStatus == AuctionStatus.OPEN) {
             lifecycleService.scheduleStart(auction);
-            broadcaster.broadcast(new AuctionStartedEvent(auction));
         }
         lifecycleService.scheduleClose(auction);
 
-        broadcaster.broadcast(new AuctionEndedEvent(auction));
+// Báo client: có auction mới, refresh danh sách
+        broadcaster.broadcast(new AuctionUpdatedEvent(auction));
 
         return auction;
     }
-
 }
