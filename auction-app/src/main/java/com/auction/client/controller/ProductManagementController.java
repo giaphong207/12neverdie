@@ -290,7 +290,7 @@ public class ProductManagementController {
                 ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
 
-                Platform.runLater(() -> handleDeleteResponse(response));
+                Platform.runLater(() -> handleDeleteItemResult(response));
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
@@ -299,14 +299,17 @@ public class ProductManagementController {
         }).start();
     }
 
-    private void handleDeleteResponse(Object response) {
-        if (response instanceof DeleteItemResponse resp) {
-            if (resp.success()) {
-                AlertUtils.showInfo("Thành công", resp.message());
-                clearForm();
-                loadSellerProducts();
-            } else {
-                AlertUtils.showError("Lỗi", resp.message());
+    private void handleDeleteItemResult(Object response) {
+        if (response instanceof DeleteItemResult result) {
+            switch (result) {
+                case DeleteItemResult.Success s -> {
+                    AlertUtils.showInfo("Thành công", "Đã xoá sản phẩm");
+                    clearForm();
+                    loadSellerProducts();
+                }
+                case DeleteItemResult.Failure f -> {
+                    AlertUtils.showError("Lỗi", f.reason());
+                }
             }
         }
     }

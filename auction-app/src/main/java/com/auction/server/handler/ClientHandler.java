@@ -260,10 +260,10 @@ public class ClientHandler implements Runnable {
     private void handleGetSellerItemsRequest(GetSellerItemsRequest req) {
         try {
             List<Item> items = itemDao.findBySellerId(req.sellerId());
-            send(new GetSellerItemsResponse(true, "OK", items));
+            send(new GetSellerItemsResult.Success(items));
         } catch (Exception e) {
             e.printStackTrace();
-            send(new GetSellerItemsResponse(false, "Lỗi server: " + e.getMessage(), null));
+            send(new GetSellerItemsResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
 
