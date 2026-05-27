@@ -20,10 +20,10 @@
             prefWidth="1280"
             prefHeight="800">
 
-    <!-- === SIDEBAR BÊN TRÁI === -->
-    <left>
-        <StackPane fx:id="sidebarContainer"/>
-    </left>
+    <!-- === TOPBAR BÊN TRÊN === -->
+    <top>
+        <StackPane fx:id="topbarContainer"/>
+    </top>
 
     <!-- === CONTENT AREA Ở GIỮA === -->
     <center>

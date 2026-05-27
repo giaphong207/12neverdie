@@ -80,6 +80,14 @@ public class ServerMessageListener implements Runnable {
                     System.out.println("Nhan GetSellerItemsResponse -> day vao queue");
                     responseQueue.offer(incoming);
 
+                } else if (incoming instanceof GetBalanceResult) {
+                    System.out.println("Nhan GetBalanceResult -> day vao queue");
+                    responseQueue.offer(incoming);
+
+                } else if (incoming instanceof DepositResult) {
+                    System.out.println("Nhan DepositResult -> day vao queue");
+                    responseQueue.offer(incoming);
+
                 } else if (incoming instanceof ErrorMessage error) {
                     System.err.println("Nhan loi tu server: " + error.message());
                     Platform.runLater(() ->

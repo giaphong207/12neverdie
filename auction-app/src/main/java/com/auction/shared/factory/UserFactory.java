@@ -4,6 +4,10 @@ import com.auction.shared.model.user.*;
 
 public class UserFactory {
     public static User createUser(Role role, String id, String username, String password){
+        return createUser(role, id, username, password, 0L);
+    }
+
+    public static User createUser(Role role, String id, String username, String password, long balance){
         if (role == null){
             throw new IllegalArgumentException("Phải điền loại User");
         }
@@ -17,9 +21,9 @@ public class UserFactory {
             throw new IllegalArgumentException("Phải điền mật khẩu");
         }
         return switch (role){
-            case ADMIN -> new Admin(id,username,password);
-            case SELLER -> new Seller(id,username,password);
-            case BIDDER -> new Bidder(id,username,password);
+            case ADMIN -> new Admin(id, username, password, balance);
+            case SELLER -> new Seller(id, username, password, balance);
+            case BIDDER -> new Bidder(id, username, password, balance);
         };
     }
     public static Role toRole(User user){

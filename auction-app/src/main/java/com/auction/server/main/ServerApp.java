@@ -58,9 +58,10 @@ public class ServerApp {
         );
         AutoBidService autoBidService = new DefaultAutoBidService(autoBidDao,lockManager);
         AuthService authService = new DefaultAuthService(userDao);
+        WalletService walletService = new DefaultWalletService(userDao);
 
         BidService bidService = new DefaultBidService(
-                db, auctionDao, bidDao, lifecycleService,
+                db, auctionDao, bidDao, userDao, lifecycleService,
                 lockManager, antiSniping, autoBidService);
 
         // ⑥ Re-schedule tasks sau restart cho các auction chưa terminal
@@ -94,7 +95,8 @@ public class ServerApp {
                 log.info("Client mới kết nối: {}", socket.getRemoteSocketAddress());
 
                 ClientHandler handler = new ClientHandler(
-                        socket, bidService, authService, auctionDao, auctionService, itemDao,
+                        socket, bidService, authService, walletService,
+                        auctionDao, auctionService, itemDao,
                         subscriptionManager, broadcaster);
                 new Thread(handler).start();
             }

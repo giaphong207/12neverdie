@@ -7,8 +7,8 @@ import com.auction.client.realtime.AuctionEventObserver;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.AuctionCardBuilder;
 import com.auction.client.util.SceneNavigator;
-import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
+import com.auction.client.util.TopbarBuilder;
 import com.auction.client.util.StatCardBuilder;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
@@ -33,7 +33,7 @@ import java.util.List;
 
 public class BidderDashboardController implements AuctionEventObserver {
 
-    @FXML private StackPane sidebarContainer;
+    @FXML private StackPane topbarContainer;
     @FXML private Label welcomeLabel;
     @FXML private HBox statCardsContainer;
     @FXML private FlowPane featuredAuctionsContainer;
@@ -44,15 +44,15 @@ public class BidderDashboardController implements AuctionEventObserver {
     @FXML
     public void initialize() {
         // Build sidebar
-        if (sidebarContainer != null && ClientSession.getCurrentUser() != null) {
+        if (topbarContainer != null && ClientSession.getCurrentUser() != null) {
             var user = ClientSession.getCurrentUser();
-            var sidebar = SidebarBuilder.build(
+            var topbar = TopbarBuilder.build(
                     user,
                     NavKey.BIDDER_HOME,
                     this::handleNavClick,
                     this::handleLogout
             );
-            sidebarContainer.getChildren().add(sidebar);
+            topbarContainer.getChildren().add(topbar);
         }
 
         // Welcome message

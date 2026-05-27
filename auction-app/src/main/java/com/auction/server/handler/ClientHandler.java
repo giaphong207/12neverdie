@@ -8,6 +8,7 @@ import com.auction.server.service.AuctionService;
 import com.auction.server.service.AuthService;
 import com.auction.server.service.BidOutcome;
 import com.auction.server.service.BidService;
+import com.auction.server.service.WalletService;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
@@ -32,6 +33,7 @@ public class ClientHandler implements Runnable {
     private final Socket socket;
     private final BidService bidService;
     private final AuthService authService;
+    private final WalletService walletService;
     private final AuctionDao auctionDao;
     private final AuctionService auctionService;
     private final ItemDao itemDao;
@@ -45,6 +47,7 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket,
                          BidService bidService,
                          AuthService authService,
+                         WalletService walletService,
                          AuctionDao auctionDao,
                          AuctionService auctionService,
                          ItemDao itemDao,
@@ -53,6 +56,7 @@ public class ClientHandler implements Runnable {
         this.socket = socket;
         this.bidService = bidService;
         this.authService = authService;
+        this.walletService = walletService;
         this.auctionDao = auctionDao;
         this.auctionService = auctionService;
         this.itemDao = itemDao;
@@ -88,6 +92,10 @@ public class ClientHandler implements Runnable {
                     handleDeleteItemRequest(req);
                 } else if (incoming instanceof GetSellerItemsRequest req) {
                     handleGetSellerItemsRequest(req);
+                } else if (incoming instanceof GetBalanceRequest req) {
+                    handleGetBalanceRequest(req);
+                } else if (incoming instanceof DepositRequest req) {
+                    handleDepositRequest(req);
                 }
             }
         } catch (Exception e) {
@@ -189,6 +197,20 @@ public class ClientHandler implements Runnable {
                 return;
             }
 
+            LocalDateTime now = LocalDateTime.now();
+            if (req.startTime() == null || req.endTime() == null) {
+                send(new AddItemResult.Failure("Phải chọn thời gian bắt đầu và kết thúc"));
+                return;
+            }
+            if (!req.endTime().isAfter(req.startTime())) {
+                send(new AddItemResult.Failure("Thời gian kết thúc phải sau thời gian bắt đầu"));
+                return;
+            }
+            if (req.startTime().isBefore(now.minusMinutes(1))) {
+                send(new AddItemResult.Failure("Thời gian bắt đầu không được trong quá khứ"));
+                return;
+            }
+
             // Tạo item
             String itemId = UUID.randomUUID().toString();
             Item item = ItemFactory.createItem(
@@ -196,16 +218,14 @@ public class ClientHandler implements Runnable {
                     req.name(), req.description(), req.startPrice());
             itemDao.save(item);
 
-            log.info("Item mới: {} | seller: {}", item.getName(), req.sellerId());
-
-            LocalDateTime now = LocalDateTime.now();
             long minIncrement = Math.max(1000L, req.startPrice() / 100);
             Auction auction = auctionService.createAuction(
                     req.sellerId(), itemId,
                     req.startPrice(), minIncrement,
-                    now, now.plusHours(24));
+                    req.startTime(), req.endTime());
 
-            log.info("Item mới: {} | seller: {}", item.getName(), req.sellerId());
+            log.info("Item mới: {} | seller: {} | start: {} | end: {}",
+                    item.getName(), req.sellerId(), auction.getStartTime(), auction.getEndTime());
 
             send(new AddItemResult.Success(item));
 
@@ -267,6 +287,28 @@ public class ClientHandler implements Runnable {
         } catch (Exception e) {
             log.error("Lỗi cập nhật item", e);
             send(new GetSellerItemsResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
+
+    // ===== WALLET =====
+
+    private void handleGetBalanceRequest(GetBalanceRequest req) {
+        try {
+            long balance = walletService.getBalance(req.userId());
+            send(new GetBalanceResult.Success(balance));
+        } catch (Exception e) {
+            log.error("Lỗi getBalance", e);
+            send(new GetBalanceResult.Failure(e.getMessage()));
+        }
+    }
+
+    private void handleDepositRequest(DepositRequest req) {
+        try {
+            long newBalance = walletService.deposit(req.userId(), req.amount());
+            send(new DepositResult.Success(newBalance));
+        } catch (Exception e) {
+            log.error("Lỗi deposit", e);
+            send(new DepositResult.Failure(e.getMessage()));
         }
     }
 
