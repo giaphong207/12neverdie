@@ -1,4 +1,5 @@
 package com.auction.shared.factory;
+import com.auction.shared.exception.AppExceptions.InvalidItemException;
 import com.auction.shared.model.item.*;
 
 public class ItemFactory {
@@ -10,18 +11,18 @@ public class ItemFactory {
             String description,
             long startPrice){
         if (itemType == null){
-            throw new IllegalArgumentException("Phải điền loại sản phẩm");
+            throw new InvalidItemException("Phải điền loại sản phẩm");
         }
         if (id == null || id.isBlank()){
-            throw new IllegalArgumentException("Phải điền ID của sản phẩm");
+            throw new InvalidItemException("Phải điền ID của sản phẩm");
         }
         if (name == null || name.isBlank()){
-            throw new IllegalArgumentException("Phải điền tên sản phẩm");
+            throw new InvalidItemException("Phải điền tên sản phẩm");
         }
         if (description == null || description.isBlank()){
-            throw new IllegalArgumentException("Phải điền mô tả sản phẩm");
+            throw new InvalidItemException("Phải điền mô tả sản phẩm");
         }if (startPrice <= 0){
-            throw new IllegalArgumentException("Giá khởi điểm không thể âm");
+            throw new InvalidItemException("Giá khởi điểm không thể âm");
         }
         return switch (itemType){
             case ELECTRONICS -> new ElectronicsItem(id,sellerId,name,description,startPrice);

@@ -57,6 +57,20 @@ public class Results {
         record Failure(String reason) implements BidResult {}
     }
 
+    public sealed interface GetBalanceResult extends Serializable
+            permits GetBalanceResult.Success, GetBalanceResult.Failure {
+
+        record Success(long balance) implements GetBalanceResult {}
+        record Failure(String reason) implements GetBalanceResult {}
+    }
+
+    public sealed interface DepositResult extends Serializable
+            permits DepositResult.Success, DepositResult.Failure {
+
+        record Success(long newBalance) implements DepositResult {}
+        record Failure(String reason) implements DepositResult {}
+    }
+
     public static record SetAutoBidResponse(boolean success, String message) implements Serializable {}
     public static record ErrorMessage(String message) implements Serializable {}
 }

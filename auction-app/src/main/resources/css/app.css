@@ -666,6 +666,94 @@
     -fx-pref-height: 24px;
 }
 
+/* Portal label dưới logo (Người đấu giá / Người bán / Quản trị viên) */
+.topbar-portal-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -app-text-muted;
+    -fx-font-weight: bold;
+}
+
+/* Nav item ngang (Trang chủ, Phiên đang diễn ra, ...) */
+.topbar-nav-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 14px;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-background-radius: 4px;
+}
+
+.topbar-nav-item:hover {
+    -fx-background-color: -app-bg-soft;
+    -fx-text-fill: -app-text-primary;
+}
+
+.topbar-nav-item-active {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-accent;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent transparent -app-accent transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-font-size: 14px;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+    -fx-background-radius: 0;
+}
+
+/* Role nhỏ dưới tên user */
+.topbar-role {
+    -fx-font-size: 11px;
+    -fx-text-fill: -app-text-muted;
+}
+
+/* Số dư ví hiển thị trên topbar */
+.topbar-wallet {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-accent;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+}
+
+/* Nút nạp tiền (outline accent) */
+.topbar-deposit {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-accent;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+    -fx-border-color: -app-accent;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+}
+
+.topbar-deposit:hover {
+    -fx-background-color: -app-accent;
+    -fx-text-fill: white;
+}
+
+/* Nút đăng xuất bên phải */
+.topbar-logout {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+    -fx-border-color: -app-border;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+}
+
+.topbar-logout:hover {
+    -fx-background-color: -app-danger;
+    -fx-text-fill: white;
+    -fx-border-color: -app-danger;
+}
+
 /* === 10. NPC SPEECH BUBBLE === */
 
 /* Container chính của NPC (chứa cả avatar + bubble) */

@@ -29,6 +29,7 @@ CREATE TABLE users (
                        username    VARCHAR(64)  NOT NULL UNIQUE,
                        password    VARCHAR(255) NOT NULL,
                        role        ENUM('BIDDER','SELLER','ADMIN') NOT NULL,
+                       balance     BIGINT       NOT NULL DEFAULT 0,
                        created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

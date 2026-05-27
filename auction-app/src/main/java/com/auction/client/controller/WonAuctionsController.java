@@ -8,8 +8,8 @@ import com.auction.client.util.AlertUtils;
 import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.MoneyFormatter;
 import com.auction.client.util.SceneNavigator;
-import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
+import com.auction.client.util.TopbarBuilder;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
@@ -29,7 +29,7 @@ import java.util.List;
 
 public class WonAuctionsController implements AuctionEventObserver {
 
-    @FXML private StackPane sidebarContainer;
+    @FXML private StackPane topbarContainer;
     @FXML private Label summaryLabel;
     @FXML private TableView<Auction> wonTable;
     @FXML private TableColumn<Auction, String> colLot;
@@ -41,14 +41,14 @@ public class WonAuctionsController implements AuctionEventObserver {
 
     @FXML
     public void initialize() {
-        if (sidebarContainer != null && ClientSession.getCurrentUser() != null) {
-            var sidebar = SidebarBuilder.build(
+        if (topbarContainer != null && ClientSession.getCurrentUser() != null) {
+            var topbar = TopbarBuilder.build(
                     ClientSession.getCurrentUser(),
                     NavKey.BIDDER_WON,
                     this::handleNavClick,
                     this::handleLogout
             );
-            sidebarContainer.getChildren().add(sidebar);
+            topbarContainer.getChildren().add(topbar);
         }
 
         // Setup columns
