@@ -203,7 +203,10 @@ public class BidderDashboardController implements AuctionEventObserver {
         row.getStyleClass().add("card");
         row.setStyle(row.getStyle() + "-fx-padding: 16 20 16 20;");
 
-        Label lot = new Label("LOT №" + shortId(auction.getId()));
+        String title = auction.getItemName() != null && !auction.getItemName().isBlank()
+                ? auction.getItemName()
+                : "Mã phiên " + shortId(auction.getId());
+        Label lot = new Label(title);
         lot.getStyleClass().add("label-tiny-uppercase");
 
         Label price = new Label(com.auction.client.util.MoneyFormatter.formatVnd(auction.getCurrentPrice()));

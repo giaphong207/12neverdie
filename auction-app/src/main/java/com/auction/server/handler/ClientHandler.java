@@ -2,6 +2,7 @@ package com.auction.server.handler;
 
 import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.ItemDao;
+import com.auction.server.realtime.AuctionEnricher;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.service.AuctionService;
@@ -39,6 +40,7 @@ public class ClientHandler implements Runnable {
     private final ItemDao itemDao;
     private final AuctionSubscriptionManager subscriptionManager;
     private final EventBroadcaster broadcaster;
+    private final AuctionEnricher enricher;
 
     private ObjectOutputStream out;
     private ObjectInputStream in;
@@ -52,7 +54,8 @@ public class ClientHandler implements Runnable {
                          AuctionService auctionService,
                          ItemDao itemDao,
                          AuctionSubscriptionManager subscriptionManager,
-                         EventBroadcaster broadcaster) {
+                         EventBroadcaster broadcaster,
+                         AuctionEnricher enricher) {
         this.socket = socket;
         this.bidService = bidService;
         this.authService = authService;
@@ -62,6 +65,7 @@ public class ClientHandler implements Runnable {
         this.itemDao = itemDao;
         this.subscriptionManager = subscriptionManager;
         this.broadcaster = broadcaster;
+        this.enricher = enricher;
     }
 
     @Override
@@ -138,6 +142,7 @@ public class ClientHandler implements Runnable {
             log.debug("Gửi {} auction snapshot cho client {}",
                     activeAuctions.size(), socket.getRemoteSocketAddress());
             for (Auction a : activeAuctions) {
+                enricher.enrich(a);
                 send(new AuctionUpdatedEvent(a));
             }
         } catch (Exception e) {
@@ -150,7 +155,9 @@ public class ClientHandler implements Runnable {
         try {
             Optional<Auction> auctionOpt = auctionDao.findById(req.auctionId());
             if (auctionOpt.isPresent()) {
-                send(new AuctionUpdatedEvent(auctionOpt.get()));
+                Auction a = auctionOpt.get();
+                enricher.enrich(a);
+                send(new AuctionUpdatedEvent(a));
             }
         } catch (Exception e) {
             log.error("Lỗi gửi snapshot auction", e);

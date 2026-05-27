@@ -57,13 +57,17 @@ public final class AuctionCardBuilder {
         imgPlaceholder.getStyleClass().add("image-placeholder-icon");
         imageBox.getChildren().add(imgPlaceholder);
 
-        // 3. Tên + LOT
-        Label itemName = new Label(shortItemName(auction));
+        // 3. Tên thật + mã phiên ngắn
+        String displayName = auction.getItemName();
+        if (displayName == null || displayName.isBlank()) {
+            displayName = "(Chưa có tên sản phẩm)";
+        }
+        Label itemName = new Label(displayName);
         itemName.getStyleClass().add("title-medium");
         itemName.setWrapText(true);
         itemName.setMaxHeight(48);
 
-        Label lotLabel = new Label("LOT №" + shortId(auction.getId()));
+        Label lotLabel = new Label("Mã phiên: " + shortId(auction.getId()));
         lotLabel.getStyleClass().add("label-caption");
 
         // 4. Divider
@@ -122,11 +126,6 @@ public final class AuctionCardBuilder {
         );
 
         return card;
-    }
-
-    private static String shortItemName(Auction auction) {
-        if (auction.getItemId() == null) return "Sản phẩm chưa rõ tên";
-        return "LOT phẩm №" + shortId(auction.getItemId());
     }
 
     private static String shortId(String id) {

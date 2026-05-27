@@ -47,9 +47,14 @@
                 </HBox>
 
                 <!-- === TIÊU ĐỀ === -->
-                <Label fx:id="itemNameLabel" 
-                       text="Đang tải..." 
-                       styleClass="title-large"/>
+                <VBox spacing="4">
+                    <Label fx:id="itemNameLabel"
+                           text="Đang tải..."
+                           styleClass="title-large"/>
+                    <Label fx:id="auctionCodeLabel"
+                           text="Mã phiên: —"
+                           styleClass="label-caption"/>
+                </VBox>
 
                 <!-- === LAYOUT 2 CỘT === -->
                 <HBox spacing="32" VBox.vgrow="ALWAYS">
@@ -128,9 +133,12 @@
 
                         <!-- Card đặt giá -->
                         <VBox styleClass="card" spacing="14">
-                            <Label text="GIÁ BẠN MUỐN ĐẶT (VND)" 
+                            <Label text="GIÁ BẠN MUỐN ĐẶT (VND)"
                                    styleClass="label-caption"/>
-                            <TextField fx:id="bidAmountField" 
+                            <Label fx:id="minBidLabel"
+                                   text="Tối thiểu: —"
+                                   styleClass="text-secondary"/>
+                            <TextField fx:id="bidAmountField"
                                        promptText="Nhập số tiền..."/>
 
                             <Label fx:id="messageLabel"

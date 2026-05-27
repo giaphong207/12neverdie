@@ -54,7 +54,10 @@ public class WonAuctionsController implements AuctionEventObserver {
         // Setup columns
         if (colLot != null) {
             colLot.setCellValueFactory(c ->
-                    new SimpleStringProperty("LOT №" + shortId(c.getValue().getId())));
+                    new SimpleStringProperty(
+                            c.getValue().getItemName() != null && !c.getValue().getItemName().isBlank()
+                                    ? c.getValue().getItemName()
+                                    : "Mã phiên " + shortId(c.getValue().getId())));
         }
         if (colPrice != null) {
             colPrice.setCellValueFactory(c ->

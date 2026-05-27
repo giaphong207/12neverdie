@@ -60,7 +60,9 @@ public class SellerDashboardController implements AuctionEventObserver {
         if (colLot != null) {
             colLot.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
-                            "LOT №" + shortId(c.getValue().getId())));
+                            c.getValue().getItemName() != null && !c.getValue().getItemName().isBlank()
+                                    ? c.getValue().getItemName()
+                                    : "Mã phiên " + shortId(c.getValue().getId())));
         }
         if (colCurrentPrice != null) {
             colCurrentPrice.setCellValueFactory(c ->

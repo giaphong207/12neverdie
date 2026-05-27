@@ -23,6 +23,12 @@ public class Auction implements Serializable {
     private LocalDateTime endTime; // xóa final để anti-sniping có thể gia hạn
     private String highestBidderId;
     private String winnerBidderId;
+
+    // Display fields — server fill trước khi gửi qua wire để client khỏi phải lookup
+    private String itemName;
+    private String itemDescription;
+    private String sellerName;
+    private String highestBidderName;
     public Auction(String id,
                    String itemId,
                    String sellerId,
@@ -147,6 +153,16 @@ public class Auction implements Serializable {
     public List<Bid> getBidHistory() {
         return Collections.unmodifiableList(bidHistory);
     }
+
+    // ── Display fields (set ở server) ──
+    public String getItemName() { return itemName; }
+    public void setItemName(String itemName) { this.itemName = itemName; }
+    public String getItemDescription() { return itemDescription; }
+    public void setItemDescription(String d) { this.itemDescription = d; }
+    public String getSellerName() { return sellerName; }
+    public void setSellerName(String n) { this.sellerName = n; }
+    public String getHighestBidderName() { return highestBidderName; }
+    public void setHighestBidderName(String n) { this.highestBidderName = n; }
 
     // ─────────── Nhóm câu hỏi nghiệp vụ — chỉ đọc, không sửa state ───────────
     public boolean isRunning() {
