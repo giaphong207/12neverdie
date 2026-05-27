@@ -1,7 +1,7 @@
 package com.auction.server.handler;
 
-import com.auction.server.DAO.AuctionDao;
-import com.auction.server.DAO.ItemDao;
+import com.auction.server.dao.AuctionDao;
+import com.auction.server.dao.ItemDao;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.service.AuctionService;

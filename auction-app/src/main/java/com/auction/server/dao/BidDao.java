@@ -1,4 +1,4 @@
-package com.auction.server.DAO;
+package com.auction.server.dao;
 
 import com.auction.shared.model.bid.Bid;
 

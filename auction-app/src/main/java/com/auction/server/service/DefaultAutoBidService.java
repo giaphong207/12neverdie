@@ -1,14 +1,12 @@
 package com.auction.server.service;
 
-import com.auction.server.DAO.AutoBidDao;
+import com.auction.server.dao.AutoBidDao;
 import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.AutoBidConfig;
 import com.auction.shared.model.bid.Bid;
 import com.auction.shared.model.bid.BidSource;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;

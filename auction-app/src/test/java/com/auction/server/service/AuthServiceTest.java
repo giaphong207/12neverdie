@@ -1,6 +1,6 @@
 package com.auction.server.service;
 
-import com.auction.server.DAO.UserDao;
+import com.auction.server.dao.UserDao;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;

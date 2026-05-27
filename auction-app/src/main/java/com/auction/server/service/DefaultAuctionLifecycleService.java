@@ -1,6 +1,6 @@
 package com.auction.server.service;
 
-import com.auction.server.DAO.AuctionDao;
+import com.auction.server.dao.AuctionDao;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.shared.exception.AppExceptions.*;

@@ -1,8 +1,10 @@
-package com.auction.server.DAO;
+package com.auction.server.dao;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.user.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,7 +23,7 @@ import java.util.Optional;
  *   - PreparedStatement với ? placeholder: chống SQL injection
  */
 public class JdbcUserDao implements UserDao {
-
+    private static final Logger log = LoggerFactory.getLogger(JdbcUserDao.class);
     private final Database db;
 
     public JdbcUserDao(Database db) {
@@ -118,7 +120,7 @@ public class JdbcUserDao implements UserDao {
             ps.setString(4, UserFactory.toRole(user).name());
 
             int affected = ps.executeUpdate();
-            System.out.println("[JdbcUserDao] save() affected " + affected + " row(s)");
+            log.debug("save() affected {} row(s)", affected);
 
         } catch (SQLException e) {
             throw new DataAccessException("save(" + user.getUsername() + ") failed", e);
@@ -129,16 +131,17 @@ public class JdbcUserDao implements UserDao {
      * Helper: map 1 row trong ResultSet thành object User đúng subclass.
      * Dựa vào cột 'role' để tạo Bidder/Seller/Admin.
      */
+    /**
+     * Helper: map 1 row trong ResultSet thành object User đúng subclass.
+     * Delegate cho UserFactory để có 1 nguồn duy nhất tạo User từ Role
+     * (tránh duplicate logic với UserFactory.createUser()).
+     */
     private User mapUser(ResultSet rs) throws SQLException {
-        Role role       = Role.valueOf(rs.getString("role"));
-        String id       = rs.getString("id");
-        String username = rs.getString("username");
-        String password = rs.getString("password");
-
-        return switch (role) {
-            case BIDDER -> new Bidder(id, username, password);
-            case SELLER -> new Seller(id, username, password);
-            case ADMIN  -> new Admin(id, username, password);
-        };
+        return UserFactory.createUser(
+                Role.valueOf(rs.getString("role")),
+                rs.getString("id"),
+                rs.getString("username"),
+                rs.getString("password")
+        );
     }
 }

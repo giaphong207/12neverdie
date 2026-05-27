@@ -3,7 +3,7 @@ package com.auction.server.service;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.auction.server.DAO.UserDao;
+import com.auction.server.dao.UserDao;
 
 import com.auction.shared.model.user.*;
 import org.mindrot.jbcrypt.BCrypt;

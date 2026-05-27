@@ -1,9 +1,11 @@
-package com.auction.server.DAO;
+package com.auction.server.dao;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.factory.ItemFactory;
 import com.auction.shared.model.item.ItemType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,7 +22,7 @@ import java.util.Optional;
  * Dùng ItemFactory để tạo đúng subclass dựa vào cột 'type'.
  */
 public class JdbcItemDao implements ItemDao {
-
+    private static final Logger log = LoggerFactory.getLogger(JdbcItemDao.class);
     private static final String COLUMNS =
             "id, seller_id, name, description, start_price, type";
 
@@ -122,7 +124,7 @@ public class JdbcItemDao implements ItemDao {
             ps.setString(6, ItemFactory.toItemType(item).name());
 
             int affected = ps.executeUpdate();
-            System.out.println("[JdbcItemDao] save() affected " + affected + " row(s)");
+            log.debug("save() affected {} row(s)", affected);
 
         } catch (SQLException e) {
             throw new DataAccessException("save item(" + item.getId() + ") failed", e);
@@ -142,7 +144,7 @@ public class JdbcItemDao implements ItemDao {
 
             ps.setString(1, id);
             int affected = ps.executeUpdate();
-            System.out.println("[JdbcItemDao] deleteById() affected " + affected + " row(s)");
+            log.debug("deleteById() affected {} row(s)", affected);
 
         } catch (SQLException e) {
             throw new DataAccessException("deleteById(" + id + ") item failed", e);

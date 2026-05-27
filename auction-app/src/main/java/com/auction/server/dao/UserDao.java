@@ -1,4 +1,4 @@
-package com.auction.server.DAO;
+package com.auction.server.dao;
 
 import java.util.List;
 import java.util.Optional;

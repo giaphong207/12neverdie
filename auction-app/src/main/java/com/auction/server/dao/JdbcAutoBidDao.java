@@ -1,10 +1,11 @@
-package com.auction.server.DAO;
+package com.auction.server.dao;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
 import com.auction.shared.model.bid.AutoBidConfig;
 import com.auction.shared.model.bid.AutoBidConfigMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,7 +19,7 @@ import java.util.Optional;
  * Implementation của AutoBidDao dùng JDBC + MySQL.
  */
 public class JdbcAutoBidDao implements AutoBidDao {
-
+    private static final Logger log = LoggerFactory.getLogger(JdbcAutoBidDao.class);
     private static final String COLUMNS =
             "id, auction_id, bidder_id, max_amount, increment, enabled, created_at";
 
@@ -92,7 +93,7 @@ public class JdbcAutoBidDao implements AutoBidDao {
             ps.setTimestamp(7, Timestamp.valueOf(cfg.getCreatedAt()));
 
             int affected = ps.executeUpdate();
-            System.out.println("[JdbcAutoBidDao] save() affected " + affected + " row(s)");
+            log.debug("save() affected {} row(s)", affected);
 
         } catch (SQLException e) {
             throw new DataAccessException(
@@ -111,8 +112,7 @@ public class JdbcAutoBidDao implements AutoBidDao {
 
             ps.setString(1, configId);
             int affected = ps.executeUpdate();
-            System.out.println("[JdbcAutoBidDao] deleteById() affected "
-                    + affected + " row(s)");
+            log.debug("deleteById() affected {} row(s)", affected);
 
         } catch (SQLException e) {
             throw new DataAccessException(

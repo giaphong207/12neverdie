@@ -1,6 +1,6 @@
 package com.auction.server.service;
 
-import com.auction.server.DAO.ItemDao;
+import com.auction.server.dao.ItemDao;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.factory.ItemFactory;
 import com.auction.shared.model.item.Item;

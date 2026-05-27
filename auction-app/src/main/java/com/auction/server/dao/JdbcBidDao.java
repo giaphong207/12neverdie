@@ -1,8 +1,10 @@
-package com.auction.server.DAO;
+package com.auction.server.dao;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
 import com.auction.shared.model.bid.Bid;
 import com.auction.shared.model.bid.BidSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,7 +20,7 @@ import java.util.List;
  * Bid là immutable (final fields) — không có UPDATE, chỉ INSERT.
  */
 public class JdbcBidDao implements BidDao {
-
+    private static final Logger log = LoggerFactory.getLogger(JdbcBidDao.class);
     private final Database db;
 
     public JdbcBidDao(Database db) {
@@ -83,7 +85,7 @@ public class JdbcBidDao implements BidDao {
             ps.setTimestamp(6, Timestamp.valueOf(bid.getCreatedAt()));
 
             int affected = ps.executeUpdate();
-            System.out.println("[JdbcBidDao] save() affected " + affected + " row(s)");
+            log.debug("save() affected {} row(s)", affected);
 
         } catch (SQLException e) {
             throw new DataAccessException("save bid(" + bid.getId() + ") failed", e);

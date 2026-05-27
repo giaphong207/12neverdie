@@ -1,9 +1,12 @@
-package com.auction.server.DAO;
+package com.auction.server.dao;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionMapper;
 import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.bid.Bid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -23,6 +26,7 @@ import java.util.Optional;
  *  - Hỗ trợ transaction qua method update(Connection, Auction)
  */
 public class JdbcAuctionDao implements AuctionDao {
+    private static final Logger log = LoggerFactory.getLogger(JdbcAuctionDao.class);
 
     private static final String COLUMNS = """
             id, item_id, seller_id, start_price, current_price, min_increment,
@@ -66,9 +70,8 @@ public class JdbcAuctionDao implements AuctionDao {
                 if (!rs.next()) {
                     return Optional.empty();
                 }
-                AuctionEntity entity = mapAuction(rs);
-                entity.setBidHistory(bidDao.findByAuctionId(id));
-                return Optional.of(AuctionMapper.toDomain(entity));
+                List<Bid> bidHistory = bidDao.findByAuctionId(id);
+                return Optional.of(mapAuction(rs, bidHistory));
             }
 
         } catch (SQLException e) {
@@ -98,8 +101,7 @@ public class JdbcAuctionDao implements AuctionDao {
 
             bindAuction(ps, a);
             int affected = ps.executeUpdate();
-            System.out.println("[JdbcAuctionDao] save() affected " + affected + " row(s)");
-
+            log.debug("save() affected {} row(s)", affected);
         } catch (SQLException e) {
             throw new DataAccessException("save auction(" + a.getId() + ") failed", e);
         }
@@ -161,7 +163,7 @@ public class JdbcAuctionDao implements AuctionDao {
                     ps3.executeUpdate();
                 }
                 conn.commit();
-                System.out.println("[JdbcAuctionDao] deleteById(" + id + ") OK");
+                log.debug("deleteById({}) OK", id);
             } catch (SQLException ex) {
                 conn.rollback();
                 throw ex;
@@ -180,9 +182,9 @@ public class JdbcAuctionDao implements AuctionDao {
 
             List<Auction> result = new ArrayList<>();
             while (rs.next()) {
-                AuctionEntity entity = mapAuction(rs);
-                entity.setBidHistory(bidDao.findByAuctionId(entity.getId()));
-                result.add(AuctionMapper.toDomain(entity));
+                String auctionId = rs.getString("id");
+                List<Bid> bidHistory = bidDao.findByAuctionId(auctionId);
+                result.add(mapAuction(rs, bidHistory));
             }
             return result;
 
@@ -191,25 +193,29 @@ public class JdbcAuctionDao implements AuctionDao {
         }
     }
 
-    private AuctionEntity mapAuction(ResultSet rs) throws SQLException {
-        AuctionEntity entity = new AuctionEntity();
-
-        entity.setId(rs.getString("id"));
-        entity.setItemId(rs.getString("item_id"));
-        entity.setSellerId(rs.getString("seller_id"));
-        entity.setStartPrice(rs.getLong("start_price"));
-        entity.setCurrentPrice(rs.getLong("current_price"));
-        entity.setMinIncrement(rs.getLong("min_increment"));
-        entity.setStatus(AuctionStatus.valueOf(rs.getString("status")));
-        entity.setStartTime(rs.getTimestamp("start_time").toLocalDateTime());
-        entity.setEndTime(rs.getTimestamp("end_time").toLocalDateTime());
-        entity.setHighestBidderId(rs.getString("highest_bidder_id"));
-        entity.setWinnerBidderId(rs.getString("winner_bidder_id"));
-        // bidHistory để trống — sẽ set sau khi load từ BidDao
-
-        return entity;
+    /**
+     * Map 1 row ResultSet → Auction.
+     * bidHistory được truyền từ ngoài vào (caller chịu trách nhiệm load qua BidDao trước).
+     *
+     * Method pure (không gọi BidDao bên trong) để caller kiểm soát thứ tự query
+     * và để dễ test (mock).
+     */
+    private Auction mapAuction(ResultSet rs, List<Bid> bidHistory) throws SQLException {
+        return AuctionMapper.fromDb(
+                rs.getString("id"),
+                rs.getString("item_id"),
+                rs.getString("seller_id"),
+                rs.getLong("start_price"),
+                rs.getLong("current_price"),
+                rs.getLong("min_increment"),
+                AuctionStatus.valueOf(rs.getString("status")),
+                rs.getTimestamp("start_time").toLocalDateTime(),
+                rs.getTimestamp("end_time").toLocalDateTime(),
+                rs.getString("highest_bidder_id"),   // JDBC trả null nếu cột NULL
+                rs.getString("winner_bidder_id"),    // (same)
+                bidHistory
+        );
     }
-
     /**
      * Bind 11 cột của Auction vào PreparedStatement cho INSERT.
      */

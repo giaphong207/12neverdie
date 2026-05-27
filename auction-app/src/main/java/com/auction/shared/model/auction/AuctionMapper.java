@@ -1,26 +1,32 @@
 package com.auction.shared.model.auction;
 
-import com.auction.server.DAO.AuctionEntity;
+import com.auction.shared.model.bid.Bid;
 
-public class AuctionMapper {
-    public static Auction toDomain(AuctionEntity entity) {
-        if (entity == null) {
-            throw new IllegalArgumentException("Entity không được null");
-        }
+import java.time.LocalDateTime;
+import java.util.List;
 
+public final class AuctionMapper {
+
+    private AuctionMapper() {}   // utility class, không cho instantiate
+
+    public static Auction fromDb(String id,
+                                 String itemId,
+                                 String sellerId,
+                                 long startPrice,
+                                 long currentPrice,
+                                 long minIncrement,
+                                 AuctionStatus status,
+                                 LocalDateTime startTime,
+                                 LocalDateTime endTime,
+                                 String highestBidderId,
+                                 String winnerBidderId,
+                                 List<Bid> bidHistory) {
         return new Auction(
-                entity.getId(),
-                entity.getItemId(),
-                entity.getSellerId(),
-                entity.getStartPrice(),
-                entity.getCurrentPrice(),
-                entity.getMinIncrement(),
-                entity.getStatus(),
-                entity.getStartTime(),
-                entity.getEndTime(),
-                entity.getHighestBidderId(),
-                entity.getWinnerBidderId(),
-                entity.getBidHistory()
+                id, itemId, sellerId,
+                startPrice, currentPrice, minIncrement,
+                status, startTime, endTime,
+                highestBidderId, winnerBidderId,
+                bidHistory
         );
     }
 }

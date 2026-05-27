@@ -1,8 +1,10 @@
-package com.auction.server.DAO;
+package com.auction.server.dao;
 
 import com.auction.shared.exception.AppExceptions.DataAccessException;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,6 +20,7 @@ import java.util.Properties;
  * - Có thể override bằng env var (DB_URL, DB_USER, DB_PASS)
  */
 public final class Database {
+    private static final Logger log = LoggerFactory.getLogger(Database.class);
 
     private static volatile Database instance;
     private final HikariDataSource dataSource;
@@ -37,8 +40,7 @@ public final class Database {
         cfg.setPoolName("AuctionPool");
 
         this.dataSource = new HikariDataSource(cfg);
-        System.out.println("[Database] Đã khởi tạo HikariCP pool xong (maxSize="
-                + cfg.getMaximumPoolSize() + ")");
+        log.info("Đã khởi tạo HikariCP pool xong (maxSize={})", cfg.getMaximumPoolSize());
     }
 
     /** Lấy instance Singleton (thread-safe Double-Check Locking). */
@@ -66,7 +68,7 @@ public final class Database {
     public void shutdown() {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
-            System.out.println("[Database] Đã đóng connection pool.");
+            log.info("Đã đóng connection pool.");
         }
     }
 

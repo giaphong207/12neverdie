@@ -1,9 +1,9 @@
 package com.auction.server.service;
 
 import com.auction.server.concurrency.AuctionLockManager;
-import com.auction.server.DAO.AuctionDao;
-import com.auction.server.DAO.BidDao;
-import com.auction.server.DAO.Database;
+import com.auction.server.dao.AuctionDao;
+import com.auction.server.dao.BidDao;
+import com.auction.server.dao.Database;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.Bid;
