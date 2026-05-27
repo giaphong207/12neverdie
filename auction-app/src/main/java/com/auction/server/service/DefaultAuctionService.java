@@ -57,7 +57,7 @@ public class DefaultAuctionService implements AuctionService {
         lifecycleService.scheduleClose(auction);
 
 // Báo client: có auction mới, refresh danh sách
-        broadcaster.broadcast(new AuctionUpdatedEvent(auction));
+        broadcaster.broadcast(new AuctionCreatedEvent(auction));
 
         return auction;
     }

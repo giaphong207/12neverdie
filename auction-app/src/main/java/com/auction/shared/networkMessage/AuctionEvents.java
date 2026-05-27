@@ -49,6 +49,9 @@ public class AuctionEvents {
             super(auction);
         }
     }
+    public static class AuctionCreatedEvent extends AuctionEvent {
+        public AuctionCreatedEvent(Auction auction) { super(auction);}
+    }
     public static class AuctionPaidEvent extends AuctionEvent {
         public AuctionPaidEvent(Auction auction) {
             super(auction);
