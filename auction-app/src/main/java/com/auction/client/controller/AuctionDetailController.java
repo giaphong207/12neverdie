@@ -19,7 +19,7 @@ import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
-import com.auction.shared.networkMessage.Responses.*;
+import com.auction.shared.networkMessage.Results.*;
 import com.auction.client.main.ClientApp;
 
 import javafx.animation.KeyFrame;

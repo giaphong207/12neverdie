@@ -8,7 +8,7 @@ import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
 
 import com.auction.shared.networkMessage.AuctionEvents.*;
-import com.auction.shared.networkMessage.Responses.*;
+import com.auction.shared.networkMessage.Results.*;
 import javafx.application.Platform;
 
 /**

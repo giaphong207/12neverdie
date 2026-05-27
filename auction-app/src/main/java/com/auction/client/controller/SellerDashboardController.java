@@ -17,7 +17,7 @@ import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
-import com.auction.shared.networkMessage.Responses.*;
+import com.auction.shared.networkMessage.Results.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;

@@ -7,7 +7,7 @@ import com.auction.shared.model.user.User;
 import java.io.Serializable;
 import java.util.List;
 
-public class Responses {
+public class Results {
     public sealed interface LoginResult extends Serializable
             permits LoginResult.Success, LoginResult.Failure {
 

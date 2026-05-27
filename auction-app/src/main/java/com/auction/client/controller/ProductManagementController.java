@@ -12,14 +12,13 @@ import com.auction.shared.model.item.ItemType;
 import com.auction.shared.model.user.User;
 
 import com.auction.shared.networkMessage.Requests.*;
-import com.auction.shared.networkMessage.Responses.*;
+import com.auction.shared.networkMessage.Results.*;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
-import java.util.List;
 import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.MoneyFormatter;
 import com.auction.client.util.SidebarBuilder;

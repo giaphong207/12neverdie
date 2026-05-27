@@ -12,7 +12,7 @@ import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.Requests.*;
-import com.auction.shared.networkMessage.Responses.*;
+import com.auction.shared.networkMessage.Results.*;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;

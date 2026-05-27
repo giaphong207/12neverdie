@@ -14,7 +14,7 @@ import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
-import com.auction.shared.networkMessage.Responses.*;
+import com.auction.shared.networkMessage.Results.*;
 import com.auction.shared.factory.ItemFactory;
 
 import java.io.IOException;

@@ -8,7 +8,7 @@ import com.auction.client.util.SceneStyler;
 
 import com.auction.shared.model.user.Role;
 import com.auction.shared.networkMessage.Requests.*;
-import com.auction.shared.networkMessage.Responses.*;
+import com.auction.shared.networkMessage.Results.*;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
