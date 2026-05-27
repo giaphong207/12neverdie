@@ -20,13 +20,13 @@ public class ItemFactory {
         }
         if (description == null || description.isBlank()){
             throw new IllegalArgumentException("Phải điền mô tả sản phẩm");
-        }if (startPrice < 0){
+        }if (startPrice <= 0){
             throw new IllegalArgumentException("Giá khởi điểm không thể âm");
         }
         return switch (itemType){
-            case ELECTRONICS -> new ElectronicsItem(id,sellerId,name,description,0);
-            case ART -> new ArtItem(id,sellerId,name,description,0);
-            case VEHICLE -> new VehicleItem(id,sellerId,name,description,0);
+            case ELECTRONICS -> new ElectronicsItem(id,sellerId,name,description,startPrice);
+            case ART -> new ArtItem(id,sellerId,name,description,startPrice);
+            case VEHICLE -> new VehicleItem(id,sellerId,name,description,startPrice);
         };
     }
     public static ItemType toItemType(Item item) {

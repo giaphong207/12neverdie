@@ -24,7 +24,7 @@ public class AuctionEvents {
         }
     }
     public static class BidPlacedEvent extends AuctionEvent {
-        private Bid bid;
+        private final Bid bid;
         public BidPlacedEvent(Auction auction, Bid bid) {
             super(auction);
             this.bid = bid;

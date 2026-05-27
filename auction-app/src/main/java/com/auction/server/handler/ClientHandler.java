@@ -6,7 +6,7 @@ import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.service.AuctionService;
 import com.auction.server.service.AuthService;
-import com.auction.server.service.BidResult;
+import com.auction.server.service.BidOutcome;
 import com.auction.server.service.BidService;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.auction.Auction;
@@ -148,7 +148,7 @@ public class ClientHandler implements Runnable {
 
     private void handleBidRequest(BidRequest request) {
         try {
-            BidResult result = bidService.placeBid(
+            BidOutcome result = bidService.placeBid(
                     request.auctionId(),
                     request.bidderId(),
                     request.amount());

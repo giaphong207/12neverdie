@@ -34,7 +34,7 @@ public final class MoneyParser {
             
         } catch (NumberFormatException e) {
             //Bắt lỗi nếu ép kiểu thất bại (nhập chữ cái, ký tự đặc biệt)
-            throw new InvalidMoneyFormatException("Số tiền không hợp lệ! Vui lòng chỉ nhập số.");
+            throw new InvalidMoneyFormatException("Số tiền không hợp lệ! Vui lòng chỉ nhập số.", e);
         }
     }
 }

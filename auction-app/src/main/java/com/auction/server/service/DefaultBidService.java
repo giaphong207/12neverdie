@@ -11,9 +11,7 @@ import com.auction.shared.model.bid.BidSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -44,7 +42,7 @@ public class DefaultBidService implements BidService {
     }
 
     @Override
-    public BidResult placeBid(String auctionId, String bidderId, long amount) {
+    public BidOutcome placeBid(String auctionId, String bidderId, long amount) {
         // ① Validate input
         if (auctionId == null || auctionId.isBlank()) {
             throw new InvalidBidException("auctionId rỗng");
@@ -63,7 +61,7 @@ public class DefaultBidService implements BidService {
             acquired = lock.tryLock(2, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new InvalidBidException("Bị gián đoạn khi chờ lock");
+            throw new InvalidBidException("Bị gián đoạn khi chờ lock", e);
         }
         if (!acquired) {
             throw new InvalidBidException("Hệ thống đang bận, vui lòng thử lại");
@@ -129,7 +127,7 @@ public class DefaultBidService implements BidService {
                 throw new DataAccessException("Không lấy được connection", e);
             }
 
-            return new BidResult(auction,manualBid);
+            return new BidOutcome(auction,manualBid);
 
         } finally {
             lock.unlock();

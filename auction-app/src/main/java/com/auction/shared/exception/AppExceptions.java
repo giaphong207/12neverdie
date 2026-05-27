@@ -8,9 +8,12 @@ public final class AppExceptions {
         public AppException(String message, Throwable cause) { super(message, cause);}
     }
 
-    public static class AuctionClosedException extends AppException{
-        public AuctionClosedException(String message){
+    public static class AuctionClosedException extends AppException {
+        public AuctionClosedException(String message) {
             super(message);
+        }
+        public AuctionClosedException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 
@@ -25,25 +28,34 @@ public final class AppExceptions {
             super(message);
         }
         public DataAccessException(String message, Throwable cause) {
-            super(message + " (cause: " + cause.getMessage() + ")");
+            super(message, cause);   // ← gọi đúng constructor của AppException
         }
     }
 
-    public static class InvalidBidException extends AppException{
-        public InvalidBidException(String message){
+    public static class InvalidBidException extends AppException {
+        public InvalidBidException(String message) {
             super(message);
+        }
+        public InvalidBidException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 
-    public static class InvalidItemException extends AppException{
-        public InvalidItemException(String message){
+    public static class InvalidItemException extends AppException {
+        public InvalidItemException(String message) {
             super(message);
+        }
+        public InvalidItemException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 
     public static class InvalidMoneyFormatException extends AppException {
         public InvalidMoneyFormatException(String message) {
             super(message);
+        }
+        public InvalidMoneyFormatException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 
