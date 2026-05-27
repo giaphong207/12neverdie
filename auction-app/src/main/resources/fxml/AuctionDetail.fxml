@@ -24,10 +24,10 @@
             prefWidth="1280"
             prefHeight="800">
 
-    <!-- === SIDEBAR === -->
-    <left>
-        <StackPane fx:id="sidebarContainer"/>
-    </left>
+    <!-- === TOPBAR === -->
+    <top>
+        <StackPane fx:id="topbarContainer"/>
+    </top>
 
     <!-- === CONTENT AREA === -->
     <center>
@@ -107,7 +107,9 @@
 
                         <!-- Card countdown + giá -->
                         <VBox styleClass="card" spacing="14">
-                            <Label text="KẾT THÚC SAU" styleClass="label-caption"/>
+                            <Label fx:id="countdownCaptionLabel"
+                                   text="KẾT THÚC SAU"
+                                   styleClass="label-caption"/>
                             <Label fx:id="remainingTimeLabel"
                                    text="--:--:--"
                                    styleClass="countdown-text"/>
