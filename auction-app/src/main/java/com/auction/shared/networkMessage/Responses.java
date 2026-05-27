@@ -8,8 +8,6 @@ import java.io.Serializable;
 import java.util.List;
 
 public class Responses {
-    public static record LoginResponse(boolean success, String message, User user) implements Serializable {}
-    public static record RegisterResponse(boolean success, String message, User user) implements Serializable {}
     public sealed interface LoginResult extends Serializable
             permits LoginResult.Success, LoginResult.Failure {
 
@@ -23,10 +21,7 @@ public class Responses {
         record Success(User user) implements RegisterResult {}
         record Failure(String reason) implements RegisterResult {}
     }
-    public static record GetSellerItemsResponse(boolean success, String message, List<Item> items) implements Serializable {}
-    public static record DeleteItemResponse(boolean success, String message) implements Serializable {}
-    public static record AddItemResponse(boolean success, String message, Item item) implements Serializable {}
-    public static record UpdateItemResponse(boolean success, String message, Item item) implements Serializable {}
+
     public sealed interface AddItemResult extends Serializable
             permits AddItemResult.Success, AddItemResult.Failure {
 
@@ -54,7 +49,7 @@ public class Responses {
         record Success(List<Item> items) implements GetSellerItemsResult {}
         record Failure(String reason) implements GetSellerItemsResult {}
     }
-    public static record BidResponse(boolean success, String message, Auction updatedAuction) implements Serializable {}
+
     public sealed interface BidResult extends Serializable
             permits BidResult.Success, BidResult.Failure {
 
