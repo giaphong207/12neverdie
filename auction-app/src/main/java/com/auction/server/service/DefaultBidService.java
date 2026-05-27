@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class DefaultBidService implements BidService {
 
     private final Database db;
@@ -25,6 +28,7 @@ public class DefaultBidService implements BidService {
     private final AntiSnipingService antiSnipingService;
     private final AutoBidService autoBidService;
 
+    private static final Logger log = LoggerFactory.getLogger(DefaultBidService.class);
     public DefaultBidService(Database db,
                              AuctionDao auctionDao,
                              BidDao bidDao,
@@ -100,8 +104,8 @@ public class DefaultBidService implements BidService {
             if (antiSnipingService.shouldExtend(auction, manualBid.getCreatedAt())) {
                 long extendedSeconds = antiSnipingService.applyExtension(auction);
                 lifecycleService.rescheduleClose(auction);
-                System.out.println("[BidService] Auction " + auction.getId()
-                        + " gia hạn " + extendedSeconds + "s do anti-sniping");
+                log.info("Auction {} gia hạn {}s do anti-sniping",
+                        auction.getId(), extendedSeconds);
             }
 
             // ⑩ AutoBid cascade — TRONG CÙNG LOCK

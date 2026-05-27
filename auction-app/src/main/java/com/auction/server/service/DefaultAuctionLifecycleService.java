@@ -15,7 +15,10 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
+    private static final Logger log = LoggerFactory.getLogger(DefaultAuctionLifecycleService.class);
 
     /** Cửa sổ thời gian winner phải thanh toán sau khi FINISHED. */
     private static final long PAYMENT_WINDOW_HOURS = 24L;
@@ -285,8 +288,7 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
         try {
             r.run();
         } catch (Throwable t) {
-            System.err.println("[LifecycleService] Scheduled task failed: " + t.getMessage());
-            t.printStackTrace();
+            log.error("Scheduled task failed", t);
         }
     }
 }

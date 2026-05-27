@@ -15,12 +15,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.Duration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ServerApp {
+    private static final Logger log = LoggerFactory.getLogger(ServerApp.class);
 
     public static void main(String[] args) {
         int port = 9999;
 
-        System.out.println("=== HỆ THỐNG ĐẤU GIÁ SERVER ===");
+        log.info("=== HỆ THỐNG ĐẤU GIÁ SERVER ===");
 
         // ① Init Database (HikariCP)
         Database db = Database.getInstance();
@@ -75,19 +79,19 @@ public class ServerApp {
 
         // ⑥ Shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("[Shutdown] Đóng scheduler...");
+            log.info("[Shutdown] Đóng scheduler...");
             lifecycleService.shutdown();
-            System.out.println("[Shutdown] Đóng connection pool...");
+            log.info("[Shutdown] Đóng connection pool...");
             db.shutdown();
         }));
 
         // ⑦ Listen socket
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Server đang lắng nghe tại port: " + port);
+            log.info("Server đang lắng nghe tại port: {}", port);
 
             while (true) {
                 Socket socket = serverSocket.accept();
-                System.out.println("Client mới kết nối: " + socket.getRemoteSocketAddress());
+                log.info("Client mới kết nối: {}", socket.getRemoteSocketAddress());
 
                 ClientHandler handler = new ClientHandler(
                         socket, bidService, authService, auctionDao, auctionService, itemDao,
@@ -95,8 +99,7 @@ public class ServerApp {
                 new Thread(handler).start();
             }
         } catch (IOException e) {
-            System.err.println("Lỗi Server: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi Server", e);
         }
     }
 }

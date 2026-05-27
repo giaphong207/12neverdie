@@ -14,7 +14,11 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class DefaultAutoBidService implements AutoBidService {
+    private static final Logger log = LoggerFactory.getLogger(DefaultAutoBidService.class);
 
     private static final int MAX_CASCADE_ITERATIONS = 1000;
     private static final long LOCK_TIMEOUT_SECONDS = 2L;
@@ -142,8 +146,7 @@ public class DefaultAutoBidService implements AutoBidService {
         }
 
         if (iterations >= MAX_CASCADE_ITERATIONS) {
-            System.err.println("[AutoBidService] WARNING: cascade reached MAX_CASCADE_ITERATIONS for auction "
-                    + auction.getId());
+            log.warn("Cascade reached MAX_CASCADE_ITERATIONS for auction {}", auction.getId());
         }
 
         return anyAutoBidPlaced;

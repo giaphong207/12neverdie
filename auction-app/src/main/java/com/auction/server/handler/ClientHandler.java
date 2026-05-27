@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 public class ClientHandler implements Runnable {
     private final Socket socket;
     private final BidService bidService;
@@ -39,6 +41,7 @@ public class ClientHandler implements Runnable {
     private ObjectOutputStream out;
     private ObjectInputStream in;
 
+    private static final Logger log = LoggerFactory.getLogger(ClientHandler.class);
     public ClientHandler(Socket socket,
                          BidService bidService,
                          AuthService authService,
@@ -88,7 +91,7 @@ public class ClientHandler implements Runnable {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Client ngắt kết nối: " + socket.getRemoteSocketAddress());
+            log.info("Client ngắt kết nối: {}", socket.getRemoteSocketAddress());
         } finally {
             cleanUp();
         }
@@ -124,13 +127,13 @@ public class ClientHandler implements Runnable {
         subscriptionManager.subscribeList(this);
         try {
             List<Auction> activeAuctions = auctionDao.findActiveAuctions();
-            System.out.println("[Server] Gửi " + activeAuctions.size()
-                    + " auction snapshot cho client " + socket.getRemoteSocketAddress());
+            log.debug("Gửi {} auction snapshot cho client {}",
+                    activeAuctions.size(), socket.getRemoteSocketAddress());
             for (Auction a : activeAuctions) {
                 send(new AuctionUpdatedEvent(a));
             }
         } catch (Exception e) {
-            System.err.println("Lỗi gửi snapshot danh sách: " + e.getMessage());
+            log.error("Lỗi gửi snapshot danh sách", e);
         }
     }
 
@@ -142,7 +145,7 @@ public class ClientHandler implements Runnable {
                 send(new AuctionUpdatedEvent(auctionOpt.get()));
             }
         } catch (Exception e) {
-            System.err.println("Lỗi gửi snapshot auction: " + e.getMessage());
+            log.error("Lỗi gửi snapshot auction", e);
         }
     }
 
@@ -162,9 +165,9 @@ public class ClientHandler implements Runnable {
 
         } catch (AppException ex) {
             send(new BidResult.Failure(ex.getMessage()));
-        } catch (Exception ex) {
-            send(new ErrorMessage("Lỗi server khi xử lý bid: " + ex.getMessage()));
-            ex.printStackTrace();
+        }catch (Exception ex) {
+        send(new ErrorMessage("Lỗi server khi xử lý bid: " + ex.getMessage()));
+        log.error("Lỗi server khi xử lý bid", ex);
         }
     }
 
@@ -193,7 +196,7 @@ public class ClientHandler implements Runnable {
                     req.name(), req.description(), req.startPrice());
             itemDao.save(item);
 
-            System.out.println("[Server] Item mới: " + item.getName() + " | seller: " + req.sellerId());
+            log.info("Item mới: {} | seller: {}", item.getName(), req.sellerId());
 
             LocalDateTime now = LocalDateTime.now();
             long minIncrement = Math.max(1000L, req.startPrice() / 100);
@@ -202,12 +205,12 @@ public class ClientHandler implements Runnable {
                     req.startPrice(), minIncrement,
                     now, now.plusHours(24));
 
-            System.out.println("[Server] Auction mới: " + auction.getId() + " (RUNNING 24h)");
+            log.info("Item mới: {} | seller: {}", item.getName(), req.sellerId());
 
             send(new AddItemResult.Success(item));
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Lỗi tạo item/auction", e);
             send(new AddItemResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
@@ -232,7 +235,7 @@ public class ClientHandler implements Runnable {
 
             send(new UpdateItemResult.Success(updated));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Lỗi cập nhật item", e);
             send(new UpdateItemResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
@@ -262,7 +265,7 @@ public class ClientHandler implements Runnable {
             List<Item> items = itemDao.findBySellerId(req.sellerId());
             send(new GetSellerItemsResult.Success(items));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Lỗi cập nhật item", e);
             send(new GetSellerItemsResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
