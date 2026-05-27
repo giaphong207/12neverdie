@@ -68,23 +68,23 @@ public class ClientHandler implements Runnable {
                 Object incoming = in.readObject();
 
                 if (incoming instanceof LoginRequest req) {
-                    handleLogin(req);
+                    handleLoginRequest(req);
                 } else if (incoming instanceof RegisterRequest req) {
-                    handleRegister(req);
+                    handleRegisterRequest(req);
                 } else if (incoming instanceof SubscribeAuctionListRequest) {
-                    handleSubscribeList();
+                    handleSubscribeAuctionListRequest();
                 } else if (incoming instanceof SubscribeAuctionRequest req) {
-                    handleSubscribeAuction(req);
+                    handleSubscribeAuctionRequest(req);
                 } else if (incoming instanceof BidRequest req) {
                     handleBidRequest(req);
                 } else if (incoming instanceof AddItemRequest req) {
-                    handleAddItem(req);
+                    handleAddItemRequest(req);
                 } else if (incoming instanceof UpdateItemRequest req) {
-                    handleUpdateItem(req);
+                    handleUpdateItemRequest(req);
                 } else if (incoming instanceof DeleteItemRequest req) {
-                    handleDeleteItem(req);
+                    handleDeleteItemRequest(req);
                 } else if (incoming instanceof GetSellerItemsRequest req) {
-                    handleGetSellerItems(req);
+                    handleGetSellerItemsRequest(req);
                 }
             }
         } catch (Exception e) {
@@ -94,7 +94,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleLogin(LoginRequest req) {
+    private void handleLoginRequest(LoginRequest req) {
         try {
             User user = authService.login(req.username(), req.password());
             if (user != null) {
@@ -107,7 +107,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleRegister(RegisterRequest req) {
+    private void handleRegisterRequest(RegisterRequest req) {
         try {
             User user = authService.register(req.username(), req.password(), req.role());
             if (user != null) {
@@ -120,7 +120,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleSubscribeList() {
+    private void handleSubscribeAuctionListRequest() {
         subscriptionManager.subscribeList(this);
         try {
             List<Auction> activeAuctions = auctionDao.findActiveAuctions();
@@ -134,7 +134,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleSubscribeAuction(SubscribeAuctionRequest req) {
+    private void handleSubscribeAuctionRequest(SubscribeAuctionRequest req) {
         subscriptionManager.subscribeAuction(req.auctionId(), this);
         try {
             Optional<Auction> auctionOpt = auctionDao.findById(req.auctionId());
@@ -154,14 +154,14 @@ public class ClientHandler implements Runnable {
                     request.amount());
 
             // Trả response cho người vừa bid: chỉ cần Auction state mới
-            send(new BidResponse(true, "Đặt giá thành công!", result.auction()));
+            send(new BidResult.Success(result.auction()));
 
             // Broadcast cho mọi subscriber: kèm thông tin Bid để client biết
             // ai vừa bid bao nhiêu (không chỉ thấy giá đổi)
             broadcaster.broadcast(new BidPlacedEvent(result.auction(), result.bid()));
 
         } catch (AppException ex) {
-            send(new BidResponse(false, ex.getMessage(), null));
+            send(new BidResult.Failure(ex.getMessage()));
         } catch (Exception ex) {
             send(new ErrorMessage("Lỗi server khi xử lý bid: " + ex.getMessage()));
             ex.printStackTrace();
@@ -170,7 +170,7 @@ public class ClientHandler implements Runnable {
 
     // ===== ITEM MANAGEMENT (MỚI) =====
 
-    private void handleAddItem(AddItemRequest req) {
+    private void handleAddItemRequest(AddItemRequest req) {
         try {
             // Validate
             if (req.name() == null || req.name().isBlank()) {
@@ -214,7 +214,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleUpdateItem(UpdateItemRequest req) {
+    private void handleUpdateItemRequest(UpdateItemRequest req) {
         try {
             if (req.name() == null || req.name().isBlank()) {
                 send(new UpdateItemResponse(false, "Tên sản phẩm không được rỗng", null));
@@ -240,7 +240,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleDeleteItem(DeleteItemRequest req) {
+    private void handleDeleteItemRequest(DeleteItemRequest req) {
         try {
             Optional<Item> existing = itemDao.findById(req.itemId());
             if (existing.isEmpty()) {
@@ -261,7 +261,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleGetSellerItems(GetSellerItemsRequest req) {
+    private void handleGetSellerItemsRequest(GetSellerItemsRequest req) {
         try {
             List<Item> items = itemDao.findBySellerId(req.sellerId());
             send(new GetSellerItemsResponse(true, "OK", items));

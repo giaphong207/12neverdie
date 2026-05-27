@@ -19,6 +19,8 @@ import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Responses.*;
+import com.auction.client.main.ClientApp;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -42,7 +44,7 @@ import com.auction.client.util.MoneyFormatter;
 import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import javafx.scene.layout.StackPane;
-
+import javafx.application.Platform;
 public class AuctionDetailController implements AuctionEventObserver {
 
     @FXML private Label itemNameLabel;
@@ -278,11 +280,14 @@ public class AuctionDetailController implements AuctionEventObserver {
             return;
         }
 
+        // === Phần 1: Validate đồng bộ (chạy trên FX thread) ===
+        final long amount;
+        final User currentUser;
         try {
             String rawAmount = bidAmountField.getText();
-            long amount = MoneyParser.parseBidAmount(rawAmount);
+            amount = MoneyParser.parseBidAmount(rawAmount);
 
-            User currentUser = ClientSession.getCurrentUser();
+            currentUser = ClientSession.getCurrentUser();
             if (currentUser == null) {
                 AlertUtils.showWarning("Chưa đăng nhập", "Vui lòng đăng nhập để tham gia đấu giá.");
                 return;
@@ -291,18 +296,62 @@ public class AuctionDetailController implements AuctionEventObserver {
                 AlertUtils.showError("Lỗi Quyền", "Chỉ tài khoản BIDDER mới được đặt giá!");
                 return;
             }
-
-            ServerConnection.getInstance().send(new BidRequest(currentAuction.getId(),currentUser.getId(),amount));
-            if (bidAmountField != null) { bidAmountField.clear(); }
-
-            messageLabel.setText("Đã gửi yêu cầu đặt giá. Đang chờ server xử lý...");
         } catch (AppException ex) {
             AlertUtils.showError("Lỗi đặt giá", ex.getMessage());
-        } catch (IOException ex) {
-            AlertUtils.showError("Lỗi kết nối", "Không gửi được yêu cầu đặt giá: " + ex.getMessage());
-        } catch (Exception ex) {
-            AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
-            ex.printStackTrace();
+            return;
+        }
+
+        // === Phần 2: Update UI báo "đang chờ" ===
+        bidAmountField.clear();
+        messageLabel.setText("Đã gửi yêu cầu đặt giá. Đang chờ server xử lý...");
+
+        // === Phần 3: Gửi request + đợi response trên thread riêng ===
+        final String auctionId = currentAuction.getId();
+        final String bidderId = currentUser.getId();
+
+        new Thread(() -> {
+            try {
+                ServerConnection.getInstance().send(new BidRequest(auctionId, bidderId, amount));
+                Object response = ClientApp.getListener().waitForResponse();
+
+                Platform.runLater(() -> handleBidResult(response));
+
+            } catch (IOException ex) {
+                Platform.runLater(() -> {
+                    AlertUtils.showError("Lỗi kết nối", "Không gửi được yêu cầu: " + ex.getMessage());
+                    messageLabel.setText("");
+                });
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                Platform.runLater(() -> {
+                    AlertUtils.showError("Bị gián đoạn", "Yêu cầu bị huỷ.");
+                    messageLabel.setText("");
+                });
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                Platform.runLater(() -> {
+                    AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
+                    messageLabel.setText("");
+                });
+            }
+        }).start();
+    }
+
+    private void handleBidResult(Object response) {
+        if (response instanceof BidResult result) {
+            switch (result) {
+                case BidResult.Success s -> {
+                    messageLabel.setText("Đặt giá thành công!");
+                    // UI sẽ tự update qua AuctionUpdatedEvent (broadcast)
+                }
+                case BidResult.Failure f -> {
+                    AlertUtils.showError("Đặt giá thất bại", f.reason());
+                    messageLabel.setText("");
+                }
+            }
+        } else {
+            AlertUtils.showError("Lỗi", "Phản hồi không hợp lệ từ server: " + response.getClass().getSimpleName());
+            messageLabel.setText("");
         }
     }
 

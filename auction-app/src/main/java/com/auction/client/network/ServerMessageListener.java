@@ -15,7 +15,7 @@ import javafx.application.Platform;
  * Background thread lắng nghe event từ server.
  * Đọc object từ stream → phân phối theo loại:
  *  - AuctionUpdateEvent: publish lên EventBus (broadcast cho UI)
- *  - LoginResponse / RegisterResponse / BidResponse: đẩy vào response queue
+ *  - LoginResponse / RegisterResponse / BidResult: đẩy vào response queue
  *    (LoginController/RegisterController sẽ poll queue này để lấy)
  *  - AddItemResponse / UpdateItemResponse / DeleteItemResponse / GetSellerItemsResponse:
  *    đẩy vào queue cho ProductManagementController
@@ -60,8 +60,8 @@ public class ServerMessageListener implements Runnable {
                     System.out.println("Nhan RegisterResponse -> day vao queue");
                     responseQueue.offer(incoming);
 
-                } else if (incoming instanceof BidResponse) {
-                    System.out.println("Nhan BidResponse -> day vao queue");
+                } else if (incoming instanceof BidResult) {
+                    System.out.println("Nhan BidResult -> day vao queue");
                     responseQueue.offer(incoming);
 
                 } else if (incoming instanceof AddItemResponse) {
