@@ -32,7 +32,7 @@ public class JdbcUserDao implements UserDao {
 
     @Override
     public List<User> findAll() {
-        String sql = "SELECT id, username, password, role FROM users";
+        String sql = "SELECT id, username, password, role, balance FROM users";
 
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -55,7 +55,7 @@ public class JdbcUserDao implements UserDao {
             return Optional.empty();
         }
 
-        String sql = "SELECT id, username, password, role FROM users WHERE id = ?";
+        String sql = "SELECT id, username, password, role, balance FROM users WHERE id = ?";
 
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -80,7 +80,7 @@ public class JdbcUserDao implements UserDao {
             return Optional.empty();
         }
 
-        String sql = "SELECT id, username, password, role FROM users WHERE username = ?";
+        String sql = "SELECT id, username, password, role, balance FROM users WHERE username = ?";
 
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -103,12 +103,13 @@ public class JdbcUserDao implements UserDao {
     public void save(User user) {
         // Dùng MySQL UPSERT: nếu id đã tồn tại → UPDATE, chưa có → INSERT
         String sql = """
-                INSERT INTO users (id, username, password, role)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO users (id, username, password, role, balance)
+                VALUES (?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                   username = VALUES(username),
                   password = VALUES(password),
-                  role     = VALUES(role)
+                  role     = VALUES(role),
+                  balance  = VALUES(balance)
                 """;
 
         try (Connection conn = db.getConnection();
@@ -118,12 +119,37 @@ public class JdbcUserDao implements UserDao {
             ps.setString(2, user.getUsername());
             ps.setString(3, user.getPassword());
             ps.setString(4, UserFactory.toRole(user).name());
+            ps.setLong(5, user.getBalance());
 
             int affected = ps.executeUpdate();
             log.debug("save() affected {} row(s)", affected);
 
         } catch (SQLException e) {
             throw new DataAccessException("save(" + user.getUsername() + ") failed", e);
+        }
+    }
+
+    @Override
+    public long updateBalance(String userId, long newBalance) {
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("userId rỗng");
+        }
+        if (newBalance < 0) {
+            throw new IllegalArgumentException("balance không được âm");
+        }
+        String sql = "UPDATE users SET balance = ? WHERE id = ?";
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setLong(1, newBalance);
+            ps.setString(2, userId);
+            int affected = ps.executeUpdate();
+            if (affected == 0) {
+                throw new DataAccessException("Không tìm thấy user id=" + userId);
+            }
+            return newBalance;
+        } catch (SQLException e) {
+            throw new DataAccessException("updateBalance(" + userId + ") failed", e);
         }
     }
 
@@ -141,7 +167,8 @@ public class JdbcUserDao implements UserDao {
                 Role.valueOf(rs.getString("role")),
                 rs.getString("id"),
                 rs.getString("username"),
-                rs.getString("password")
+                rs.getString("password"),
+                rs.getLong("balance")
         );
     }
 }

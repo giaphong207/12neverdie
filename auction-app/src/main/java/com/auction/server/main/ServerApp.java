@@ -51,7 +51,7 @@ public class ServerApp {
         AuctionService auctionService =
                 new DefaultAuctionService(auctionDao, lifecycleService, broadcaster);
         ItemService itemService = new DefaultItemService(itemDao);
-
+        WalletService walletService = new DefaultWalletService(userDao);
         // AntiSniping cần Duration
         AntiSnipingService antiSniping = new DefaultAntiSnipingService(
                 Duration.ofSeconds(60),   // trigger window
@@ -61,7 +61,7 @@ public class ServerApp {
         AuthService authService = new DefaultAuthService(userDao);
 
         BidService bidService = new DefaultBidService(
-                db, auctionDao, bidDao, lifecycleService,
+                db, auctionDao, bidDao, userDao, lifecycleService,
                 lockManager, antiSniping, autoBidService);
 
         // ⑥ Re-schedule tasks sau restart cho các auction chưa terminal
@@ -95,7 +95,8 @@ public class ServerApp {
                 log.info("Client mới kết nối: {}", socket.getRemoteSocketAddress());
 
                 ClientHandler handler = new ClientHandler(
-                        socket, bidService, authService, auctionService, itemService,
+                        socket, bidService, authService, walletService,
+                        auctionService, itemService,
                         subscriptionManager, broadcaster);
                 new Thread(handler).start();
             }

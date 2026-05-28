@@ -115,5 +115,13 @@ class AuthServiceTest {
         public List<User> findAll() {
             return new ArrayList<>(usersById.values());
         }
+
+        @Override
+        public long updateBalance(String userId, long newBalance) {
+            User u = usersById.get(userId);
+            if (u == null) throw new IllegalStateException("user not found: " + userId);
+            u.setBalance(newBalance);
+            return newBalance;
+        }
     }
 }

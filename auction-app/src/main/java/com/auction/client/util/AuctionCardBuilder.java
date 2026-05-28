@@ -76,11 +76,21 @@ public final class AuctionCardBuilder {
         Label priceValue = new Label(MoneyFormatter.formatVnd(auction.getCurrentPrice()));
         priceValue.getStyleClass().add("price-medium");
 
-        // 6. Countdown
+        // 6. Countdown — OPEN: đếm tới start, RUNNING: đếm tới end
         Label countdown = new Label();
-        if (!auction.isFinished() && auction.getStatus() != AuctionStatus.CANCELED) {
+        AuctionStatus status = auction.getStatus();
+        if (status == AuctionStatus.OPEN) {
+            Duration toStart = Duration.between(LocalDateTime.now(), auction.getStartTime());
+            if (toStart.isNegative() || toStart.isZero()) {
+                countdown.setText("⏱  Đang bắt đầu...");
+                countdown.getStyleClass().add("countdown-warning");
+            } else {
+                countdown.setText("⏱  Bắt đầu sau " + CountdownUtil.formatRemaining(toStart));
+                countdown.getStyleClass().add("countdown-normal-text");
+            }
+        } else if (status == AuctionStatus.RUNNING) {
             Duration remaining = Duration.between(LocalDateTime.now(), auction.getEndTime());
-            countdown.setText("⏱  " + CountdownUtil.formatRemaining(remaining));
+            countdown.setText("⏱  Còn " + CountdownUtil.formatRemaining(remaining));
 
             long totalSec = remaining.getSeconds();
             if (totalSec < 60) {

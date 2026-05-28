@@ -21,8 +21,8 @@ import javafx.scene.control.*;
 
 import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.MoneyFormatter;
-import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
+import com.auction.client.util.TopbarBuilder;
 import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 
@@ -38,22 +38,28 @@ public class ProductManagementController {
     @FXML private TextArea txtDescription;
     @FXML private TextField txtStartingPrice;
     @FXML private ComboBox<ItemType> cbItemType;
-    @FXML private StackPane sidebarContainer;
+    @FXML private DatePicker dpStartDate;
+    @FXML private TextField txtStartTime;
+    @FXML private DatePicker dpEndDate;
+    @FXML private TextField txtEndTime;
+    @FXML private StackPane topbarContainer;
 
     private Item selectedItem;
+    private java.time.LocalDateTime lastSentStart;
+    private java.time.LocalDateTime lastSentEnd;
 
     @FXML
     public void initialize() {
         // Build sidebar Seller
-        if (sidebarContainer != null && ClientSession.getCurrentUser() != null) {
+        if (topbarContainer != null && ClientSession.getCurrentUser() != null) {
             var user = ClientSession.getCurrentUser();
-            var sidebar = SidebarBuilder.build(
+            var topbar = TopbarBuilder.build(
                     user,
                     NavKey.SELLER_PRODUCTS,
                     this::handleNavClick,
                     this::handleLogout
             );
-            sidebarContainer.getChildren().add(sidebar);
+            topbarContainer.getChildren().add(topbar);
         }
 
         // ComboBox ItemType hiển thị tiếng Việt
@@ -97,7 +103,22 @@ public class ProductManagementController {
                     }
                 });
 
+        applyDefaultSchedule();
+
         loadSellerProducts();
+    }
+
+    /** Gợi ý giá trị mặc định cho 4 control (user có thể sửa tùy ý trước khi bấm Thêm). */
+    private void applyDefaultSchedule() {
+        java.time.LocalDateTime start = java.time.LocalDateTime.now().plusMinutes(5)
+                .withSecond(0).withNano(0);
+        java.time.LocalDateTime end = start.plusHours(24);
+
+        var hhmm = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+        if (dpStartDate != null) dpStartDate.setValue(start.toLocalDate());
+        if (txtStartTime != null) txtStartTime.setText(start.toLocalTime().format(hhmm));
+        if (dpEndDate != null) dpEndDate.setValue(end.toLocalDate());
+        if (txtEndTime != null) txtEndTime.setText(end.toLocalTime().format(hhmm));
     }
 
     private void handleNavClick(NavKey key) {
@@ -186,11 +207,36 @@ public class ProductManagementController {
             return;
         }
 
+        java.time.LocalDateTime startTime = combineDateTime(dpStartDate, txtStartTime);
+        if (startTime == null) {
+            AlertUtils.showWarning("Lỗi", "Thời gian bắt đầu không hợp lệ (định dạng HH:mm)");
+            return;
+        }
+        java.time.LocalDateTime endTime = combineDateTime(dpEndDate, txtEndTime);
+        if (endTime == null) {
+            AlertUtils.showWarning("Lỗi", "Thời gian kết thúc không hợp lệ (định dạng HH:mm)");
+            return;
+        }
+        if (!endTime.isAfter(startTime)) {
+            AlertUtils.showWarning("Lỗi", "Thời gian kết thúc phải sau thời gian bắt đầu");
+            return;
+        }
+        if (startTime.isBefore(java.time.LocalDateTime.now().minusMinutes(1))) {
+            AlertUtils.showWarning("Lỗi", "Thời gian bắt đầu không được trong quá khứ");
+            return;
+        }
+
+        final java.time.LocalDateTime startTimeFinal = startTime;
+        final java.time.LocalDateTime endTimeFinal = endTime;
+        lastSentStart = startTime;
+        lastSentEnd = endTime;
+
         // Gửi request qua server
         new Thread(() -> {
             try {
                 ServerConnection conn = ServerConnection.getInstance();
-                conn.send(new AddItemRequest(name, description, startPrice, type, currentUser.getId()));
+                conn.send(new AddItemRequest(name, description, startPrice, type, currentUser.getId(),
+                        startTimeFinal, endTimeFinal));
 
                 ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();
@@ -208,7 +254,9 @@ public class ProductManagementController {
         if (response instanceof AddItemResult result) {
             switch (result) {
                 case AddItemResult.Success s -> {
-                    AlertUtils.showInfo("Thành công", "Đã thêm sản phẩm và tạo phiên đấu giá 24h");
+                    AlertUtils.showInfo("Thành công",
+                            "Đã thêm sản phẩm. Phiên đấu giá: "
+                                    + formatRange(lastSentStart, lastSentEnd));
                     clearForm();
                     loadSellerProducts();
                 }
@@ -338,5 +386,27 @@ public class ProductManagementController {
         txtDescription.clear();
         txtStartingPrice.clear();
         cbItemType.setValue(null);
+        applyDefaultSchedule();
+    }
+
+    /** Format khoảng thời gian "dd/MM HH:mm → dd/MM HH:mm". */
+    private static String formatRange(java.time.LocalDateTime start, java.time.LocalDateTime end) {
+        if (start == null || end == null) return "—";
+        var fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm");
+        return start.format(fmt) + " → " + end.format(fmt);
+    }
+
+    /** Gộp DatePicker + TextField "HH:mm" thành LocalDateTime. null nếu invalid. */
+    private static java.time.LocalDateTime combineDateTime(DatePicker dp, TextField tf) {
+        if (dp == null || dp.getValue() == null) return null;
+        String hhmm = tf == null ? null : tf.getText();
+        if (hhmm == null || hhmm.isBlank()) return null;
+        try {
+            java.time.LocalTime t = java.time.LocalTime.parse(
+                    hhmm.trim(), java.time.format.DateTimeFormatter.ofPattern("H:mm"));
+            return java.time.LocalDateTime.of(dp.getValue(), t);
+        } catch (java.time.format.DateTimeParseException ex) {
+            return null;
+        }
     }
 }

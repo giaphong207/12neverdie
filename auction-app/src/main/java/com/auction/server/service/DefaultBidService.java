@@ -4,10 +4,12 @@ import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.BidDao;
 import com.auction.server.dao.Database;
+import com.auction.server.dao.UserDao;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.Bid;
 import com.auction.shared.model.bid.BidSource;
+import com.auction.shared.model.user.User;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -23,6 +25,7 @@ public class DefaultBidService implements BidService {
     private final Database db;
     private final AuctionDao auctionDao;
     private final BidDao bidDao;
+    private final UserDao userDao;
     private final AuctionLifecycleService lifecycleService;
     private final AuctionLockManager lockManager;
     private final AntiSnipingService antiSnipingService;
@@ -32,6 +35,7 @@ public class DefaultBidService implements BidService {
     public DefaultBidService(Database db,
                              AuctionDao auctionDao,
                              BidDao bidDao,
+                             UserDao userDao,
                              AuctionLifecycleService lifecycleService,
                              AuctionLockManager lockManager,
                              AntiSnipingService antiSnipingService,
@@ -39,6 +43,7 @@ public class DefaultBidService implements BidService {
         this.db = db;
         this.auctionDao = auctionDao;
         this.bidDao = bidDao;
+        this.userDao = userDao;
         this.lifecycleService = lifecycleService;
         this.lockManager = lockManager;
         this.antiSnipingService = antiSnipingService;
@@ -93,6 +98,14 @@ public class DefaultBidService implements BidService {
             }
             if (bidderId.equals(auction.getHighestBidderId())) {
                 throw new InvalidBidException("Bạn đang là người giữ giá cao nhất");
+            }
+
+            // ⑦.5 Check ví đủ tiền
+            User bidder = userDao.findById(bidderId).orElseThrow(() ->
+                    new InvalidBidException("Không tìm thấy người dùng"));
+            if (amount > bidder.getBalance()) {
+                throw new InvalidBidException(
+                        "Số dư ví không đủ. Ví hiện có " + bidder.getBalance() + " VNĐ");
             }
 
             // ⑧ Tạo manual bid

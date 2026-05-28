@@ -4,6 +4,7 @@ import com.auction.shared.model.item.ItemType;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.exception.AppExceptions.*;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 public class Requests {
     public static record LoginRequest(String username, String password) implements Serializable {
@@ -47,7 +48,8 @@ public class Requests {
         }
     }
     public static record AddItemRequest(String name, String description, long startPrice,
-                                        ItemType type, String sellerId) implements Serializable {
+                                        ItemType type, String sellerId,
+                                        LocalDateTime startTime, LocalDateTime endTime) implements Serializable {
         public AddItemRequest {
             if (name == null || name.isBlank()) {
                 throw new InvalidItemException("Tên sản phẩm không được rỗng");
@@ -63,6 +65,15 @@ public class Requests {
             }
             if (sellerId == null || sellerId.isBlank()) {
                 throw new InvalidItemException("sellerId không được rỗng");
+            }
+            if (startTime == null) {
+                throw new InvalidItemException("Thời gian bắt đầu không được rỗng");
+            }
+            if (endTime == null) {
+                throw new InvalidItemException("Thời gian kết thúc không được rỗng");
+            }
+            if (!endTime.isAfter(startTime)) {
+                throw new InvalidItemException("Thời gian kết thúc phải sau thời gian bắt đầu");
             }
         }
     }
@@ -121,4 +132,15 @@ public class Requests {
     public static record SubscribeAuctionListRequest() implements Serializable {}
     public static record SubscribeAuctionRequest(String auctionId) implements Serializable{}
 
+    public static record GetBalanceRequest(String userId) implements Serializable {}
+    public static record DepositRequest(String userId, long amount) implements Serializable {
+        public DepositRequest {
+            if (userId == null || userId.isBlank()) {
+                throw new IllegalArgumentException("userId rỗng");
+            }
+            if (amount <= 0) {
+                throw new IllegalArgumentException("amount phải dương");
+            }
+        }
+    }
 }

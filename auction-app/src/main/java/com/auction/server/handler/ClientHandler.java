@@ -25,6 +25,7 @@ public class ClientHandler implements Runnable {
     private final Socket socket;
     private final BidService bidService;
     private final AuthService authService;
+    private final WalletService walletService;
     private final AuctionService auctionService;
     private final ItemService itemService;
     private final AuctionSubscriptionManager subscriptionManager;
@@ -37,6 +38,7 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket,
                          BidService bidService,
                          AuthService authService,
+                         WalletService walletService,
                          AuctionService auctionService,
                          ItemService itemService,
                          AuctionSubscriptionManager subscriptionManager,
@@ -44,6 +46,7 @@ public class ClientHandler implements Runnable {
         this.socket = socket;
         this.bidService = bidService;
         this.authService = authService;
+        this.walletService = walletService;
         this.auctionService = auctionService;
         this.itemService = itemService;
         this.subscriptionManager = subscriptionManager;
@@ -78,6 +81,10 @@ public class ClientHandler implements Runnable {
                     handleDeleteItemRequest(req);
                 } else if (incoming instanceof GetSellerItemsRequest req) {
                     handleGetSellerItemsRequest(req);
+                } else if (incoming instanceof GetBalanceRequest req) {
+                    handleGetBalanceRequest(req);
+                } else if (incoming instanceof DepositRequest req) {
+                    handleDepositRequest(req);
                 }
             }
         } catch (Exception e) {
@@ -163,24 +170,30 @@ public class ClientHandler implements Runnable {
 
     private void handleAddItemRequest(AddItemRequest req) {
         try {
+            // Check quá khứ — record không lo, vì phụ thuộc "now" của server
+            if (req.startTime().isBefore(LocalDateTime.now().minusMinutes(1))) {
+                send(new AddItemResult.Failure("Thời gian bắt đầu không được trong quá khứ"));
+                return;
+            }
+
+            // Service tạo item (tự validate name/price/type + tạo + save)
             Item item = itemService.addItem(
                     req.sellerId(), req.name(), req.description(),
                     req.startPrice(), req.type());
 
-            log.info("Item mới: {} | seller: {}", item.getName(), req.sellerId());
-
-            // Auto-tạo auction 24h cho item vừa thêm
-            LocalDateTime now = LocalDateTime.now();
+            // Auction theo giờ seller chọn (null + endTime>startTime đã được record check)
             long minIncrement = Math.max(1000L, req.startPrice() / 100);
-            auctionService.createAuction(
+            Auction auction = auctionService.createAuction(
                     req.sellerId(), item.getId(),
                     req.startPrice(), minIncrement,
-                    now, now.plusHours(24));
+                    req.startTime(), req.endTime());
+
+            log.info("Item mới: {} | seller: {} | start: {} | end: {}",
+                    item.getName(), req.sellerId(), auction.getStartTime(), auction.getEndTime());
 
             send(new AddItemResult.Success(item));
 
         } catch (AppException e) {
-            // Validation/business errors từ service
             send(new AddItemResult.Failure(e.getMessage()));
         } catch (Exception e) {
             log.error("Lỗi tạo item/auction", e);
@@ -230,6 +243,28 @@ public class ClientHandler implements Runnable {
         } catch (Exception e) {
             log.error("Lỗi cập nhật item", e);
             send(new GetSellerItemsResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
+
+    // ===== WALLET =====
+
+    private void handleGetBalanceRequest(GetBalanceRequest req) {
+        try {
+            long balance = walletService.getBalance(req.userId());
+            send(new GetBalanceResult.Success(balance));
+        } catch (Exception e) {
+            log.error("Lỗi getBalance", e);
+            send(new GetBalanceResult.Failure(e.getMessage()));
+        }
+    }
+
+    private void handleDepositRequest(DepositRequest req) {
+        try {
+            long newBalance = walletService.deposit(req.userId(), req.amount());
+            send(new DepositResult.Success(newBalance));
+        } catch (Exception e) {
+            log.error("Lỗi deposit", e);
+            send(new DepositResult.Failure(e.getMessage()));
         }
     }
 

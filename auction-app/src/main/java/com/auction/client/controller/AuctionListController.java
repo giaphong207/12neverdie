@@ -8,8 +8,8 @@ import com.auction.client.util.AlertUtils;
 import com.auction.client.util.AuctionCardBuilder;
 import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.SceneNavigator;
-import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
+import com.auction.client.util.TopbarBuilder;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.networkMessage.AuctionEvents.*;
@@ -33,7 +33,7 @@ import java.util.List;
 
 public class AuctionListController implements AuctionEventObserver {
 
-    @FXML private StackPane sidebarContainer;
+    @FXML private StackPane topbarContainer;
     @FXML private Label resultCountLabel;
     @FXML private TextField searchField;
     @FXML private ChoiceBox<AuctionStatus> statusFilter;
@@ -49,15 +49,15 @@ public class AuctionListController implements AuctionEventObserver {
     @FXML
     public void initialize() {
         // Sidebar tuỳ theo role
-        if (sidebarContainer != null && ClientSession.getCurrentUser() != null) {
+        if (topbarContainer != null && ClientSession.getCurrentUser() != null) {
             var user = ClientSession.getCurrentUser();
             NavKey activeKey = switch (UserFactory.toRole(user)) {
                 case BIDDER -> NavKey.BIDDER_LIVE;
                 case ADMIN -> NavKey.ADMIN_AUCTIONS;
                 default -> NavKey.BIDDER_LIVE;
             };
-            var sidebar = SidebarBuilder.build(user, activeKey, this::handleNavClick, this::handleLogout);
-            sidebarContainer.getChildren().add(sidebar);
+            var topbar = TopbarBuilder.build(user, activeKey, this::handleNavClick, this::handleLogout);
+            topbarContainer.getChildren().add(topbar);
         }
 
         // Setup filter status

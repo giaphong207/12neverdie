@@ -41,8 +41,8 @@ import java.util.List;
 
 import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.MoneyFormatter;
-import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
+import com.auction.client.util.TopbarBuilder;
 import javafx.scene.layout.StackPane;
 import javafx.application.Platform;
 public class AuctionDetailController implements AuctionEventObserver {
@@ -53,13 +53,14 @@ public class AuctionDetailController implements AuctionEventObserver {
     @FXML private Label currentPriceLabel;
     @FXML private Label statusLabel;
     @FXML private Label remainingTimeLabel;
+    @FXML private Label countdownCaptionLabel;
     @FXML private Label messageLabel;
     @FXML private Button placeBidButton;
 
     @FXML private TextField bidAmountField;
     @FXML private Label highestBidderLabel;
     @FXML private ListView<String> bidHistoryListView;
-    @FXML private StackPane sidebarContainer;
+    @FXML private StackPane topbarContainer;
 
     private Auction currentAuction;
     private Timeline countdownTimeline;
@@ -72,18 +73,18 @@ public class AuctionDetailController implements AuctionEventObserver {
 
     public void initialize() {
         // Build sidebar theo role
-        if (sidebarContainer != null && ClientSession.getCurrentUser() != null) {
+        if (topbarContainer != null && ClientSession.getCurrentUser() != null) {
             var user = ClientSession.getCurrentUser();
             NavKey activeKey = UserFactory.toRole(user) == Role.BIDDER
                     ? NavKey.BIDDER_LIVE
                     : NavKey.SELLER_AUCTIONS;
-            var sidebar = SidebarBuilder.build(
+            var topbar = TopbarBuilder.build(
                     user,
                     activeKey,
                     this::handleNavClick,
                     this::handleLogout
             );
-            sidebarContainer.getChildren().add(sidebar);
+            topbarContainer.getChildren().add(topbar);
         }
 
         AuctionEventBus.getInstance().addObserver(this);
@@ -200,7 +201,7 @@ public class AuctionDetailController implements AuctionEventObserver {
         return id.length() > 8 ? id.substring(0, 8) : id;
     }
 
-    private void startCountdown(LocalDateTime endTime) {
+    private void startCountdown() {
         stopCountdown();
 
         if (currentAuction == null || currentAuction.isFinished()) {
@@ -225,10 +226,25 @@ public class AuctionDetailController implements AuctionEventObserver {
             return;
         }
 
-        java.time.Duration remaining =
-                java.time.Duration.between(LocalDateTime.now(), currentAuction.getEndTime());
+        // Phiên OPEN (chưa bắt đầu): đếm tới startTime, label "BẮT ĐẦU SAU"
+        // Phiên RUNNING: đếm tới endTime, label "KẾT THÚC SAU"
+        boolean notStartedYet = currentAuction.getStatus() == AuctionStatus.OPEN;
+        LocalDateTime target = notStartedYet
+                ? currentAuction.getStartTime()
+                : currentAuction.getEndTime();
+
+        if (countdownCaptionLabel != null) {
+            countdownCaptionLabel.setText(notStartedYet ? "BẮT ĐẦU SAU" : "KẾT THÚC SAU");
+        }
+
+        java.time.Duration remaining = java.time.Duration.between(LocalDateTime.now(), target);
 
         if (remaining.isZero() || remaining.isNegative()) {
+            if (notStartedYet) {
+                // Tới giờ start nhưng server chưa kịp gửi event chuyển RUNNING
+                remainingTimeLabel.setText("Đang bắt đầu...");
+                return;
+            }
             handleAuctionExpired();
             return;
         }
@@ -386,8 +402,8 @@ public class AuctionDetailController implements AuctionEventObserver {
             // Render biểu đồ bid history
             renderBidHistoryChart(updated);
 
-            // Khởi động countdown
-            startCountdown(updated.getEndTime());
+            // Khởi động countdown (tự pick startTime hoặc endTime tùy status)
+            startCountdown();
         });
     }
 

@@ -7,8 +7,8 @@ import com.auction.client.realtime.AuctionEventObserver;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.MoneyFormatter;
 import com.auction.client.util.SceneNavigator;
-import com.auction.client.util.SidebarBuilder;
 import com.auction.client.util.SidebarBuilder.NavKey;
+import com.auction.client.util.TopbarBuilder;
 import com.auction.client.util.StatCardBuilder;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.networkMessage.AuctionEvents.*;
@@ -27,7 +27,7 @@ import java.util.List;
 
 public class AdminDashboardController implements AuctionEventObserver {
 
-    @FXML private StackPane sidebarContainer;
+    @FXML private StackPane topbarContainer;
     @FXML private HBox statCardsContainer;
     @FXML private TableView<MockUser> usersTable;
     @FXML private TableColumn<MockUser, String> colUserName;
@@ -39,14 +39,14 @@ public class AdminDashboardController implements AuctionEventObserver {
 
     @FXML
     public void initialize() {
-        if (sidebarContainer != null && ClientSession.getCurrentUser() != null) {
-            var sidebar = SidebarBuilder.build(
+        if (topbarContainer != null && ClientSession.getCurrentUser() != null) {
+            var topbar = TopbarBuilder.build(
                     ClientSession.getCurrentUser(),
                     NavKey.ADMIN_OVERVIEW,
                     this::handleNavClick,
                     this::handleLogout
             );
-            sidebarContainer.getChildren().add(sidebar);
+            topbarContainer.getChildren().add(topbar);
         }
 
         // Setup user table columns

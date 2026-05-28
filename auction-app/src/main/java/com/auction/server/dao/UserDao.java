@@ -10,4 +10,7 @@ public interface UserDao {
     Optional<User> findByUsername(String username);
     Optional<User> findById(String id);
     void save(User user);
+
+    /** Cập nhật chỉ cột balance — trả về balance mới đã ghi. */
+    long updateBalance(String userId, long newBalance);
 }
