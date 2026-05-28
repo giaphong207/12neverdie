@@ -135,9 +135,21 @@ public final class TopbarBuilder {
 
         new Thread(() -> {
             try {
-                ServerConnection.getInstance().send(new DepositRequest(user.getId(), amount));
                 ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.waitForResponse();
+                if (listener == null) {
+                    Platform.runLater(() ->
+                            AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo"));
+                    return;
+                }
+
+                Object response = listener.sendAndWait(
+                        new DepositRequest(user.getId(), amount), 10_000);
+
+                if (response == null) {
+                    Platform.runLater(() ->
+                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
+                    return;
+                }
                 Platform.runLater(() -> {
                     if (response instanceof DepositResult.Success ok) {
                         ClientSession.setBalance(ok.newBalance());

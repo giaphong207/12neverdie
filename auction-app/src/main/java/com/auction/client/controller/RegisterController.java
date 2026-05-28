@@ -60,9 +60,6 @@ public class RegisterController {
 
         new Thread(() -> {
             try {
-                ServerConnection conn = ServerConnection.getInstance();
-                conn.send(new RegisterRequest(username, password, role));
-
                 ServerMessageListener listener = ClientApp.getListener();
                 if (listener == null) {
                     Platform.runLater(() ->
@@ -70,7 +67,14 @@ public class RegisterController {
                     return;
                 }
 
-                Object response = listener.waitForResponse();
+                Object response = listener.sendAndWait(
+                        new RegisterRequest(username, password, role), 10_000);
+
+                if (response == null) {
+                    Platform.runLater(() ->
+                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
+                    return;
+                }
                 Platform.runLater(() -> handleRegisterResult(response, event));
 
             } catch (Exception e) {
