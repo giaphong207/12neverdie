@@ -50,6 +50,7 @@ public class ServerApp {
                 new DefaultAuctionLifecycleService(auctionDao, broadcaster, lockManager);
         AuctionService auctionService =
                 new DefaultAuctionService(auctionDao, lifecycleService, broadcaster);
+        ItemService itemService = new DefaultItemService(itemDao);
 
         // AntiSniping cần Duration
         AntiSnipingService antiSniping = new DefaultAntiSnipingService(
@@ -94,7 +95,7 @@ public class ServerApp {
                 log.info("Client mới kết nối: {}", socket.getRemoteSocketAddress());
 
                 ClientHandler handler = new ClientHandler(
-                        socket, bidService, authService, auctionDao, auctionService, itemDao,
+                        socket, bidService, authService, auctionDao, auctionService, itemService,
                         subscriptionManager, broadcaster);
                 new Thread(handler).start();
             }

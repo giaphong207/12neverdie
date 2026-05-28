@@ -285,7 +285,7 @@ public class ProductManagementController {
         new Thread(() -> {
             try {
                 ServerConnection conn = ServerConnection.getInstance();
-                conn.send(new DeleteItemRequest(itemId));
+                conn.send(new DeleteItemRequest(itemId, selectedItem.getSellerId()));
 
                 ServerMessageListener listener = ClientApp.getListener();
                 Object response = listener.waitForResponse();

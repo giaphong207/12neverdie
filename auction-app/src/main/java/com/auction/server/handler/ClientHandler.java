@@ -1,13 +1,9 @@
 package com.auction.server.handler;
 
 import com.auction.server.dao.AuctionDao;
-import com.auction.server.dao.ItemDao;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
-import com.auction.server.service.AuctionService;
-import com.auction.server.service.AuthService;
-import com.auction.server.service.BidOutcome;
-import com.auction.server.service.BidService;
+import com.auction.server.service.*;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
@@ -34,7 +30,7 @@ public class ClientHandler implements Runnable {
     private final AuthService authService;
     private final AuctionDao auctionDao;
     private final AuctionService auctionService;
-    private final ItemDao itemDao;
+    private final ItemService itemService;
     private final AuctionSubscriptionManager subscriptionManager;
     private final EventBroadcaster broadcaster;
 
@@ -47,7 +43,7 @@ public class ClientHandler implements Runnable {
                          AuthService authService,
                          AuctionDao auctionDao,
                          AuctionService auctionService,
-                         ItemDao itemDao,
+                         ItemService itemService,
                          AuctionSubscriptionManager subscriptionManager,
                          EventBroadcaster broadcaster) {
         this.socket = socket;
@@ -55,7 +51,7 @@ public class ClientHandler implements Runnable {
         this.authService = authService;
         this.auctionDao = auctionDao;
         this.auctionService = auctionService;
-        this.itemDao = itemDao;
+        this.itemService = itemService;
         this.subscriptionManager = subscriptionManager;
         this.broadcaster = broadcaster;
     }
@@ -175,40 +171,25 @@ public class ClientHandler implements Runnable {
 
     private void handleAddItemRequest(AddItemRequest req) {
         try {
-            // Validate
-            if (req.name() == null || req.name().isBlank()) {
-                send(new AddItemResult.Failure("Tên sản phẩm không được rỗng"));
-                return;
-            }
-            if (req.startPrice() <= 0) {
-                send(new AddItemResult.Failure("Giá khởi điểm phải > 0"));
-                return;
-            }
-            if (req.type() == null) {
-                send(new AddItemResult.Failure("Phải chọn loại sản phẩm"));
-                return;
-            }
-
-            // Tạo item
-            String itemId = UUID.randomUUID().toString();
-            Item item = ItemFactory.createItem(
-                    req.type(), itemId, req.sellerId(),
-                    req.name(), req.description(), req.startPrice());
-            itemDao.save(item);
+            Item item = itemService.addItem(
+                    req.sellerId(), req.name(), req.description(),
+                    req.startPrice(), req.type());
 
             log.info("Item mới: {} | seller: {}", item.getName(), req.sellerId());
 
+            // Auto-tạo auction 24h cho item vừa thêm
             LocalDateTime now = LocalDateTime.now();
             long minIncrement = Math.max(1000L, req.startPrice() / 100);
-            Auction auction = auctionService.createAuction(
-                    req.sellerId(), itemId,
+            auctionService.createAuction(
+                    req.sellerId(), item.getId(),
                     req.startPrice(), minIncrement,
                     now, now.plusHours(24));
 
-            log.info("Item mới: {} | seller: {}", item.getName(), req.sellerId());
-
             send(new AddItemResult.Success(item));
 
+        } catch (AppException e) {
+            // Validation/business errors từ service
+            send(new AddItemResult.Failure(e.getMessage()));
         } catch (Exception e) {
             log.error("Lỗi tạo item/auction", e);
             send(new AddItemResult.Failure("Lỗi server: " + e.getMessage()));
@@ -217,23 +198,15 @@ public class ClientHandler implements Runnable {
 
     private void handleUpdateItemRequest(UpdateItemRequest req) {
         try {
-            if (req.name() == null || req.name().isBlank()) {
-                send(new UpdateItemResult.Failure("Tên sản phẩm không được rỗng"));
-                return;
-            }
-
-            Optional<Item> existing = itemDao.findById(req.itemId());
-            if (existing.isEmpty()) {
-                send(new UpdateItemResult.Failure("Sản phẩm không tồn tại"));
-                return;
-            }
-
-            Item updated = ItemFactory.createItem(
-                    req.type(), req.itemId(), req.sellerId(),
-                    req.name(), req.description(), req.startPrice());
-            itemDao.save(updated);
+            Item updated = itemService.updateItem(
+                    req.itemId(), req.sellerId(),
+                    req.name(), req.description(),
+                    req.startPrice(), req.type());
 
             send(new UpdateItemResult.Success(updated));
+
+        } catch (AppException e) {
+            send(new UpdateItemResult.Failure(e.getMessage()));
         } catch (Exception e) {
             log.error("Lỗi cập nhật item", e);
             send(new UpdateItemResult.Failure("Lỗi server: " + e.getMessage()));
@@ -242,19 +215,17 @@ public class ClientHandler implements Runnable {
 
     private void handleDeleteItemRequest(DeleteItemRequest req) {
         try {
-            Optional<Item> existing = itemDao.findById(req.itemId());
-            if (existing.isEmpty()) {
-                send(new DeleteItemResult.Failure("Sản phẩm không tồn tại"));
-                return;
-            }
-
-            itemDao.deleteById(req.itemId());
+            itemService.deleteItem(req.itemId(), req.sellerId());
             send(new DeleteItemResult.Success());
+
+        } catch (AppException e) {
+            send(new DeleteItemResult.Failure(e.getMessage()));
         } catch (Exception e) {
             String msg = e.getMessage();
             if (msg != null && msg.contains("foreign key")) {
                 send(new DeleteItemResult.Failure("Không xoá được: sản phẩm đang có trong phiên đấu giá"));
             } else {
+                log.error("Lỗi xóa item", e);
                 send(new DeleteItemResult.Failure("Lỗi server: " + msg));
             }
         }
@@ -262,7 +233,7 @@ public class ClientHandler implements Runnable {
 
     private void handleGetSellerItemsRequest(GetSellerItemsRequest req) {
         try {
-            List<Item> items = itemDao.findBySellerId(req.sellerId());
+            List<Item> items = itemService.getItemsBySeller(req.sellerId());
             send(new GetSellerItemsResult.Success(items));
         } catch (Exception e) {
             log.error("Lỗi cập nhật item", e);
