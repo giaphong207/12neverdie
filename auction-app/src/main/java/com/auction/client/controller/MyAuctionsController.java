@@ -60,7 +60,7 @@ public class MyAuctionsController implements AuctionEventObserver {
     }
 
     @Override
-    public void onAuctionUpdated(AuctionEvent event) {
+    public void onAuctionEvent(AuctionEvent event) {
         Auction updated = event.getAuction();
         Platform.runLater(() -> {
             int idx = indexOfAuction(updated.getId());

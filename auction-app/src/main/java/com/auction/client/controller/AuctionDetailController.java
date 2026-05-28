@@ -481,7 +481,7 @@ public class AuctionDetailController implements AuctionEventObserver {
      * HOẶC khi vừa subscribe (server gửi snapshot lần đầu).
      */
     @Override
-    public void onAuctionUpdated(AuctionEvent event) {
+    public void onAuctionEvent(AuctionEvent event) {
         Auction updated = event.getAuction();
 
         // Chỉ xử lý nếu đây đúng auction mình đang xem

@@ -56,7 +56,7 @@ public final class AuctionEventBus {
         Platform.runLater(() -> {
             for (AuctionEventObserver observer : observers) {
                 try {
-                    observer.onAuctionUpdated(event);
+                    observer.onAuctionEvent(event);
                 } catch (Exception e) {
                     System.err.println("Lỗi cập nhật observer " 
                             + observer.getClass().getSimpleName() + ": " + e.getMessage());

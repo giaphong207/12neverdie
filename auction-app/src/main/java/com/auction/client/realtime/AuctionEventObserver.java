@@ -12,5 +12,5 @@ import com.auction.shared.networkMessage.AuctionEvents.*;
  * 4. Gọi AuctionEventBus.getInstance().removeObserver(this) trong dispose()
  */
 public interface AuctionEventObserver {
-    void onAuctionUpdated(AuctionEvent event);
+    void onAuctionEvent(AuctionEvent event);
 }
