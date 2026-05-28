@@ -1,6 +1,5 @@
 package com.auction.server.handler;
 
-import com.auction.server.dao.AuctionDao;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.service.*;
@@ -28,7 +27,6 @@ public class ClientHandler implements Runnable {
     private final Socket socket;
     private final BidService bidService;
     private final AuthService authService;
-    private final AuctionDao auctionDao;
     private final AuctionService auctionService;
     private final ItemService itemService;
     private final AuctionSubscriptionManager subscriptionManager;
@@ -41,7 +39,6 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket,
                          BidService bidService,
                          AuthService authService,
-                         AuctionDao auctionDao,
                          AuctionService auctionService,
                          ItemService itemService,
                          AuctionSubscriptionManager subscriptionManager,
@@ -49,7 +46,6 @@ public class ClientHandler implements Runnable {
         this.socket = socket;
         this.bidService = bidService;
         this.authService = authService;
-        this.auctionDao = auctionDao;
         this.auctionService = auctionService;
         this.itemService = itemService;
         this.subscriptionManager = subscriptionManager;
@@ -122,7 +118,7 @@ public class ClientHandler implements Runnable {
     private void handleSubscribeAuctionListRequest() {
         subscriptionManager.subscribeList(this);
         try {
-            List<Auction> activeAuctions = auctionDao.findActiveAuctions();
+            List<Auction> activeAuctions = auctionService.getActiveAuctions();
             log.debug("Gửi {} auction snapshot cho client {}",
                     activeAuctions.size(), socket.getRemoteSocketAddress());
             for (Auction a : activeAuctions) {
@@ -136,7 +132,7 @@ public class ClientHandler implements Runnable {
     private void handleSubscribeAuctionRequest(SubscribeAuctionRequest req) {
         subscriptionManager.subscribeAuction(req.auctionId(), this);
         try {
-            Optional<Auction> auctionOpt = auctionDao.findById(req.auctionId());
+            Optional<Auction> auctionOpt = auctionService.getAuctionById(req.auctionId());
             if (auctionOpt.isPresent()) {
                 send(new AuctionUpdatedEvent(auctionOpt.get()));
             }
