@@ -29,7 +29,13 @@ public class Requests {
             }
         }
     }
-    public static record GetSellerItemsRequest(String sellerId) implements Serializable{}
+    public static record GetSellerItemsRequest(String sellerId) implements Serializable {
+        public GetSellerItemsRequest {
+            if (sellerId == null || sellerId.isBlank()) {
+                throw new InvalidItemException("sellerId không được rỗng");
+            }
+        }
+    }
     public static record DeleteItemRequest(String itemId, String sellerId) implements Serializable {
         public DeleteItemRequest {
             if (itemId == null || itemId.isBlank()) {
