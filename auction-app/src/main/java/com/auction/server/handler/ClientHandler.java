@@ -10,7 +10,6 @@ import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
-import com.auction.shared.factory.ItemFactory;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -19,7 +18,6 @@ import java.net.Socket;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,12 +90,11 @@ public class ClientHandler implements Runnable {
     private void handleLoginRequest(LoginRequest req) {
         try {
             User user = authService.login(req.username(), req.password());
-            if (user != null) {
-                send(new LoginResult.Success(user));
-            } else {
-                send(new LoginResult.Failure("Sai tên đăng nhập hoặc mật khẩu"));
-            }
+            send(new LoginResult.Success(user));
+        } catch (AppException e) {
+            send(new LoginResult.Failure(e.getMessage()));
         } catch (Exception e) {
+            log.error("Lỗi server khi login", e);
             send(new LoginResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
@@ -105,12 +102,11 @@ public class ClientHandler implements Runnable {
     private void handleRegisterRequest(RegisterRequest req) {
         try {
             User user = authService.register(req.username(), req.password(), req.role());
-            if (user != null) {
-                send(new RegisterResult.Success(user));
-            } else {
-                send(new RegisterResult.Failure("Tên đăng nhập đã tồn tại"));
-            }
+            send(new RegisterResult.Success(user));
+        } catch (AppException e) {
+            send(new RegisterResult.Failure(e.getMessage()));
         } catch (Exception e) {
+            log.error("Lỗi server khi register", e);
             send(new RegisterResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }

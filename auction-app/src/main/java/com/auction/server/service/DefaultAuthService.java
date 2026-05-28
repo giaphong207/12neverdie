@@ -4,7 +4,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.auction.server.dao.UserDao;
-
+import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.user.*;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -18,34 +18,44 @@ public class DefaultAuthService implements AuthService {
 
     @Override
     public User login(String username, String password) {
-        if (username == null || password == null) return null;
-
-        Optional<User> userOpt = userDao.findByUsername(username);
-        if (userOpt.isEmpty()) return null;
-
-        User user = userOpt.get();
-        String storedPwd = user.getPassword();
-
-        // Backward compatible: hỗ trợ cả password plain text (data cũ) và BCrypt hash
-        boolean matched;
-        if (storedPwd.startsWith("$2a$") || storedPwd.startsWith("$2b$") || storedPwd.startsWith("$2y$")) {
-            // BCrypt hash
-            matched = BCrypt.checkpw(password, storedPwd);
-        } else {
-            // Plain text (data legacy)
-            matched = storedPwd.equals(password);
+        if (username == null || username.isBlank()) {
+            throw new AuthenticationException("Tên đăng nhập không được rỗng");
+        }
+        if (password == null || password.isBlank()) {
+            throw new AuthenticationException("Mật khẩu không được rỗng");
         }
 
-        return matched ? user : null;
+        // Generic error message → không tiết lộ user tồn tại hay không
+        Optional<User> userOpt = userDao.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            throw new AuthenticationException("Sai tên đăng nhập hoặc mật khẩu");
+        }
+
+        User user = userOpt.get();
+        if (!BCrypt.checkpw(password, user.getPassword())) {
+            throw new AuthenticationException("Sai tên đăng nhập hoặc mật khẩu");
+        }
+
+        return user;
     }
 
     @Override
     public User register(String username, String password, Role role) {
-        if (usernameExists(username)) return null;
+        if (username == null || username.isBlank()) {
+            throw new InvalidInputException("Tên đăng nhập không được rỗng");
+        }
+        if (password == null || password.isBlank()) {
+            throw new InvalidInputException("Mật khẩu không được rỗng");
+        }
+        if (role == null) {
+            throw new InvalidInputException("Vai trò không được rỗng");
+        }
 
-        // Hash password bằng BCrypt
+        if (usernameExists(username)) {
+            throw new DuplicateUsernameException(username);
+        }
+
         String hashed = BCrypt.hashpw(password, BCrypt.gensalt(10));
-
         String newId = UUID.randomUUID().toString();
         User newUser = switch (role) {
             case ADMIN  -> new Admin(newId, username, hashed);

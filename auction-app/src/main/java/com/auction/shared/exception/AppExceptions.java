@@ -31,7 +31,11 @@ public final class AppExceptions {
             super(message, cause);   // ← gọi đúng constructor của AppException
         }
     }
-
+    public static class InvalidInputException extends AppException {
+        public InvalidInputException(String message) {
+            super(message);
+        }
+    }
     public static class InvalidBidException extends AppException {
         public InvalidBidException(String message) {
             super(message);
@@ -71,6 +75,16 @@ public final class AppExceptions {
         }
         public NetworkException(String message, Throwable cause) {
             super(message, cause);
+        }
+    }
+    public static class AuthenticationException extends AppException {
+        public AuthenticationException(String message) {
+            super(message);
+        }
+    }
+    public static class DuplicateUsernameException extends AppException {
+        public DuplicateUsernameException(String username) {
+            super("Tên đăng nhập đã tồn tại: " + username);
         }
     }
 }
