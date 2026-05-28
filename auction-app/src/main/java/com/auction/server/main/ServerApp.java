@@ -95,7 +95,7 @@ public class ServerApp {
                 log.info("Client mới kết nối: {}", socket.getRemoteSocketAddress());
 
                 ClientHandler handler = new ClientHandler(
-                        socket, bidService, authService, auctionDao, auctionService, itemService,
+                        socket, bidService, authService, auctionService, itemService,
                         subscriptionManager, broadcaster);
                 new Thread(handler).start();
             }
