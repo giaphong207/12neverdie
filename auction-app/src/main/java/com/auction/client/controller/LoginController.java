@@ -38,9 +38,6 @@ public class LoginController {
 
         new Thread(() -> {
             try {
-                ServerConnection conn = ServerConnection.getInstance();
-                conn.send(new LoginRequest(username, password));
-
                 ServerMessageListener listener = ClientApp.getListener();
                 if (listener == null) {
                     Platform.runLater(() ->
@@ -48,7 +45,15 @@ public class LoginController {
                     return;
                 }
 
-                Object response = listener.waitForResponse();
+                // Gửi + chờ Result trong một thao tác có khóa, tối đa 10 giây
+                Object response = listener.sendAndWait(new LoginRequest(username, password), 10_000);
+
+                if (response == null) {
+                    Platform.runLater(() ->
+                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
+                    return;
+                }
+
                 Platform.runLater(() -> handleLoginResult(response, event));
 
             } catch (Exception e) {

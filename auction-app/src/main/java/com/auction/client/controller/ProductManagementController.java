@@ -145,11 +145,14 @@ public class ProductManagementController {
 
         new Thread(() -> {
             try {
-                ServerConnection conn = ServerConnection.getInstance();
-                conn.send(new GetSellerItemsRequest(currentUser.getId()));
-
                 ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.waitForResponse();
+                Object response = listener.sendAndWait(new GetSellerItemsRequest(currentUser.getId()), 10_000);
+
+                if (response == null) {
+                    Platform.runLater(() ->
+                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
+                    return;
+                }
 
                 Platform.runLater(() -> handleGetSellerItemsResult(response));
             } catch (Exception e) {
@@ -234,12 +237,16 @@ public class ProductManagementController {
         // Gửi request qua server
         new Thread(() -> {
             try {
-                ServerConnection conn = ServerConnection.getInstance();
-                conn.send(new AddItemRequest(name, description, startPrice, type, currentUser.getId(),
-                        startTimeFinal, endTimeFinal));
-
                 ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.waitForResponse();
+                Object response = listener.sendAndWait(
+                        new AddItemRequest(name, description, startPrice, type, currentUser.getId(),
+                                startTimeFinal, endTimeFinal), 10_000);
+
+                if (response == null) {
+                    Platform.runLater(() ->
+                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
+                    return;
+                }
 
                 Platform.runLater(() -> handleAddItemResult(response));
             } catch (Exception e) {
@@ -290,12 +297,16 @@ public class ProductManagementController {
 
         new Thread(() -> {
             try {
-                ServerConnection conn = ServerConnection.getInstance();
-                conn.send(new UpdateItemRequest(
-                        selectedItem.getId(), name, description, startPrice, type, currentUser.getId()));
-
                 ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.waitForResponse();
+                Object response = listener.sendAndWait(
+                        new UpdateItemRequest(selectedItem.getId(), name, description,
+                                startPrice, type, currentUser.getId()), 10_000);
+
+                if (response == null) {
+                    Platform.runLater(() ->
+                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
+                    return;
+                }
 
                 Platform.runLater(() -> handleUpdateItemResult(response));
             } catch (Exception e) {
@@ -332,11 +343,15 @@ public class ProductManagementController {
 
         new Thread(() -> {
             try {
-                ServerConnection conn = ServerConnection.getInstance();
-                conn.send(new DeleteItemRequest(itemId, selectedItem.getSellerId()));
-
                 ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.waitForResponse();
+                Object response = listener.sendAndWait(
+                        new DeleteItemRequest(itemId, selectedItem.getSellerId()), 10_000);
+
+                if (response == null) {
+                    Platform.runLater(() ->
+                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
+                    return;
+                }
 
                 Platform.runLater(() -> handleDeleteItemResult(response));
             } catch (Exception e) {

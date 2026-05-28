@@ -100,9 +100,13 @@ public class SellerDashboardController implements AuctionEventObserver {
 
         new Thread(() -> {
             try {
-                ServerConnection.getInstance().send(new GetSellerItemsRequest(user.getId()));
                 ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.waitForResponse();
+                Object response = listener.sendAndWait(new GetSellerItemsRequest(user.getId()), 10_000);
+
+                if (response == null) {
+                    System.err.println("Hết thời gian chờ khi tải số lượng sản phẩm.");
+                    return;
+                }
 
                 Platform.runLater(() -> {
                     if (response instanceof GetSellerItemsResult result) {

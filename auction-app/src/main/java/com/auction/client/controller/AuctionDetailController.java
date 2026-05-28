@@ -3,11 +3,12 @@ package com.auction.client.controller;
 import com.auction.client.chart.BidHistorySeriesBuilder;
 import com.auction.client.context.ClientSession;
 import com.auction.client.network.ServerConnection;
+import com.auction.client.network.ServerMessageListener;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
 import com.auction.client.util.*;
-import com.auction.shared.exception.AppExceptions.*;
 
+import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
@@ -324,8 +325,25 @@ public class AuctionDetailController implements AuctionEventObserver {
 
         new Thread(() -> {
             try {
-                ServerConnection.getInstance().send(new BidRequest(auctionId, bidderId, amount));
-                Object response = ClientApp.getListener().waitForResponse();
+                ServerMessageListener listener = ClientApp.getListener();
+                if (listener == null) {
+                    Platform.runLater(() -> {
+                        AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo");
+                        messageLabel.setText("");
+                    });
+                    return;
+                }
+
+                Object response = listener.sendAndWait(
+                        new BidRequest(auctionId, bidderId, amount), 10_000);
+
+                if (response == null) {
+                    Platform.runLater(() -> {
+                        AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại.");
+                        messageLabel.setText("");
+                    });
+                    return;
+                }
 
                 Platform.runLater(() -> handleBidResult(response));
 
@@ -398,9 +416,26 @@ public class AuctionDetailController implements AuctionEventObserver {
 
         new Thread(() -> {
             try {
-                ServerConnection.getInstance().send(
-                        new SetAutoBidRequest(auctionId, bidderId, maxAmount, increment));
-                Object response = ClientApp.getListener().waitForResponse();
+                ServerMessageListener listener = ClientApp.getListener();
+                if (listener == null) {
+                    Platform.runLater(() -> {
+                        AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo");
+                        messageLabel.setText("");
+                    });
+                    return;
+                }
+
+                Object response = listener.sendAndWait(
+                        new SetAutoBidRequest(auctionId, bidderId, maxAmount, increment), 10_000);
+
+                if (response == null) {
+                    Platform.runLater(() -> {
+                        AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại.");
+                        messageLabel.setText("");
+                    });
+                    return;
+                }
+
                 Platform.runLater(() -> handleSetAutoBidResponse(response));
 
             } catch (IOException ex) {
