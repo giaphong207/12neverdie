@@ -10,7 +10,6 @@ import com.auction.shared.networkMessage.AuctionEvents.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -144,7 +143,7 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // LAZY: syncByTime, syncAll (như PA B)
+    // LAZY: syncByTime
 
     // ═══════════════════════════════════════════════════════════
     // Manual (gọi từ Admin/Payment service)
@@ -178,21 +177,6 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
         }
 
         return auction;
-    }
-
-    @Override
-    public void syncAll() {
-        List<Auction> auctions = auctionDao.findAll();
-        for (Auction auction : auctions) {
-            // Skip terminal states để tránh load+save không cần thiết
-            AuctionStatus s = auction.getStatus();
-            if (s == AuctionStatus.FINISHED
-                    || s == AuctionStatus.PAID
-                    || s == AuctionStatus.CANCELED) {
-                continue;
-            }
-            syncByTime(auction.getId());
-        }
     }
 
     @Override

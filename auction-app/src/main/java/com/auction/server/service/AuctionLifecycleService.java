@@ -18,11 +18,6 @@ public interface AuctionLifecycleService {
     Auction syncByTime(String auctionId);
 
     /**
-     * Sync tất cả auction. Dùng cho cron job định kỳ làm safety net.
-     */
-    void syncAll();
-
-    /**
      * Finish thủ công (vd: admin can thiệp). Service sẽ validate auction
      * đang RUNNING và broadcast event sau khi finish.
      */
