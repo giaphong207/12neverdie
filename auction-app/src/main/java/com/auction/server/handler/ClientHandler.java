@@ -66,30 +66,22 @@ public class ClientHandler implements Runnable {
             while (!socket.isClosed()) {
                 Object incoming = in.readObject();
 
-                if (incoming instanceof LoginRequest req) {
-                    handleLoginRequest(req);
-                } else if (incoming instanceof RegisterRequest req) {
-                    handleRegisterRequest(req);
-                } else if (incoming instanceof SubscribeAuctionListRequest) {
-                    handleSubscribeAuctionListRequest();
-                } else if (incoming instanceof SubscribeAuctionRequest req) {
-                    handleSubscribeAuctionRequest(req);
-                } else if (incoming instanceof BidRequest req) {
-                    handleBidRequest(req);
-                } else if (incoming instanceof AddItemRequest req) {
-                    handleAddItemRequest(req);
-                } else if (incoming instanceof UpdateItemRequest req) {
-                    handleUpdateItemRequest(req);
-                } else if (incoming instanceof DeleteItemRequest req) {
-                    handleDeleteItemRequest(req);
-                } else if (incoming instanceof GetSellerItemsRequest req) {
-                    handleGetSellerItemsRequest(req);
-                } else if (incoming instanceof GetBalanceRequest req) {
-                    handleGetBalanceRequest(req);
-                } else if (incoming instanceof DepositRequest req) {
-                    handleDepositRequest(req);
-                } else if (incoming instanceof SetAutoBidRequest req) {
-                    handleSetAutoBidRequest(req);
+                switch (incoming) {
+                    case LoginRequest req               -> handleLoginRequest(req);
+                    case RegisterRequest req            -> handleRegisterRequest(req);
+                    case SubscribeAuctionListRequest _  -> handleSubscribeAuctionListRequest();
+                    case SubscribeAuctionRequest req    -> handleSubscribeAuctionRequest(req);
+                    case BidRequest req                 -> handleBidRequest(req);
+                    case AddItemRequest req             -> handleAddItemRequest(req);
+                    case UpdateItemRequest req          -> handleUpdateItemRequest(req);
+                    case DeleteItemRequest req          -> handleDeleteItemRequest(req);
+                    case GetSellerItemsRequest req      -> handleGetSellerItemsRequest(req);
+                    case GetBalanceRequest req          -> handleGetBalanceRequest(req);
+                    case DepositRequest req             -> handleDepositRequest(req);
+                    case SetAutoBidRequest req          -> handleSetAutoBidRequest(req);
+                    case null    -> log.warn("Nhận message null từ client");
+                    default      -> log.warn("Nhận message không xác định: {}",
+                            incoming.getClass().getSimpleName());
                 }
             }
         } catch (Exception e) {
