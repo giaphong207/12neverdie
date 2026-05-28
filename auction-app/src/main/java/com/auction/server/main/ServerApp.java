@@ -96,7 +96,7 @@ public class ServerApp {
 
                 ClientHandler handler = new ClientHandler(
                         socket, bidService, authService, walletService,
-                        auctionService, itemService,
+                        auctionService, itemService, autoBidService,
                         subscriptionManager, broadcaster);
                 new Thread(handler).start();
             }

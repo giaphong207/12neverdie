@@ -5,10 +5,7 @@ import com.auction.client.context.ClientSession;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
-import com.auction.client.util.AlertUtils;
-import com.auction.client.util.CountdownUtil;
-import com.auction.client.util.MoneyParser;
-import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.*;
 import com.auction.shared.exception.AppExceptions.*;
 
 import com.auction.shared.factory.UserFactory;
@@ -367,6 +364,78 @@ public class AuctionDetailController implements AuctionEventObserver {
             }
         } else {
             AlertUtils.showError("Lỗi", "Phản hồi không hợp lệ từ server: " + response.getClass().getSimpleName());
+            messageLabel.setText("");
+        }
+    }
+    public void onConfigureAutoBidClicked() {
+        if (currentAuction == null) {
+            AlertUtils.showWarning("Thông báo", "Không có auction để cấu hình.");
+            return;
+        }
+
+        User currentUser = ClientSession.getCurrentUser();
+        if (currentUser == null) {
+            AlertUtils.showWarning("Chưa đăng nhập", "Vui lòng đăng nhập để dùng đấu giá tự động.");
+            return;
+        }
+        if (UserFactory.toRole(currentUser) != Role.BIDDER) {
+            AlertUtils.showError("Lỗi Quyền", "Chỉ tài khoản BIDDER mới được đặt đấu giá tự động!");
+            return;
+        }
+
+        // Mở dialog nhập giá trần + bước giá
+        var result = AutoBidDialogFactory.showDialog();
+        if (result.isEmpty()) {
+            return;  // user bấm Cancel hoặc nhập sai định dạng
+        }
+        final long maxAmount = result.get().maxAmount;
+        final long increment = result.get().increment;
+
+        final String auctionId = currentAuction.getId();
+        final String bidderId  = currentUser.getId();
+
+        messageLabel.setText("Đang thiết lập đấu giá tự động...");
+
+        new Thread(() -> {
+            try {
+                ServerConnection.getInstance().send(
+                        new SetAutoBidRequest(auctionId, bidderId, maxAmount, increment));
+                Object response = ClientApp.getListener().waitForResponse();
+                Platform.runLater(() -> handleSetAutoBidResponse(response));
+
+            } catch (IOException ex) {
+                Platform.runLater(() -> {
+                    AlertUtils.showError("Lỗi kết nối", "Không gửi được yêu cầu: " + ex.getMessage());
+                    messageLabel.setText("");
+                });
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                Platform.runLater(() -> {
+                    AlertUtils.showError("Bị gián đoạn", "Yêu cầu bị huỷ.");
+                    messageLabel.setText("");
+                });
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                Platform.runLater(() -> {
+                    AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
+                    messageLabel.setText("");
+                });
+            }
+        }).start();
+    }
+
+    private void handleSetAutoBidResponse(Object response) {
+        if (response instanceof SetAutoBidResponse r) {
+            if (r.success()) {
+                AlertUtils.showInfo("Thành công", r.message());
+                messageLabel.setText("Đã bật đấu giá tự động.");
+            } else {
+                AlertUtils.showError("Thất bại", r.message());
+                messageLabel.setText("");
+            }
+        } else {
+            AlertUtils.showError("Lỗi",
+                    "Phản hồi không hợp lệ từ server: " + response.getClass().getSimpleName());
             messageLabel.setText("");
         }
     }

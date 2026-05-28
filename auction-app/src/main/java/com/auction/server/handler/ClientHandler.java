@@ -28,6 +28,7 @@ public class ClientHandler implements Runnable {
     private final WalletService walletService;
     private final AuctionService auctionService;
     private final ItemService itemService;
+    private final AutoBidService autoBidService;
     private final AuctionSubscriptionManager subscriptionManager;
     private final EventBroadcaster broadcaster;
 
@@ -41,6 +42,7 @@ public class ClientHandler implements Runnable {
                          WalletService walletService,
                          AuctionService auctionService,
                          ItemService itemService,
+                         AutoBidService autoBidService,
                          AuctionSubscriptionManager subscriptionManager,
                          EventBroadcaster broadcaster) {
         this.socket = socket;
@@ -49,6 +51,7 @@ public class ClientHandler implements Runnable {
         this.walletService = walletService;
         this.auctionService = auctionService;
         this.itemService = itemService;
+        this.autoBidService = autoBidService;
         this.subscriptionManager = subscriptionManager;
         this.broadcaster = broadcaster;
     }
@@ -85,6 +88,8 @@ public class ClientHandler implements Runnable {
                     handleGetBalanceRequest(req);
                 } else if (incoming instanceof DepositRequest req) {
                     handleDepositRequest(req);
+                } else if (incoming instanceof SetAutoBidRequest req) {
+                    handleSetAutoBidRequest(req);
                 }
             }
         } catch (Exception e) {
@@ -265,6 +270,36 @@ public class ClientHandler implements Runnable {
         } catch (Exception e) {
             log.error("Lỗi deposit", e);
             send(new DepositResult.Failure(e.getMessage()));
+        }
+    }
+
+    private void handleSetAutoBidRequest(SetAutoBidRequest req) {
+        try {
+            // Validate cơ bản (phòng khi client gửi số xấu)
+            if (req.maxAmount() <= 0 || req.increment() <= 0) {
+                send(new SetAutoBidResponse(false, "Mức tối đa và bước giá phải lớn hơn 0"));
+                return;
+            }
+
+            // Fix #3 — check ví: không cho auto-bid vượt số dư hiện có.
+            //   (Check tại thời điểm set; nếu sau này ví tụt thì không đảm bảo tuyệt đối,
+            //    nhưng đủ để không tự bid hộ user quá số tiền họ từng có.)
+            long balance = walletService.getBalance(req.bidderId());
+            if (req.maxAmount() > balance) {
+                send(new SetAutoBidResponse(false,
+                        "Mức tối đa vượt số dư ví (ví hiện có " + balance + " VNĐ)"));
+                return;
+            }
+
+            autoBidService.upsertConfig(
+                    req.auctionId(), req.bidderId(),
+                    req.maxAmount(), req.increment());
+
+            send(new SetAutoBidResponse(true, "Đã thiết lập đấu giá tự động"));
+
+        } catch (Exception e) {
+            log.error("Lỗi setAutoBid", e);
+            send(new SetAutoBidResponse(false, "Không thể thiết lập: " + e.getMessage()));
         }
     }
 
