@@ -2,6 +2,7 @@ package com.auction.server.handler;
 
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
+import com.auction.server.realtime.EventReceiver;
 import com.auction.server.service.*;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.auction.Auction;
@@ -21,7 +22,7 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-public class ClientHandler implements Runnable {
+public class ClientHandler implements Runnable, EventReceiver {
     private final Socket socket;
     private final BidService bidService;
     private final AuthService authService;
@@ -294,7 +295,7 @@ public class ClientHandler implements Runnable {
             send(new SetAutoBidResponse(false, "Không thể thiết lập: " + e.getMessage()));
         }
     }
-
+    @Override
     public synchronized void send(Object message) {
         try {
             if (out != null && !socket.isClosed()) {

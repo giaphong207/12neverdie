@@ -1,6 +1,5 @@
 package com.auction.server.realtime;
 
-import com.auction.server.handler.ClientHandler;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 
 public class EventBroadcaster {
@@ -11,15 +10,13 @@ public class EventBroadcaster {
     }
 
     public void broadcast(AuctionEvent event) {
-
-        // Gửi cho tất cả những người đang xem danh sách tổng
-        for (ClientHandler handler : subscriptionManager.getListSubscribers()) {
-            handler.send(event);
+        // Người đang xem danh sách tổng
+        for (EventReceiver sink : subscriptionManager.getListSubscribers()) {
+            sink.send(event);
         }
-
-        // Gửi cho tất cả những người đang ở trong phòng đấu giá cụ thể đó
-        for (ClientHandler handler : subscriptionManager.getAuctionSubscribers(event.getAuction().getId())) {
-            handler.send(event);
+        // Người đang xem chi tiết đúng phiên đó
+        for (EventReceiver sink : subscriptionManager.getAuctionSubscribers(event.getAuction().getId())) {
+            sink.send(event);
         }
     }
 }
