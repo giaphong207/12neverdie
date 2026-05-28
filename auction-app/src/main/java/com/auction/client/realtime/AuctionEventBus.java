@@ -19,15 +19,19 @@ import javafx.application.Platform;
  */
 public final class AuctionEventBus {
 
-    private static AuctionEventBus instance;
+    private static volatile AuctionEventBus instance;
     
     private final List<AuctionEventObserver> observers = new CopyOnWriteArrayList<>();
 
     private AuctionEventBus() {}
 
-    public static synchronized AuctionEventBus getInstance() {
+    public static  AuctionEventBus getInstance() {
         if (instance == null) {
-            instance = new AuctionEventBus();
+            synchronized (AuctionEventBus.class){
+                if (instance == null){
+                    instance = new AuctionEventBus();
+                }
+            }
         }
         return instance;
     }
