@@ -113,12 +113,13 @@ public class DefaultBidService implements BidService {
             Bid manualBid = Bid.createNew(auction.getId(), bidderId, amount, BidSource.MANUAL);
             auction.addBid(manualBid);
 
-            // ⑨ Anti-sniping — TRONG CÙNG LOCK
+            // ⑨ Anti-sniping — applyExtension CHỈ sửa endTime trong RAM.
+            //    KHÔNG reschedule scheduler ở đây — đợi SAU commit (xem ⑫).
+            boolean extended = false;
+            long extendedSeconds = 0;
             if (antiSnipingService.shouldExtend(auction, manualBid.getCreatedAt())) {
-                long extendedSeconds = antiSnipingService.applyExtension(auction);
-                lifecycleService.rescheduleClose(auction);
-                log.info("Auction {} gia hạn {}s do anti-sniping",
-                        auction.getId(), extendedSeconds);
+                extendedSeconds = antiSnipingService.applyExtension(auction);
+                extended = true;
             }
 
             // ⑩ AutoBid cascade — TRONG CÙNG LOCK
@@ -144,7 +145,16 @@ public class DefaultBidService implements BidService {
                 throw new DataAccessException("Không lấy được connection", e);
             }
 
-            return new BidOutcome(auction,manualBid);
+            // ⑫ Side-effect NGOÀI transaction: chỉ reschedule SAU khi commit thành công.
+            //    Nếu transaction lỗi → đã ném exception ở trên → không chạy tới đây →
+            //    scheduler giữ nguyên giờ cũ, khớp với DB.
+            if (extended) {
+                lifecycleService.rescheduleClose(auction);
+                log.info("Auction {} gia hạn {}s do anti-sniping",
+                        auction.getId(), extendedSeconds);
+            }
+
+            return new BidOutcome(auction, manualBid);
 
         } finally {
             lock.unlock();
