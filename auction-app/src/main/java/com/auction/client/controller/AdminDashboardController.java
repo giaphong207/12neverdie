@@ -161,19 +161,4 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
     public void dispose() {
         AuctionEventBus.getInstance().removeObserver(this);
     }
-
-    /** Mock data type — chỉ để hiển thị trong table demo. */
-    public static class MockUser {
-        public final String username;
-        public final String role;
-        public final String lastActive;
-        public final String status;
-
-        public MockUser(String username, String role, String lastActive, String status) {
-            this.username = username;
-            this.role = role;
-            this.lastActive = lastActive;
-            this.status = status;
-        }
-    }
 }

@@ -68,21 +68,7 @@ public class LoginController {
     }
 
     @FXML
-    public void onOpenRegisterClicked(javafx.event.ActionEvent event) {
-        try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/Register.fxml"));
-            javafx.scene.Parent root = loader.load();
-            javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-
-            javafx.scene.Scene scene = new javafx.scene.Scene(root, 1280, 800);
-            SceneStyler.apply(scene);
-
-            stage.setScene(scene);
-            stage.setTitle("AuctionHub — Đăng ký tài khoản");
-            stage.show();
-        } catch (Exception e) {
-            e.printStackTrace();
-            AlertUtils.showError("Lỗi hệ thống", "Không thể mở Register.fxml");
-        }
+    public void onOpenRegisterClicked() {
+        SceneNavigator.switchScene("/fxml/Register.fxml");
     }
 }
