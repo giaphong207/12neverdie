@@ -1,5 +1,6 @@
 package com.auction.server.service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -70,5 +71,10 @@ public class DefaultAuthService implements AuthService {
     @Override
     public boolean usernameExists(String username) {
         return userDao.findByUsername(username).isPresent();
+    }
+
+    @Override
+    public List<User> getAllUsers() {
+        return userDao.findAll();
     }
 }

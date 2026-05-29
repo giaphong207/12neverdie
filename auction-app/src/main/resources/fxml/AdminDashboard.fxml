@@ -52,12 +52,6 @@
                             <TableColumn fx:id="colUserRole" 
                                          text="Vai trò" 
                                          prefWidth="180"/>
-                            <TableColumn fx:id="colUserActivity" 
-                                         text="Hoạt động gần nhất" 
-                                         prefWidth="200"/>
-                            <TableColumn fx:id="colUserStatus" 
-                                         text="Trạng thái" 
-                                         prefWidth="160"/>
                         </columns>
                     </TableView>
                 </VBox>

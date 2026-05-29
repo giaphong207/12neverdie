@@ -7,7 +7,7 @@ import com.auction.server.service.*;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
-import com.auction.shared.model.user.User;
+import com.auction.shared.model.user.*;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
@@ -77,6 +77,7 @@ public class ClientHandler implements Runnable, EventReceiver {
                     case UpdateItemRequest req          -> handleUpdateItemRequest(req);
                     case DeleteItemRequest req          -> handleDeleteItemRequest(req);
                     case GetSellerItemsRequest req      -> handleGetSellerItemsRequest(req);
+                    case GetAllUsersRequest _            -> handleGetAllUsersRequest();
                     case GetBalanceRequest req          -> handleGetBalanceRequest(req);
                     case DepositRequest req             -> handleDepositRequest(req);
                     case SetAutoBidRequest req          -> handleSetAutoBidRequest(req);
@@ -243,7 +244,25 @@ public class ClientHandler implements Runnable, EventReceiver {
             send(new GetSellerItemsResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
+    private void handleGetAllUsersRequest() {
+        try {
+            List<UserRow> rows = authService.getAllUsers().stream()
+                    .map(u -> new UserRow(u.getUsername(), roleOf(u)))
+                    .toList();
+            send(new GetAllUsersResult.Success(rows));
+        } catch (Exception e) {
+            log.error("Lỗi lấy danh sách user", e);
+            send(new GetAllUsersResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
 
+    private static Role roleOf(User u) {
+        return switch (u) {
+            case Admin a  -> Role.ADMIN;
+            case Seller s -> Role.SELLER;
+            case Bidder b -> Role.BIDDER;
+        };
+    }
     // ===== WALLET =====
 
     private void handleGetBalanceRequest(GetBalanceRequest req) {

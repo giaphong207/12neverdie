@@ -11,9 +11,13 @@ import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
 import com.auction.client.util.StatCardBuilder;
 import com.auction.client.util.Disposable;
+import com.auction.client.util.RequestExecutor;
+import com.auction.client.util.EnumFormatter;
+import com.auction.shared.networkMessage.Results.*;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Results.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -30,12 +34,11 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
 
     @FXML private StackPane topbarContainer;
     @FXML private HBox statCardsContainer;
-    @FXML private TableView<MockUser> usersTable;
-    @FXML private TableColumn<MockUser, String> colUserName;
-    @FXML private TableColumn<MockUser, String> colUserRole;
-    @FXML private TableColumn<MockUser, String> colUserActivity;
-    @FXML private TableColumn<MockUser, String> colUserStatus;
+    @FXML private TableView<UserRow> usersTable;
+    @FXML private TableColumn<UserRow, String> colUserName;
+    @FXML private TableColumn<UserRow, String> colUserRole;
 
+    private long totalUserCount = 0;
     private final List<Auction> allAuctions = new ArrayList<>();
 
     @FXML
@@ -53,23 +56,16 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
         // Setup user table columns
         if (colUserName != null) {
             colUserName.setCellValueFactory(c ->
-                    new javafx.beans.property.SimpleStringProperty(c.getValue().username));
+                    new javafx.beans.property.SimpleStringProperty(c.getValue().username()));
         }
         if (colUserRole != null) {
             colUserRole.setCellValueFactory(c ->
-                    new javafx.beans.property.SimpleStringProperty(c.getValue().role));
-        }
-        if (colUserActivity != null) {
-            colUserActivity.setCellValueFactory(c ->
-                    new javafx.beans.property.SimpleStringProperty(c.getValue().lastActive));
-        }
-        if (colUserStatus != null) {
-            colUserStatus.setCellValueFactory(c ->
-                    new javafx.beans.property.SimpleStringProperty(c.getValue().status));
+                    new javafx.beans.property.SimpleStringProperty(
+                            EnumFormatter.roleVi(c.getValue().role())));
         }
 
-        renderStats(0, 0, 0, 0); //reset số liệu thống kê
-        loadMockUsers(); //load dữ liệu mẫu
+        renderStats(0, 0, 0); //reset số liệu thống kê
+        loadUsers(); //load dữ liệu mẫu
 
         // Vẫn subscribe để có số liệu phiên thật
         AuctionEventBus.getInstance().addObserver(this);
@@ -108,18 +104,17 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
                 default -> {}
             }
         }
-        // Tổng người dùng và pending: mock vì server chưa có endpoint
-        renderStats(1240, running, totalRevenue, 8);
+        renderStats(totalUserCount, running, totalRevenue);
     }
 
-    private void renderStats(long totalUsers, long running, long revenue, long pending) {
+    private void renderStats(long totalUsers, long running, long revenue) {
         if (statCardsContainer == null) return;
         statCardsContainer.getChildren().clear();
 
-        var c1 = StatCardBuilder.build("Tổng người dùng", String.valueOf(totalUsers), "+4,2% so với tuần trước");
-        var c2 = StatCardBuilder.build("Phiên đang diễn ra", String.valueOf(running), "+1,8% so với hôm qua");
+        var c1 = StatCardBuilder.build("Tổng người dùng", String.valueOf(totalUsers), "Hiện có");
+        var c2 = StatCardBuilder.build("Phiên đang diễn ra", String.valueOf(running), "Đang mở");
         var c3 = StatCardBuilder.build("Tổng doanh thu", MoneyFormatter.formatVnd(revenue), "Kỳ hiện tại");
-        var c4 = StatCardBuilder.build("Chờ duyệt", String.valueOf(pending), "Cần xử lý");
+        var c4 = StatCardBuilder.build("Chờ duyệt", "—", "Chưa có dữ liệu");
 
         HBox.setHgrow(c1, Priority.ALWAYS);
         HBox.setHgrow(c2, Priority.ALWAYS);
@@ -129,14 +124,24 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
         statCardsContainer.getChildren().addAll(c1, c2, c3, c4);
     }
 
-    private void loadMockUsers() {
+    private void loadUsers() {
         if (usersTable == null) return;
-        usersTable.getItems().setAll(
-                new MockUser("nguyenvana", "Người đấu giá", "2 phút trước", "HOẠT ĐỘNG"),
-                new MockUser("tranthib", "Người bán", "1 giờ trước", "HOẠT ĐỘNG"),
-                new MockUser("lehoangc", "Người đấu giá", "3 giờ trước", "HOẠT ĐỘNG"),
-                new MockUser("phamthid", "Người bán", "1 ngày trước", "ĐÃ KHÓA"),
-                new MockUser("buihuye", "Người đấu giá", "3 ngày trước", "HOẠT ĐỘNG")
+        RequestExecutor.send(
+                new GetAllUsersRequest(),
+                response -> {
+                    if (response instanceof GetAllUsersResult result) {
+                        switch (result) {
+                            case GetAllUsersResult.Success s -> {
+                                usersTable.getItems().setAll(s.users());
+                                totalUserCount = s.users().size();
+                                recompute();
+                            }
+                            case GetAllUsersResult.Failure f ->
+                                    AlertUtils.showError("Lỗi", "Không tải được người dùng: " + f.reason());
+                        }
+                    }
+                },
+                error -> AlertUtils.showError("Lỗi mạng", "Không tải được người dùng: " + error)
         );
     }
 
