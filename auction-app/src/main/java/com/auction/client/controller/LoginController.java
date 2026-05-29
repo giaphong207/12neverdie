@@ -1,10 +1,7 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
-import com.auction.client.util.AlertUtils;
-import com.auction.client.util.EnumFormatter;
-import com.auction.client.util.RequestExecutor;
-import com.auction.client.util.SceneStyler;
+import com.auction.client.util.*;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
@@ -46,7 +43,7 @@ public class LoginController {
                     ClientSession.setCurrentUser(user);
                     AlertUtils.showInfo("Thành công",
                             "Đăng nhập thành công với quyền " + EnumFormatter.roleVi(UserFactory.toRole(user)));
-                    navigateByRole(event, user);
+                    navigateByRole(user);
                 }
                 case LoginResult.Failure f -> {
                     AlertUtils.showError("Thất bại", f.reason());
@@ -58,37 +55,16 @@ public class LoginController {
         }
     }
 
-    private void navigateByRole(javafx.event.ActionEvent event, User user) {
-        try {
-            String fxmlPath;
-            String title;
-
-            if (user instanceof Seller) {
-                fxmlPath = "/fxml/SellerDashboard.fxml";
-                title = "AuctionHub — Người Bán";
-            } else if (user instanceof Bidder) {
-                fxmlPath = "/fxml/BidderDashboard.fxml";
-                title = "AuctionHub — Người Đấu Giá";
-            } else {
-                fxmlPath = "/fxml/AdminDashboard.fxml";
-                title = "AuctionHub — Quản trị viên";
-            }
-
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource(fxmlPath));
-            javafx.scene.Parent root = loader.load();
-            javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-
-            javafx.scene.Scene scene = new javafx.scene.Scene(root, 1280, 800);
-            SceneStyler.apply(scene);
-
-            stage.setScene(scene);
-            stage.setTitle(title);
-            stage.show();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            AlertUtils.showError("Lỗi hệ thống", "Không tải được FXML: " + e.getMessage());
+    private void navigateByRole(User user) {
+        String fxmlPath;
+        if (user instanceof Seller) {
+            fxmlPath = "/fxml/SellerDashboard.fxml";
+        } else if (user instanceof Bidder) {
+            fxmlPath = "/fxml/BidderDashboard.fxml";
+        } else {
+            fxmlPath = "/fxml/AdminDashboard.fxml";
         }
+        SceneNavigator.switchScene(fxmlPath);
     }
 
     @FXML
