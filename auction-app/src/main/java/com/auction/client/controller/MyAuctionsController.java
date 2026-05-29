@@ -4,11 +4,8 @@ import com.auction.client.context.ClientSession;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
-import com.auction.client.util.AlertUtils;
-import com.auction.client.util.AuctionCardBuilder;
-import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.*;
 import com.auction.client.util.SidebarBuilder.NavKey;
-import com.auction.client.util.TopbarBuilder;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.Bid;
 import com.auction.shared.networkMessage.AuctionEvents.*;
@@ -26,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class MyAuctionsController implements AuctionEventObserver {
+public class MyAuctionsController implements AuctionEventObserver, Disposable {
 
     @FXML private StackPane topbarContainer;
     @FXML private TabPane tabPane;
@@ -165,8 +162,11 @@ public class MyAuctionsController implements AuctionEventObserver {
     }
 
     private void handleLogout() {
-        AuctionEventBus.getInstance().removeObserver(this);
         ClientSession.clear();
         SceneNavigator.switchScene("/fxml/Login.fxml");
+    }
+    @Override
+    public void dispose() {
+        AuctionEventBus.getInstance().removeObserver(this);
     }
 }

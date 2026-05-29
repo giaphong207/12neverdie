@@ -11,6 +11,7 @@ import java.net.URL;
 public final class SceneNavigator {
 
     private static Stage stage;
+    private static Object currentController;   // ← THÊM: nhớ controller hiện tại
 
     private SceneNavigator() {
     }
@@ -27,10 +28,16 @@ public final class SceneNavigator {
                 throw new IllegalArgumentException("Cannot find FXML file: " + fxmlPath);
             }
 
-            Parent root = FXMLLoader.load(resource);
-            Scene scene = new Scene(root, 1280, 800);
+            // 1. Dọn controller cũ trước khi load scene mới
+            disposeCurrentController();
 
-            // Apply Library Bronze theme CSS — dùng SceneStyler thống nhất
+            // 2. Load FXML bằng instance loader để lấy được controller
+            FXMLLoader loader = new FXMLLoader(resource);
+            Parent root = loader.load();
+            currentController = loader.getController();   // ← THÊM: lưu lại
+
+            // 3. Phần dưới giữ nguyên như cũ
+            Scene scene = new Scene(root, 1280, 800);
             SceneStyler.apply(scene);
 
             stage.setScene(scene);
@@ -39,5 +46,22 @@ public final class SceneNavigator {
         } catch (IOException e) {
             throw new RuntimeException("Failed to load scene: " + fxmlPath, e);
         }
+    }
+
+    /**
+     * Gọi dispose() của controller hiện tại nếu nó implement Disposable.
+     * Bọc try-catch để controller dispose lỗi không làm crash app hoặc
+     * block việc chuyển scene.
+     */
+    private static void disposeCurrentController() {
+        if (currentController instanceof Disposable d) {
+            try {
+                d.dispose();
+            } catch (Exception e) {
+                System.err.println("Error disposing controller "
+                        + currentController.getClass().getSimpleName() + ": " + e.getMessage());
+            }
+        }
+        currentController = null;
     }
 }

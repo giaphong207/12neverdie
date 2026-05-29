@@ -43,7 +43,7 @@ import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
 import javafx.scene.layout.StackPane;
 import javafx.application.Platform;
-public class AuctionDetailController implements AuctionEventObserver {
+public class AuctionDetailController implements AuctionEventObserver, Disposable {
 
     @FXML private Label itemNameLabel;
     @FXML private Label descriptionLabel;
@@ -511,8 +511,10 @@ public class AuctionDetailController implements AuctionEventObserver {
         });
     }
 
+    @Override
     public void dispose() {
         AuctionEventBus.getInstance().removeObserver(this);
+        stopCountdown();
     }
     private void renderBidHistoryChart(Auction auction) {
         if (bidHistoryChart == null) {

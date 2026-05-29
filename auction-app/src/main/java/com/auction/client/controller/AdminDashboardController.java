@@ -10,6 +10,7 @@ import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
 import com.auction.client.util.StatCardBuilder;
+import com.auction.client.util.Disposable;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
@@ -25,7 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AdminDashboardController implements AuctionEventObserver {
+public class AdminDashboardController implements AuctionEventObserver, Disposable {
 
     @FXML private StackPane topbarContainer;
     @FXML private HBox statCardsContainer;
@@ -148,9 +149,12 @@ public class AdminDashboardController implements AuctionEventObserver {
     }
 
     private void handleLogout() {
-        AuctionEventBus.getInstance().removeObserver(this);
         ClientSession.clear();
         SceneNavigator.switchScene("/fxml/Login.fxml");
+    }
+    @Override
+    public void dispose() {
+        AuctionEventBus.getInstance().removeObserver(this);
     }
 
     /** Mock data type — chỉ để hiển thị trong table demo. */

@@ -10,6 +10,7 @@ import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
+import com.auction.client.util.Disposable;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.networkMessage.AuctionEvents.*;
@@ -34,7 +35,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class AuctionListController implements AuctionEventObserver {
+public class AuctionListController implements AuctionEventObserver, Disposable {
 
     @FXML private StackPane topbarContainer;
     @FXML private Label resultCountLabel;
@@ -247,8 +248,11 @@ public class AuctionListController implements AuctionEventObserver {
     }
 
     private void handleLogout() {
-        AuctionEventBus.getInstance().removeObserver(this);
         ClientSession.clear();
         SceneNavigator.switchScene("/fxml/Login.fxml");
+    }
+    @Override
+    public void dispose() {
+        AuctionEventBus.getInstance().removeObserver(this);
     }
 }

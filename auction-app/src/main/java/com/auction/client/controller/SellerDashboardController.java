@@ -6,13 +6,8 @@ import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
-import com.auction.client.util.AlertUtils;
-import com.auction.client.util.EnumFormatter;
-import com.auction.client.util.MoneyFormatter;
-import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.*;
 import com.auction.client.util.SidebarBuilder.NavKey;
-import com.auction.client.util.TopbarBuilder;
-import com.auction.client.util.StatCardBuilder;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.networkMessage.AuctionEvents.*;
@@ -31,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class SellerDashboardController implements AuctionEventObserver {
+public class SellerDashboardController implements AuctionEventObserver, Disposable {
 
     @FXML private StackPane topbarContainer;
     @FXML private HBox statCardsContainer;
@@ -210,13 +205,17 @@ public class SellerDashboardController implements AuctionEventObserver {
     }
 
     private void handleLogout() {
-        AuctionEventBus.getInstance().removeObserver(this);
         ClientSession.clear();
         SceneNavigator.switchScene("/fxml/Login.fxml");
+    }
+    @Override
+    public void dispose() {
+        AuctionEventBus.getInstance().removeObserver(this);
     }
 
     private String shortId(String id) {
         if (id == null) return "---";
         return id.length() > 6 ? id.substring(0, 6).toUpperCase() : id.toUpperCase();
     }
+
 }
