@@ -117,11 +117,6 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         }
     }
 
-    private void handleLogout() {
-        ClientSession.clear();
-        SceneNavigator.switchScene("/fxml/Login.fxml");
-    }
-
     public void loadAuction(String auctionId) {
         this.currentAuctionId = auctionId;
         this.expiredHandled = false;
@@ -283,8 +278,6 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     }
 
     public void onBackClicked() {
-        stopCountdown();
-        AuctionEventBus.getInstance().removeObserver(this); // Anti - sniping dùng ở đây
         SceneNavigator.switchScene("/fxml/AuctionList.fxml");
     }
 
@@ -509,6 +502,11 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             // Khởi động countdown (tự pick startTime hoặc endTime tùy status)
             startCountdown();
         });
+    }
+
+    private void handleLogout() {
+        ClientSession.clear();
+        SceneNavigator.switchScene("/fxml/Login.fxml");
     }
 
     @Override
