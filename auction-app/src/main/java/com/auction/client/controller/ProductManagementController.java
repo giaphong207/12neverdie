@@ -1,11 +1,7 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
-import com.auction.client.main.ClientApp;
-import com.auction.client.network.ServerMessageListener;
-import com.auction.client.network.ServerConnection;
-import com.auction.client.util.AlertUtils;
-import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.*;
 import com.auction.shared.factory.ItemFactory;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.item.ItemType;
@@ -14,15 +10,11 @@ import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
 
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
-import com.auction.client.util.EnumFormatter;
-import com.auction.client.util.MoneyFormatter;
 import com.auction.client.util.SidebarBuilder.NavKey;
-import com.auction.client.util.TopbarBuilder;
 import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 
@@ -143,24 +135,11 @@ public class ProductManagementController {
             return;
         }
 
-        new Thread(() -> {
-            try {
-                ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.sendAndWait(new GetSellerItemsRequest(currentUser.getId()), 10_000);
-
-                if (response == null) {
-                    Platform.runLater(() ->
-                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
-                    return;
-                }
-
-                Platform.runLater(() -> handleGetSellerItemsResult(response));
-            } catch (Exception e) {
-                e.printStackTrace();
-                Platform.runLater(() ->
-                        AlertUtils.showError("Lỗi mạng", "Không tải được danh sách: " + e.getMessage()));
-            }
-        }).start();
+        RequestExecutor.send(
+                new GetSellerItemsRequest(currentUser.getId()),
+                this::handleGetSellerItemsResult,
+                error -> AlertUtils.showError("Lỗi mạng", "Không tải được danh sách: " + error)
+        );
     }
 
     private void handleGetSellerItemsResult(Object response) {
@@ -229,32 +208,15 @@ public class ProductManagementController {
             return;
         }
 
-        final java.time.LocalDateTime startTimeFinal = startTime;
-        final java.time.LocalDateTime endTimeFinal = endTime;
         lastSentStart = startTime;
         lastSentEnd = endTime;
 
-        // Gửi request qua server
-        new Thread(() -> {
-            try {
-                ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.sendAndWait(
-                        new AddItemRequest(name, description, startPrice, type, currentUser.getId(),
-                                startTimeFinal, endTimeFinal), 10_000);
-
-                if (response == null) {
-                    Platform.runLater(() ->
-                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
-                    return;
-                }
-
-                Platform.runLater(() -> handleAddItemResult(response));
-            } catch (Exception e) {
-                e.printStackTrace();
-                Platform.runLater(() ->
-                        AlertUtils.showError("Lỗi mạng", "Không gửi được: " + e.getMessage()));
-            }
-        }).start();
+        RequestExecutor.send(
+                new AddItemRequest(name, description, startPrice, type,
+                        currentUser.getId(), startTime, endTime),
+                this::handleAddItemResult,
+                error -> AlertUtils.showError("Lỗi mạng", "Không gửi được: " + error)
+        );
     }
 
     private void handleAddItemResult(Object response) {
@@ -295,26 +257,12 @@ public class ProductManagementController {
             return;
         }
 
-        new Thread(() -> {
-            try {
-                ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.sendAndWait(
-                        new UpdateItemRequest(selectedItem.getId(), name, description,
-                                startPrice, type, currentUser.getId()), 10_000);
-
-                if (response == null) {
-                    Platform.runLater(() ->
-                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
-                    return;
-                }
-
-                Platform.runLater(() -> handleUpdateItemResult(response));
-            } catch (Exception e) {
-                e.printStackTrace();
-                Platform.runLater(() ->
-                        AlertUtils.showError("Lỗi mạng", e.getMessage()));
-            }
-        }).start();
+        RequestExecutor.send(
+                new UpdateItemRequest(selectedItem.getId(), name, description,
+                        startPrice, type, currentUser.getId()),
+                this::handleUpdateItemResult,
+                error -> AlertUtils.showError("Lỗi mạng", error)
+        );
     }
 
     private void handleUpdateItemResult(Object response) {
@@ -341,25 +289,11 @@ public class ProductManagementController {
 
         String itemId = selectedItem.getId();
 
-        new Thread(() -> {
-            try {
-                ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.sendAndWait(
-                        new DeleteItemRequest(itemId, selectedItem.getSellerId()), 10_000);
-
-                if (response == null) {
-                    Platform.runLater(() ->
-                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
-                    return;
-                }
-
-                Platform.runLater(() -> handleDeleteItemResult(response));
-            } catch (Exception e) {
-                e.printStackTrace();
-                Platform.runLater(() ->
-                        AlertUtils.showError("Lỗi mạng", e.getMessage()));
-            }
-        }).start();
+        RequestExecutor.send(
+                new DeleteItemRequest(itemId, selectedItem.getSellerId()),
+                this::handleDeleteItemResult,
+                error -> AlertUtils.showError("Lỗi mạng", error)
+        );
     }
 
     private void handleDeleteItemResult(Object response) {

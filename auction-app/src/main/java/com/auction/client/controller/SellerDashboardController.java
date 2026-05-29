@@ -1,8 +1,6 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
-import com.auction.client.main.ClientApp;
-import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
@@ -93,17 +91,9 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
         var user = ClientSession.getCurrentUser();
         if (user == null) return;
 
-        new Thread(() -> {
-            try {
-                ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.sendAndWait(new GetSellerItemsRequest(user.getId()), 10_000);
-
-                if (response == null) {
-                    System.err.println("Hết thời gian chờ khi tải số lượng sản phẩm.");
-                    return;
-                }
-
-                Platform.runLater(() -> {
+        RequestExecutor.send(
+                new GetSellerItemsRequest(user.getId()),
+                response -> {
                     if (response instanceof GetSellerItemsResult result) {
                         switch (result) {
                             case GetSellerItemsResult.Success s -> {
@@ -111,16 +101,13 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
                                 sellerItemCount = items == null ? 0 : items.size();
                                 recompute();
                             }
-                            case GetSellerItemsResult.Failure f -> {
-                                System.err.println("Không load được items: " + f.reason());
-                            }
+                            case GetSellerItemsResult.Failure f ->
+                                    System.err.println("Không load được items: " + f.reason());
                         }
                     }
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+                },
+                error -> System.err.println("Không tải được số lượng sản phẩm: " + error)
+        );
     }
 
     @Override

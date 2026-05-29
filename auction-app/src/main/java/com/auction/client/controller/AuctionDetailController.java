@@ -349,6 +349,7 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             return;
         }
 
+        // === Phần 1: Validate (giữ nguyên) ===
         User currentUser = ClientSession.getCurrentUser();
         if (currentUser == null) {
             AlertUtils.showWarning("Chưa đăng nhập", "Vui lòng đăng nhập để dùng đấu giá tự động.");
@@ -359,10 +360,10 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             return;
         }
 
-        // Mở dialog nhập giá trần + bước giá
+        // === Phần 2: Mở dialog, nếu Cancel thì dừng (giữ nguyên) ===
         var result = AutoBidDialogFactory.showDialog();
         if (result.isEmpty()) {
-            return;  // user bấm Cancel hoặc nhập sai định dạng
+            return;
         }
         final long maxAmount = result.get().maxAmount;
         final long increment = result.get().increment;
@@ -370,15 +371,14 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         final String auctionId = currentAuction.getId();
         final String bidderId  = currentUser.getId();
 
-        messageLabel.setText("Đang thiết lập đấu giá tự động...");
-
+        // === Phần 3: Báo "đang chờ" + gửi qua RequestExecutor ===
         messageLabel.setText("Đang thiết lập đấu giá tự động...");
 
         RequestExecutor.send(
                 new SetAutoBidRequest(auctionId, bidderId, maxAmount, increment),
-                response -> handleSetAutoBidResponse(response),
+                this::handleSetAutoBidResponse,
                 error -> {
-                    AlertUtils.showError("Thiết lập thất bại", error);
+                    AlertUtils.showError("Đấu giá tự động thất bại", error);
                     messageLabel.setText("");
                 }
         );

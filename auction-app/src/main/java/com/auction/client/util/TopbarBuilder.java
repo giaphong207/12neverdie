@@ -4,16 +4,12 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.auction.client.context.ClientSession;
-import com.auction.client.main.ClientApp;
-import com.auction.client.network.ServerConnection;
-import com.auction.client.network.ServerMessageListener;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.Requests.DepositRequest;
 import com.auction.shared.networkMessage.Results.DepositResult;
 
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -133,24 +129,9 @@ public final class TopbarBuilder {
             return;
         }
 
-        new Thread(() -> {
-            try {
-                ServerMessageListener listener = ClientApp.getListener();
-                if (listener == null) {
-                    Platform.runLater(() ->
-                            AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo"));
-                    return;
-                }
-
-                Object response = listener.sendAndWait(
-                        new DepositRequest(user.getId(), amount), 10_000);
-
-                if (response == null) {
-                    Platform.runLater(() ->
-                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
-                    return;
-                }
-                Platform.runLater(() -> {
+        RequestExecutor.send(
+                new DepositRequest(user.getId(), amount),
+                response -> {
                     if (response instanceof DepositResult.Success ok) {
                         ClientSession.setBalance(ok.newBalance());
                         AlertUtils.showInfo("Thành công",
@@ -159,13 +140,9 @@ public final class TopbarBuilder {
                     } else if (response instanceof DepositResult.Failure f) {
                         AlertUtils.showError("Nạp thất bại", f.reason());
                     }
-                });
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                Platform.runLater(() ->
-                        AlertUtils.showError("Lỗi mạng", "Không gửi được yêu cầu: " + ex.getMessage()));
-            }
-        }).start();
+                },
+                error -> AlertUtils.showError("Lỗi mạng", "Không gửi được yêu cầu: " + error)
+        );
     }
 
     private static String portalLabelFor(User user) {
