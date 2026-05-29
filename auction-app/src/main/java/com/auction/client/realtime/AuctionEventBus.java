@@ -3,6 +3,9 @@ package com.auction.client.realtime;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.auction.shared.networkMessage.AuctionEvents.*;
 
 import javafx.application.Platform;
@@ -10,7 +13,7 @@ import javafx.application.Platform;
 /**
  * EventBus quản lý việc phát sự kiện đấu giá theo Observer Pattern.
  * Sử dụng Singleton pattern và thread-safe.
- * 
+ *
  * Luồng hoạt động:
  * 1. RealtimeListener nhận AuctionUpdateEvent từ server
  * 2. Gọi publish(event)
@@ -19,16 +22,18 @@ import javafx.application.Platform;
  */
 public final class AuctionEventBus {
 
+    private static final Logger log = LoggerFactory.getLogger(AuctionEventBus.class);
+
     private static volatile AuctionEventBus instance;
-    
+
     private final List<AuctionEventObserver> observers = new CopyOnWriteArrayList<>();
 
     private AuctionEventBus() {}
 
-    public static  AuctionEventBus getInstance() {
+    public static AuctionEventBus getInstance() {
         if (instance == null) {
-            synchronized (AuctionEventBus.class){
-                if (instance == null){
+            synchronized (AuctionEventBus.class) {
+                if (instance == null) {
                     instance = new AuctionEventBus();
                 }
             }
@@ -39,14 +44,13 @@ public final class AuctionEventBus {
     public void addObserver(AuctionEventObserver observer) {
         if (observer != null && !observers.contains(observer)) {
             observers.add(observer);
-            System.out.println("Đăng ký observer: " + observer.getClass().getSimpleName());
+            log.info("+1 {} | total = {}", observer.getClass().getSimpleName(), observers.size());
         }
     }
 
     public void removeObserver(AuctionEventObserver observer) {
-        if (observer != null) {
-            observers.remove(observer);
-            System.out.println("Hủy đăng ký observer: " + observer.getClass().getSimpleName());
+        if (observer != null && observers.remove(observer)) {
+            log.info("-1 {} | total = {}", observer.getClass().getSimpleName(), observers.size());
         }
     }
 
@@ -55,16 +59,15 @@ public final class AuctionEventBus {
             return;
         }
 
-        System.out.println("Phát AuctionUpdateEvent cho " + observers.size() + " observer");
+        log.debug("publish to {} observers", observers.size());
 
         Platform.runLater(() -> {
             for (AuctionEventObserver observer : observers) {
                 try {
                     observer.onAuctionEvent(event);
                 } catch (Exception e) {
-                    System.err.println("Lỗi cập nhật observer " 
-                            + observer.getClass().getSimpleName() + ": " + e.getMessage());
-                    e.printStackTrace();
+                    log.error("Lỗi cập nhật observer {}",
+                            observer.getClass().getSimpleName(), e);
                 }
             }
         });
