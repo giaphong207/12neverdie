@@ -1,16 +1,13 @@
 package com.auction.client.controller;
 
-import com.auction.client.main.ClientApp;
-import com.auction.client.network.ServerMessageListener;
-import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
+import com.auction.client.util.RequestExecutor;
 import com.auction.client.util.SceneStyler;
 
 import com.auction.shared.model.user.Role;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
 
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
@@ -58,31 +55,11 @@ public class RegisterController {
             return;
         }
 
-        new Thread(() -> {
-            try {
-                ServerMessageListener listener = ClientApp.getListener();
-                if (listener == null) {
-                    Platform.runLater(() ->
-                            AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo"));
-                    return;
-                }
-
-                Object response = listener.sendAndWait(
-                        new RegisterRequest(username, password, role), 10_000);
-
-                if (response == null) {
-                    Platform.runLater(() ->
-                            AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại."));
-                    return;
-                }
-                Platform.runLater(() -> handleRegisterResult(response, event));
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                Platform.runLater(() ->
-                        AlertUtils.showError("Lỗi mạng", "Không gửi được yêu cầu: " + e.getMessage()));
-            }
-        }).start();
+        RequestExecutor.send(
+                new RegisterRequest(username, password, role),
+                response -> handleRegisterResult(response, event),
+                error -> AlertUtils.showError("Đăng ký thất bại", error)
+        );
     }
 
     private void handleRegisterResult(Object response, javafx.event.ActionEvent event) {

@@ -312,53 +312,18 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         bidAmountField.clear();
         messageLabel.setText("Đã gửi yêu cầu đặt giá. Đang chờ server xử lý...");
 
-        // === Phần 3: Gửi request + đợi response trên thread riêng ===
+        // === Phần 3: Gửi request qua RequestExecutor ===
         final String auctionId = currentAuction.getId();
         final String bidderId = currentUser.getId();
 
-        new Thread(() -> {
-            try {
-                ServerMessageListener listener = ClientApp.getListener();
-                if (listener == null) {
-                    Platform.runLater(() -> {
-                        AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo");
-                        messageLabel.setText("");
-                    });
-                    return;
+        RequestExecutor.send(
+                new BidRequest(auctionId, bidderId, amount),
+                response -> handleBidResult(response),
+                error -> {
+                    AlertUtils.showError("Đặt giá thất bại", error);
+                    messageLabel.setText("");
                 }
-
-                Object response = listener.sendAndWait(
-                        new BidRequest(auctionId, bidderId, amount), 10_000);
-
-                if (response == null) {
-                    Platform.runLater(() -> {
-                        AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại.");
-                        messageLabel.setText("");
-                    });
-                    return;
-                }
-
-                Platform.runLater(() -> handleBidResult(response));
-
-            } catch (IOException ex) {
-                Platform.runLater(() -> {
-                    AlertUtils.showError("Lỗi kết nối", "Không gửi được yêu cầu: " + ex.getMessage());
-                    messageLabel.setText("");
-                });
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                Platform.runLater(() -> {
-                    AlertUtils.showError("Bị gián đoạn", "Yêu cầu bị huỷ.");
-                    messageLabel.setText("");
-                });
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                Platform.runLater(() -> {
-                    AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
-                    messageLabel.setText("");
-                });
-            }
-        }).start();
+        );
     }
 
     private void handleBidResult(Object response) {
@@ -407,49 +372,16 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
 
         messageLabel.setText("Đang thiết lập đấu giá tự động...");
 
-        new Thread(() -> {
-            try {
-                ServerMessageListener listener = ClientApp.getListener();
-                if (listener == null) {
-                    Platform.runLater(() -> {
-                        AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo");
-                        messageLabel.setText("");
-                    });
-                    return;
+        messageLabel.setText("Đang thiết lập đấu giá tự động...");
+
+        RequestExecutor.send(
+                new SetAutoBidRequest(auctionId, bidderId, maxAmount, increment),
+                response -> handleSetAutoBidResponse(response),
+                error -> {
+                    AlertUtils.showError("Thiết lập thất bại", error);
+                    messageLabel.setText("");
                 }
-
-                Object response = listener.sendAndWait(
-                        new SetAutoBidRequest(auctionId, bidderId, maxAmount, increment), 10_000);
-
-                if (response == null) {
-                    Platform.runLater(() -> {
-                        AlertUtils.showError("Hết thời gian chờ", "Server không phản hồi. Vui lòng thử lại.");
-                        messageLabel.setText("");
-                    });
-                    return;
-                }
-
-                Platform.runLater(() -> handleSetAutoBidResponse(response));
-
-            } catch (IOException ex) {
-                Platform.runLater(() -> {
-                    AlertUtils.showError("Lỗi kết nối", "Không gửi được yêu cầu: " + ex.getMessage());
-                    messageLabel.setText("");
-                });
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                Platform.runLater(() -> {
-                    AlertUtils.showError("Bị gián đoạn", "Yêu cầu bị huỷ.");
-                    messageLabel.setText("");
-                });
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                Platform.runLater(() -> {
-                    AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
-                    messageLabel.setText("");
-                });
-            }
-        }).start();
+        );
     }
 
     private void handleSetAutoBidResponse(Object response) {
