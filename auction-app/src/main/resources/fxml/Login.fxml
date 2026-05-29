@@ -45,8 +45,6 @@
                 <PasswordField fx:id="txtPassword" promptText="Nhập mật khẩu"/>
             </VBox>
 
-            <CheckBox fx:id="chkRemember" text="Ghi nhớ đăng nhập"/>
-
             <Button text="Đăng nhập"
                     styleClass="btn-primary"
                     onAction="#onLoginClicked"

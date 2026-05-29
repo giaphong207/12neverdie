@@ -13,7 +13,6 @@ import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 
@@ -21,7 +20,6 @@ public class LoginController {
 
     @FXML private TextField txtUsername;
     @FXML private PasswordField txtPassword;
-    @FXML private CheckBox chkRemember;
 
     @FXML
     public void onLoginClicked(javafx.event.ActionEvent event) {
