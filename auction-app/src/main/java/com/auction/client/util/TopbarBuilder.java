@@ -10,7 +10,8 @@ import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.Requests.DepositRequest;
 import com.auction.shared.networkMessage.Results.DepositResult;
 
-import javafx.beans.binding.Bindings;
+import javafx.beans.InvalidationListener;
+import javafx.beans.WeakInvalidationListener;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -72,10 +73,16 @@ public final class TopbarBuilder {
         walletCaption.getStyleClass().add("topbar-role");
         Label walletAmountLabel = new Label();
         walletAmountLabel.getStyleClass().add("topbar-wallet");
-        walletAmountLabel.textProperty().bind(
-                Bindings.createStringBinding(
-                        () -> MoneyFormatter.formatVnd(ClientSession.balanceProperty().get()),
-                        ClientSession.balanceProperty()));
+
+// Hiển thị số dư hiện tại + cập nhật khi balance đổi,
+// nhưng KHÔNG để balanceProperty (tĩnh, sống mãi) giữ chặt label này.
+        Runnable refreshWallet = () -> walletAmountLabel.setText(
+                MoneyFormatter.formatVnd(ClientSession.balanceProperty().get()));
+        refreshWallet.run(); // set giá trị ban đầu ngay
+
+        InvalidationListener walletListener = obs -> refreshWallet.run();
+        walletAmountLabel.getProperties().put("walletBalanceListener", walletListener); // giữ listener sống bằng tuổi label
+        ClientSession.balanceProperty().addListener(new WeakInvalidationListener(walletListener));
         walletBox.getChildren().addAll(walletCaption, walletAmountLabel);
 
         Button depositBtn = new Button("Nạp tiền");
