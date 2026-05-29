@@ -154,7 +154,7 @@ public class DefaultBidService implements BidService {
                         auction.getId(), extendedSeconds);
             }
 
-            return new BidOutcome(auction, manualBid);
+            return new BidOutcome(auction, manualBid, extendedSeconds);
 
         } finally {
             lock.unlock();

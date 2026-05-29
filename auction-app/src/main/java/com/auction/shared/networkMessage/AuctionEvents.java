@@ -35,8 +35,13 @@ public class AuctionEvents {
         }
     }
     public static class AuctionExtendedEvent extends AuctionEvent {
-        public AuctionExtendedEvent(Auction auction) {
+        private final long extendedSeconds;
+        public AuctionExtendedEvent(Auction auction, long extendedSeconds) {
             super(auction);
+            this.extendedSeconds = extendedSeconds;
+        }
+        public long getExtendedSeconds() {
+            return extendedSeconds;
         }
     }
     public static class AuctionEndedEvent extends AuctionEvent {

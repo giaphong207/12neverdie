@@ -157,6 +157,10 @@ public class ClientHandler implements Runnable, EventReceiver {
             // ai vừa bid bao nhiêu (không chỉ thấy giá đổi)
             broadcaster.broadcast(new BidPlacedEvent(result.auction(), result.bid()));
 
+            if (result.extendedSeconds() > 0) {
+                broadcaster.broadcast(new AuctionExtendedEvent(result.auction(), result.extendedSeconds()));
+            }
+
         } catch (AppException ex) {
             send(new BidResult.Failure(ex.getMessage()));
         }catch (Exception ex) {

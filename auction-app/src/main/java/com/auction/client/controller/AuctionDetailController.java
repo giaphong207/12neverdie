@@ -431,6 +431,10 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
 
             // Khởi động countdown (tự pick startTime hoặc endTime tùy status)
             startCountdown();
+            if (event instanceof AuctionExtendedEvent ext) {
+                messageLabel.setText("Phiên được gia hạn thêm " + ext.getExtendedSeconds()
+                        + " giây do có người đấu giá phút chót!");
+            }
         });
     }
 
