@@ -121,8 +121,6 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         this.currentAuctionId = auctionId;
         this.expiredHandled = false;
 
-        AuctionEventBus.getInstance().addObserver(this);
-
         try {
             ServerConnection.getInstance()
                     .send(new SubscribeAuctionRequest(auctionId));
