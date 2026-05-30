@@ -89,13 +89,15 @@
                         <!-- Tabs: Lịch sử + Biểu đồ -->
                         <TabPane tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
                             <Tab text="LỊCH SỬ ĐẤU GIÁ">
-                                <ListView fx:id="bidHistoryListView"/>
+                                <ListView fx:id="bidHistoryListView" prefHeight="320"/>
                             </Tab>
                             <Tab text="BIỂU ĐỒ GIÁ">
                                 <LineChart fx:id="bidHistoryChart"
                                            createSymbols="true"
                                            legendVisible="false"
-                                           animated="false">
+                                           animated="false"
+                                           prefHeight="320"
+                                           minHeight="300">
                                     <xAxis>
                                         <CategoryAxis fx:id="bidTimeAxis" label="Thời gian"/>
                                     </xAxis>
@@ -152,8 +154,8 @@
                                     onAction="#onPlaceBidClicked"
                                     maxWidth="Infinity"/>
 
-                            <Button text="Đấu giá tự động"
-                                    styleClass="btn-secondary"
+                            <Button text="🤖  Đấu giá tự động"
+                                    styleClass="btn-outline"
                                     onAction="#onConfigureAutoBidClicked"
                                     maxWidth="Infinity"/>
                         </VBox>

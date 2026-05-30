@@ -13,6 +13,7 @@ import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
@@ -213,8 +214,9 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             } else {
                 for (int i = bids.size() - 1; i >= 0; i--) {
                     Bid b = bids.get(i);
+                    String auto = b.getSource() == BidSource.AUTO ? "  (AUTO)" : "";
                     bidHistoryListView.getItems().add(
-                            b.getBidderId() + "   →   " + MoneyFormatter.formatVnd(b.getAmount())
+                            b.getBidderId() + auto + "   →   " + MoneyFormatter.formatVnd(b.getAmount())
                     );
                 }
             }
