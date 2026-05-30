@@ -16,7 +16,10 @@ public class Bid implements Serializable {
     private final LocalDateTime createdAt;
     private final BidSource source; // tuần 5 thêm
 
-    //Constructor đầy đủ 
+    /** Tên người đặt giá — display field, server enrich trước khi gửi (KHÔNG lưu DB). */
+    private String bidderName;
+
+    //Constructor đầy đủ
     public Bid(String id, String auctionId, String bidderId,
                long amount, LocalDateTime createdAt, BidSource source) {
         if (id == null || id.isBlank())
@@ -62,6 +65,14 @@ public class Bid implements Serializable {
 
     public BidSource getSource() {
         return source;
+    }
+
+    public String getBidderName() {
+        return bidderName;
+    }
+
+    public void setBidderName(String bidderName) {
+        this.bidderName = bidderName;
     }
 
     public static Bid createNew(String auctionId, String bidderId,

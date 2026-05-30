@@ -37,4 +37,22 @@ public class DefaultWalletService implements WalletService {
         userDao.updateBalance(userId, updated);
         return updated;
     }
+
+    @Override
+    public boolean settlePayment(String winnerId, String sellerId, long amount) {
+        if (amount <= 0) {
+            return true; // không có gì để chuyển
+        }
+        User winner = userDao.findById(winnerId)
+                .orElseThrow(() -> new DataAccessException("Không tìm thấy winner id=" + winnerId));
+        if (winner.getBalance() < amount) {
+            return false; // winner không đủ tiền → không trừ/cộng gì
+        }
+        User seller = userDao.findById(sellerId)
+                .orElseThrow(() -> new DataAccessException("Không tìm thấy seller id=" + sellerId));
+
+        userDao.updateBalance(winnerId, winner.getBalance() - amount);
+        userDao.updateBalance(sellerId, seller.getBalance() + amount);
+        return true;
+    }
 }

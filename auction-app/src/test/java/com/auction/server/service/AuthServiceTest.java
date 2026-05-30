@@ -1,6 +1,8 @@
 package com.auction.server.service;
 
 import com.auction.server.dao.UserDao;
+import com.auction.shared.exception.AppExceptions.AuthenticationException;
+import com.auction.shared.exception.AppExceptions.DuplicateUsernameException;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
@@ -37,10 +39,11 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Register username trùng trả null")
-    void register_duplicate_returns_null() {
+    @DisplayName("Register username trùng ném DuplicateUsernameException")
+    void register_duplicate_throws() {
         authService.register("bob", "pwd", Role.BIDDER);
-        assertNull(authService.register("bob", "other", Role.SELLER));
+        assertThrows(DuplicateUsernameException.class,
+                () -> authService.register("bob", "other", Role.SELLER));
     }
 
     @Test
@@ -53,24 +56,26 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Login sai password trả null")
-    void login_wrong_password_returns_null() {
+    @DisplayName("Login sai password ném AuthenticationException")
+    void login_wrong_password_throws() {
         authService.register("dave", "right", Role.BIDDER);
-        assertNull(authService.login("dave", "wrong"));
+        assertThrows(AuthenticationException.class,
+                () -> authService.login("dave", "wrong"));
     }
 
     @Test
-    @DisplayName("Login user không tồn tại trả null")
-    void login_unknown_user_returns_null() {
-        assertNull(authService.login("ghost", "anything"));
+    @DisplayName("Login user không tồn tại ném AuthenticationException")
+    void login_unknown_user_throws() {
+        assertThrows(AuthenticationException.class,
+                () -> authService.login("ghost", "anything"));
     }
 
     @Test
-    @DisplayName("Login với input null/empty không crash")
+    @DisplayName("Login với input null/empty ném AuthenticationException")
     void login_null_inputs() {
-        assertNull(authService.login(null, "pwd"));
-        assertNull(authService.login("user", null));
-        assertNull(authService.login(null, null));
+        assertThrows(AuthenticationException.class, () -> authService.login(null, "pwd"));
+        assertThrows(AuthenticationException.class, () -> authService.login("user", null));
+        assertThrows(AuthenticationException.class, () -> authService.login(null, null));
     }
 
     @Test

@@ -25,6 +25,7 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
     private final AuctionDao auctionDao;
     private final EventBroadcaster broadcaster;
     private final AuctionLockManager lockManager;
+    private final WalletService walletService;
 
     /** 2 thread đủ cho task ngắn (chỉ load + transition + save + broadcast). */
     private final ScheduledExecutorService scheduler =
@@ -37,10 +38,12 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
 
     public DefaultAuctionLifecycleService(AuctionDao auctionDao,
                                           EventBroadcaster broadcaster,
-                                          AuctionLockManager lockManager) {
+                                          AuctionLockManager lockManager,
+                                          WalletService walletService) {
         this.auctionDao = auctionDao;
         this.broadcaster = broadcaster;
         this.lockManager = lockManager;
+        this.walletService = walletService;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -117,8 +120,8 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
             auctionDao.save(a);
             broadcaster.broadcast(new AuctionEndedEvent(a));
 
-            // Chain: FINISHED → schedule payment timeout
-            schedulePaymentTimeout(a);
+            // FINISHED → thanh toán tự động (PAID), hoặc giữ FINISHED nếu winner thiếu tiền
+            settleOrSchedule(a);
         } finally {
             lock.unlock();
             closeTasks.remove(auctionId);
@@ -139,6 +142,32 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
         } finally {
             lock.unlock();
             paymentTimeoutTasks.remove(auctionId);
+        }
+    }
+
+    /**
+     * Thanh toán TỰ ĐỘNG ngay khi phiên vừa FINISHED (phải gọi khi đang giữ lock):
+     * - Không có người đặt giá → giữ FINISHED, không thanh toán.
+     * - Winner đủ tiền → trừ winner + cộng seller → PAID + broadcast AuctionPaidEvent.
+     * - Winner thiếu tiền → giữ FINISHED + log + hẹn timeout (huỷ sau nếu vẫn chưa trả).
+     */
+    private void settleOrSchedule(Auction a) {
+        String winnerId = a.getHighestBidderId();
+        if (winnerId == null) {
+            log.info("Phiên {} kết thúc không có người đặt giá → giữ FINISHED.", a.getId());
+            return;
+        }
+        boolean paid = walletService.settlePayment(winnerId, a.getSellerId(), a.getCurrentPrice());
+        if (paid) {
+            a.markPaid();
+            auctionDao.save(a);
+            broadcaster.broadcast(new AuctionPaidEvent(a));
+            log.info("Phiên {} thanh toán tự động OK: winner {} → seller {} ({}).",
+                    a.getId(), winnerId, a.getSellerId(), a.getCurrentPrice());
+        } else {
+            log.warn("Winner {} không đủ tiền cho phiên {} ({}) → giữ FINISHED, hẹn timeout.",
+                    winnerId, a.getId(), a.getCurrentPrice());
+            schedulePaymentTimeout(a);
         }
     }
 
@@ -189,7 +218,7 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
             a.finish();
             auctionDao.save(a);
             broadcaster.broadcast(new AuctionEndedEvent(a));
-            schedulePaymentTimeout(a);
+            settleOrSchedule(a);
             return a;
         } finally {
             lock.unlock();

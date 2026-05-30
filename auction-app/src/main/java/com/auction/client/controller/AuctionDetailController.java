@@ -13,6 +13,7 @@ import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
@@ -29,8 +30,13 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.geometry.Pos;
 import javafx.util.Duration;
 
 import java.io.IOException;
@@ -59,7 +65,7 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     @FXML private TextField bidAmountField;
     @FXML private Label minBidLabel;
     @FXML private Label highestBidderLabel;
-    @FXML private ListView<String> bidHistoryListView;
+    @FXML private ListView<Bid> bidHistoryListView;
     @FXML private StackPane topbarContainer;
 
     private Auction currentAuction;
@@ -85,6 +91,44 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
                     this::handleLogout
             );
             topbarContainer.getChildren().add(topbar);
+        }
+
+        // Cấu hình list lịch sử: mỗi dòng = tên (trái) + nhãn AUTO + số tiền (phải)
+        if (bidHistoryListView != null) {
+            bidHistoryListView.setPlaceholder(new Label("Chưa có ai đặt giá."));
+            bidHistoryListView.setCellFactory(lv -> new ListCell<>() {
+                @Override protected void updateItem(Bid b, boolean empty) {
+                    super.updateItem(b, empty);
+                    if (empty || b == null) {
+                        setGraphic(null);
+                        setText(null);
+                        return;
+                    }
+                    String name = (b.getBidderName() != null && !b.getBidderName().isBlank())
+                            ? b.getBidderName() : b.getBidderId();
+                    Label nameLabel = new Label(name);
+                    nameLabel.getStyleClass().add("text-body");
+
+                    HBox row = new HBox(8);
+                    row.setAlignment(Pos.CENTER_LEFT);
+                    row.getChildren().add(nameLabel);
+
+                    if (b.getSource() == BidSource.AUTO) {
+                        Label autoTag = new Label("AUTO");
+                        autoTag.getStyleClass().add("auto-tag");
+                        row.getChildren().add(autoTag);
+                    }
+
+                    Region spacer = new Region();
+                    HBox.setHgrow(spacer, Priority.ALWAYS);
+                    Label amount = new Label(MoneyFormatter.formatVnd(b.getAmount()));
+                    amount.getStyleClass().add("bid-amount");
+                    row.getChildren().addAll(spacer, amount);
+
+                    setGraphic(row);
+                    setText(null);
+                }
+            });
         }
 
         AuctionEventBus.getInstance().addObserver(this);
@@ -206,17 +250,11 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         }
 
         if (bidHistoryListView != null) {
-            bidHistoryListView.getItems().clear();
             List<Bid> bids = auction.getBidHistory();
-            if (bids.isEmpty()) {
-                bidHistoryListView.getItems().add("Chưa có ai đặt giá.");
-            } else {
-                for (int i = bids.size() - 1; i >= 0; i--) {
-                    Bid b = bids.get(i);
-                    bidHistoryListView.getItems().add(
-                            b.getBidderId() + "   →   " + MoneyFormatter.formatVnd(b.getAmount())
-                    );
-                }
+            // Mới nhất lên trên
+            bidHistoryListView.getItems().clear();
+            for (int i = bids.size() - 1; i >= 0; i--) {
+                bidHistoryListView.getItems().add(bids.get(i));
             }
         }
     }
@@ -468,6 +506,19 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             if (event instanceof AuctionExtendedEvent ext) {
                 messageLabel.setText("Phiên được gia hạn thêm " + ext.getExtendedSeconds()
                         + " giây do có người đấu giá phút chót!");
+            } else if (event instanceof AuctionCancelledEvent) {
+                messageLabel.setText("⚠ Phiên đấu giá đã bị huỷ.");
+                AlertUtils.showWarning("Phiên bị huỷ",
+                        "Phiên đấu giá này đã bị huỷ. Bạn không thể đặt giá nữa.");
+            } else if (event instanceof AuctionEndedEvent) {
+                String winner = updated.getHighestBidderName();
+                String msg = (winner != null && !winner.isBlank())
+                        ? "Phiên đã kết thúc. Người thắng: " + winner
+                        : "Phiên đã kết thúc. Không có người thắng.";
+                messageLabel.setText(msg);
+                AlertUtils.showInfo("Phiên kết thúc", msg);
+            } else if (event instanceof AuctionPaidEvent) {
+                messageLabel.setText("✓ Phiên đã thanh toán xong.");
             }
         });
     }

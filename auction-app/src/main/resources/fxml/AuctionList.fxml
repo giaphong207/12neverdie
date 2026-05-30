@@ -44,7 +44,7 @@
                 <!-- === FILTER BAR === -->
                 <HBox spacing="16" alignment="CENTER_LEFT">
                     <TextField fx:id="searchField"
-                               promptText="Tìm theo mã LOT..."
+                               promptText="Tìm theo mã phiên..."
                                prefWidth="280"/>
                     <ChoiceBox fx:id="statusFilter" prefWidth="200"/>
                     <ChoiceBox fx:id="typeFilter" prefWidth="200"/>

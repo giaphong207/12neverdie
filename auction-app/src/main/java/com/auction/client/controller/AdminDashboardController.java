@@ -18,8 +18,12 @@ import com.auction.shared.model.auction.Auction;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
+import com.auction.shared.model.user.Role;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
@@ -39,6 +43,8 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
     @FXML private TableColumn<UserRow, String> colUserRole;
 
     private long totalUserCount = 0;
+    private long sellerCount = 0;
+    private long bidderCount = 0;
     private final List<Auction> allAuctions = new ArrayList<>();
 
     @FXML
@@ -57,14 +63,45 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
         if (colUserName != null) {
             colUserName.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(c.getValue().username()));
+            // Avatar tròn chữ tắt + tên
+            colUserName.setCellFactory(col -> new TableCell<>() {
+                @Override protected void updateItem(String name, boolean empty) {
+                    super.updateItem(name, empty);
+                    if (empty || name == null || getIndex() >= getTableView().getItems().size()) {
+                        setGraphic(null);
+                        return;
+                    }
+                    UserRow row = getTableView().getItems().get(getIndex());
+                    Label avatar = new Label(initials(name));
+                    avatar.getStyleClass().addAll("avatar-circle", avatarClass(row.role()));
+                    Label nameLabel = new Label(name);
+                    HBox box = new HBox(10, avatar, nameLabel);
+                    box.setAlignment(Pos.CENTER_LEFT);
+                    setGraphic(box);
+                }
+            });
         }
         if (colUserRole != null) {
             colUserRole.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
                             EnumFormatter.roleVi(c.getValue().role())));
+            // Badge màu theo vai trò
+            colUserRole.setCellFactory(col -> new TableCell<>() {
+                @Override protected void updateItem(String roleText, boolean empty) {
+                    super.updateItem(roleText, empty);
+                    if (empty || roleText == null || getIndex() >= getTableView().getItems().size()) {
+                        setGraphic(null);
+                        return;
+                    }
+                    UserRow row = getTableView().getItems().get(getIndex());
+                    Label badge = new Label(roleText);
+                    badge.getStyleClass().addAll("badge", roleBadgeClass(row.role()));
+                    setGraphic(badge);
+                }
+            });
         }
 
-        renderStats(0, 0, 0); //reset số liệu thống kê
+        renderStats(0, 0, 0, 0); //reset số liệu thống kê
         loadUsers(); //load dữ liệu mẫu
 
         // Vẫn subscribe để có số liệu phiên thật
@@ -96,25 +133,23 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
 
     private void recompute() {
         long running = 0;
-        long totalRevenue = 0;
         for (Auction a : allAuctions) {
             switch (a.getStatus()) {
                 case RUNNING -> running++;
-                case FINISHED, PAID -> totalRevenue += a.getCurrentPrice();
                 default -> {}
             }
         }
-        renderStats(totalUserCount, running, totalRevenue);
+        renderStats(totalUserCount, sellerCount, bidderCount, running);
     }
 
-    private void renderStats(long totalUsers, long running, long revenue) {
+    private void renderStats(long totalUsers, long sellers, long bidders, long running) {
         if (statCardsContainer == null) return;
         statCardsContainer.getChildren().clear();
 
         var c1 = StatCardBuilder.build("Tổng người dùng", String.valueOf(totalUsers), "Hiện có");
-        var c2 = StatCardBuilder.build("Phiên đang diễn ra", String.valueOf(running), "Đang mở");
-        var c3 = StatCardBuilder.build("Tổng doanh thu", MoneyFormatter.formatVnd(revenue), "Kỳ hiện tại");
-        var c4 = StatCardBuilder.build("Chờ duyệt", "—", "Chưa có dữ liệu");
+        var c2 = StatCardBuilder.build("Người bán", String.valueOf(sellers), "Seller");
+        var c3 = StatCardBuilder.build("Người đấu giá", String.valueOf(bidders), "Bidder");
+        var c4 = StatCardBuilder.build("Phiên đang hoạt động", String.valueOf(running), "Đang mở");
 
         HBox.setHgrow(c1, Priority.ALWAYS);
         HBox.setHgrow(c2, Priority.ALWAYS);
@@ -134,6 +169,8 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
                             case GetAllUsersResult.Success s -> {
                                 usersTable.getItems().setAll(s.users());
                                 totalUserCount = s.users().size();
+                                sellerCount = s.users().stream().filter(u -> u.role() == Role.SELLER).count();
+                                bidderCount = s.users().stream().filter(u -> u.role() == Role.BIDDER).count();
                                 recompute();
                             }
                             case GetAllUsersResult.Failure f ->
@@ -157,6 +194,38 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
         ClientSession.clear();
         SceneNavigator.switchScene("/fxml/Login.fxml");
     }
+
+    /** Chữ tắt avatar: chữ cái đầu + cụm số cuối nếu có (bidder1→b1, admin→A). */
+    private static String initials(String name) {
+        if (name == null || name.isBlank()) return "?";
+        String n = name.trim();
+        char first = n.charAt(0);
+        int i = n.length();
+        while (i > 0 && Character.isDigit(n.charAt(i - 1))) i--;
+        String digits = n.substring(i);
+        return digits.isEmpty()
+                ? String.valueOf(Character.toUpperCase(first))
+                : Character.toLowerCase(first) + digits;
+    }
+
+    private static String avatarClass(Role role) {
+        if (role == null) return "avatar-bidder";
+        return switch (role) {
+            case BIDDER -> "avatar-bidder";
+            case SELLER -> "avatar-seller";
+            case ADMIN -> "avatar-admin";
+        };
+    }
+
+    private static String roleBadgeClass(Role role) {
+        if (role == null) return "role-bidder";
+        return switch (role) {
+            case BIDDER -> "role-bidder";
+            case SELLER -> "role-seller";
+            case ADMIN -> "role-admin";
+        };
+    }
+
     @Override
     public void dispose() {
         AuctionEventBus.getInstance().removeObserver(this);

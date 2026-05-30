@@ -9,6 +9,8 @@ import java.util.Optional;
 public interface AuctionService {
     // Query (đã có)
     List<Auction> getActiveAuctions();
+    /** Tất cả phiên (gồm cả FINISHED/PAID/CANCELED) — dùng cho snapshot danh sách. */
+    List<Auction> getAllAuctions();
     Optional<Auction> getAuctionById(String auctionId);
 
     // Command (THÊM MỚI)

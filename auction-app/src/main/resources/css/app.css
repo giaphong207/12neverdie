@@ -3,33 +3,37 @@
    Nhóm 12neverdie | Học kỳ II, 2025-2026
    ===================================================== */
 
-/* === 1. DESIGN TOKENS (biến CSS) === */
+/* === 1. DESIGN TOKENS (biến CSS) ===
+   Tông TRẮNG chủ đạo như 6 mockup đã duyệt: nền trắng ngà rất nhạt,
+   card trắng tinh, vàng champagne chỉ làm ĐIỂM NHẤN (giá, nút, nav active, ví). */
 .root {
     /* Màu nền */
-    -app-bg-main: #FFFFFF;
-    -app-bg-soft: #FAFAF8;
-    -app-bg-card: #F5F5F0;
-    
+    -app-bg-main: #FFFFFF;   /* bề mặt: card, input, topbar (trắng) */
+    -app-bg-soft: #FFFFFF;   /* nền trang tổng (TRẮNG tinh) */
+    -app-bg-card: #F2F2F2;   /* hover / selected / nền header (xám trung tính, không ám vàng) */
+
     /* Màu text */
-    -app-text-primary: #2C2C2C;
-    -app-text-secondary: #666666;
-    -app-text-muted: #999999;
-    
-    /* Màu nhấn */
-    -app-accent: #A0522D;
-    -app-accent-hover: #8B4513;
-    
+    -app-text-primary: #2A2218;
+    -app-text-secondary: #6B5D44;
+    -app-text-muted: #9C8E76;
+
+    /* Màu nhấn (vàng champagne) */
+    -app-accent: #B8860B;          /* vàng gold đậm cho giá/ví/active (đủ tương phản) */
+    -app-accent-soft: #F3E8CE;     /* nền vàng nhạt cho nút/pill */
+    -app-accent-border: #CBB069;   /* viền champagne */
+    -app-accent-hover: #8B6914;
+
     /* Status */
     -app-success: #5B8C5A;
-    -app-danger: #B85450;
-    
+    -app-danger: #8B2F2F;     /* bordeaux */
+
     /* Border & Divider */
-    -app-border: #E8E5E0;
-    
+    -app-border: #E7E2D8;
+
     /* Font chung */
     -fx-font-family: "Inter", "Segoe UI", "Arial", sans-serif;
-    -fx-font-size: 14px;
-    
+    -fx-font-size: 15px;
+
     /* Nền tổng */
     -fx-background-color: -app-bg-soft;
 }
@@ -42,13 +46,15 @@
 /* === 2. TEXT STYLES === */
 
 .title-large {
-    -fx-font-size: 24px;
+    -fx-font-family: "Cambria", "Times New Roman", "Georgia", serif;
+    -fx-font-size: 34px;
     -fx-font-weight: bold;
     -fx-text-fill: -app-text-primary;
 }
 
 .title-medium {
-    -fx-font-size: 16px;
+    -fx-font-family: "Cambria", "Times New Roman", "Georgia", serif;
+    -fx-font-size: 21px;
     -fx-font-weight: bold;
     -fx-text-fill: -app-text-primary;
 }
@@ -76,29 +82,34 @@
 
 /* === 3. BUTTONS === */
 
-/* Button chính — màu accent (terracotta) */
+/* Button chính — nền vàng champagne NHẠT, viền champagne, chữ tối (như mockup) */
 .btn-primary {
-    -fx-background-color: -app-accent;
-    -fx-text-fill: white;
+    -fx-background-color: -app-accent-soft;
+    -fx-text-fill: -app-text-primary;
     -fx-font-size: 14px;
     -fx-font-weight: bold;
     -fx-padding: 10px 24px;
     -fx-background-radius: 4px;
     -fx-border-radius: 4px;
+    -fx-border-color: -app-accent-border;
+    -fx-border-width: 1px;
     -fx-cursor: hand;
 }
 
 .btn-primary:hover {
-    -fx-background-color: -app-accent-hover;
+    -fx-background-color: derive(-app-accent-soft, -8%);
+    -fx-border-color: -app-accent;
 }
 
 .btn-primary:pressed {
-    -fx-background-color: derive(-app-accent, -25%);
+    -fx-background-color: derive(-app-accent-soft, -15%);
 }
 
 .btn-primary:disabled {
-    -fx-background-color: -app-text-muted;
-    -fx-opacity: 0.6;
+    -fx-background-color: -app-bg-card;
+    -fx-text-fill: -app-text-muted;
+    -fx-border-color: -app-border;
+    -fx-opacity: 0.7;
 }
 
 /* Button viền — trong suốt, có viền accent */
@@ -322,14 +333,15 @@
 
 /* Số to trong stat card */
 .stat-card .stat-value {
-    -fx-font-size: 28px;
+    -fx-font-family: "Cambria", "Times New Roman", "Georgia", serif;
+    -fx-font-size: 34px;
     -fx-font-weight: bold;
-    -fx-text-fill: -app-accent;
+    -fx-text-fill: -app-text-primary;
 }
 
 /* Label nhỏ trong stat card */
 .stat-card .stat-label {
-    -fx-font-size: 12px;
+    -fx-font-size: 13px;
     -fx-text-fill: -app-text-muted;
 }
 
@@ -348,6 +360,19 @@
 /* Auction card khi hover — bóng đậm hơn */
 .auction-card:hover {
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 4);
+}
+
+/* Icon chip nhỏ góc trái card (placeholder loại sản phẩm) */
+.card-icon-chip {
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-max-width: 40px;
+    -fx-max-height: 40px;
+    -fx-background-color: -app-bg-card;
+    -fx-background-radius: 8px;
+    -fx-alignment: center;
+    -fx-font-size: 18px;
+    -fx-text-fill: -app-text-secondary;
 }
 
 /* === TABLEVIEW (bảng dữ liệu) === */
@@ -370,7 +395,7 @@
 
 .table-view .column-header .label {
     -fx-text-fill: -app-text-secondary;
-    -fx-font-size: 12px;
+    -fx-font-size: 13px;
     -fx-font-weight: bold;
 }
 
@@ -418,7 +443,7 @@
 
 /* === COUNTDOWN TEXT (đồng hồ đếm ngược) === */
 .countdown-text {
-    -fx-font-size: 28px;
+    -fx-font-size: 34px;
     -fx-font-weight: bold;
     -fx-font-family: "Consolas", "Monaco", monospace;
     -fx-text-fill: -app-accent;
@@ -426,30 +451,74 @@
 
 /* === PRICE BIG (giá hiện tại) === */
 .price-big {
-    -fx-font-size: 32px;
+    -fx-font-size: 38px;
     -fx-font-weight: bold;
-    -fx-text-fill: -app-text-primary;
-    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-text-fill: -app-accent;
+    -fx-font-family: "Cambria", "Times New Roman", serif;
 }
 
-/* === BADGE (trạng thái phiên đấu giá) === */
-.badge-running {
-    -fx-background-color: -app-success;
-    -fx-text-fill: white;
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-padding: 4px 12px;
-    -fx-background-radius: 12px;
-}
-
+/* === BADGE (trạng thái phiên đấu giá) ===
+   5 trạng thái khớp EnumFormatter.auctionStatusBadgeClass + UI-SPEC §1.
+   Kiểu pill viền, nền nhạt cùng tông màu chữ. */
+.badge-open,
+.badge-running,
+.badge-finished,
+.badge-paid,
+.badge-canceled,
 .badge-ended {
-    -fx-background-color: -app-text-muted;
-    -fx-text-fill: white;
-    -fx-font-size: 11px;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
-    -fx-padding: 4px 12px;
+    -fx-padding: 5px 14px;
     -fx-background-radius: 12px;
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
 }
+
+/* OPEN → "Sắp mở" (xanh dương) */
+.badge-open {
+    -fx-background-color: #E4ECF5;
+    -fx-text-fill: #3A5C86;
+    -fx-border-color: #3A5C86;
+}
+
+/* RUNNING → "Đang diễn ra" (xanh lá) */
+.badge-running {
+    -fx-background-color: derive(-app-success, 70%);
+    -fx-text-fill: -app-success;
+    -fx-border-color: -app-success;
+}
+
+/* FINISHED → "Đã kết thúc" (xám) */
+.badge-finished,
+.badge-ended {
+    -fx-background-color: derive(-app-text-muted, 55%);
+    -fx-text-fill: -app-text-secondary;
+    -fx-border-color: -app-text-muted;
+}
+
+/* PAID → "Đã thanh toán" (vàng) */
+.badge-paid {
+    -fx-background-color: derive(-app-accent, 60%);
+    -fx-text-fill: -app-accent-hover;
+    -fx-border-color: -app-accent;
+}
+
+/* CANCELED → "Đã hủy" (bordeaux) */
+.badge-canceled {
+    -fx-background-color: derive(-app-danger, 75%);
+    -fx-text-fill: -app-danger;
+    -fx-border-color: -app-danger;
+}
+
+/* === BADGE VAI TRÒ (bảng Admin) === */
+.role-admin,
+.role-seller,
+.role-bidder {
+    -fx-border-width: 1px;
+}
+.role-admin  { -fx-background-color: #F2DADA; -fx-text-fill: #8B2F2F; -fx-border-color: #8B2F2F; }
+.role-seller { -fx-background-color: #EFE3C8; -fx-text-fill: #8B6914; -fx-border-color: #8B6914; }
+.role-bidder { -fx-background-color: #DCE7F2; -fx-text-fill: #3A5C86; -fx-border-color: #3A5C86; }
 
 /* === TABPANE === */
 .tab-pane {
@@ -513,16 +582,55 @@
 }
 
 .chart-plot-background {
-    -fx-background-color: -app-bg-main;
+    -fx-background-color: transparent;
+}
+
+/* Lưới mờ dạng gạch đứt cho dễ đọc */
+.chart-vertical-grid-lines,
+.chart-horizontal-grid-lines {
+    -fx-stroke: -app-border;
+    -fx-stroke-dash-array: 2 4;
 }
 
 .chart-series-line {
     -fx-stroke: -app-accent;
-    -fx-stroke-width: 2px;
+    -fx-stroke-width: 2.5px;
 }
 
+/* Chấm dữ liệu vàng, to rõ */
 .default-color0.chart-line-symbol {
     -fx-background-color: -app-accent, white;
+    -fx-background-radius: 6px;
+    -fx-padding: 5px;
+}
+
+/* Trục + nhãn trục */
+.axis {
+    -fx-tick-label-fill: -app-text-secondary;
+    -fx-font-size: 11px;
+}
+
+.axis .axis-label {
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 12px;
+}
+
+/* === LỊCH SỬ ĐẤU GIÁ (mỗi dòng) === */
+/* Nhãn AUTO nhỏ cạnh tên */
+.auto-tag {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3A5C86;
+    -fx-background-color: #DCE7F2;
+    -fx-padding: 1px 7px;
+    -fx-background-radius: 8px;
+}
+
+/* Số tiền căn phải trong mỗi dòng lịch sử */
+.bid-amount {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
 }
 
 /* === CONTENT SCROLL (ScrollPane trong content area) === */
@@ -627,7 +735,8 @@
 
 /* Logo "Phiên Đấu Giá" bên trái */
 .topbar-logo {
-    -fx-font-size: 15px;
+    -fx-font-family: "Cambria", "Times New Roman", "Georgia", serif;
+    -fx-font-size: 20px;
     -fx-font-weight: bold;
     -fx-text-fill: -app-text-primary;
 }
@@ -666,19 +775,18 @@
     -fx-pref-height: 24px;
 }
 
-/* Portal label dưới logo (Người đấu giá / Người bán / Quản trị viên) */
+/* Portal label cạnh logo (Người đấu giá / Người bán / Quản trị viên) */
 .topbar-portal-label {
-    -fx-font-size: 11px;
-    -fx-text-fill: -app-text-muted;
-    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: -app-text-secondary;
 }
 
 /* Nav item ngang (Trang chủ, Phiên đang diễn ra, ...) */
 .topbar-nav-item {
     -fx-background-color: transparent;
     -fx-text-fill: -app-text-secondary;
-    -fx-font-size: 14px;
-    -fx-padding: 8px 16px;
+    -fx-font-size: 15px;
+    -fx-padding: 8px 14px;
     -fx-cursor: hand;
     -fx-border-color: transparent;
     -fx-border-width: 0 0 2 0;
@@ -691,48 +799,97 @@
 }
 
 .topbar-nav-item-active {
-    -fx-background-color: transparent;
-    -fx-text-fill: -app-accent;
+    -fx-background-color: -app-accent-soft;
+    -fx-text-fill: -app-text-primary;
     -fx-font-weight: bold;
-    -fx-border-color: transparent transparent -app-accent transparent;
-    -fx-border-width: 0 0 2 0;
-    -fx-font-size: 14px;
-    -fx-padding: 8px 16px;
+    -fx-border-color: -app-accent-border;
+    -fx-border-width: 1px;
+    -fx-font-size: 15px;
+    -fx-padding: 8px 14px;
     -fx-cursor: hand;
-    -fx-background-radius: 0;
+    -fx-background-radius: 16px;
+    -fx-border-radius: 16px;
 }
 
-/* Role nhỏ dưới tên user */
+/* Caption nhỏ trên topbar (VÍ CỦA TÔI / role) */
 .topbar-role {
-    -fx-font-size: 11px;
+    -fx-font-size: 12px;
     -fx-text-fill: -app-text-muted;
 }
 
 /* Số dư ví hiển thị trên topbar */
 .topbar-wallet {
-    -fx-font-size: 15px;
+    -fx-font-size: 17px;
     -fx-font-weight: bold;
     -fx-text-fill: -app-accent;
-    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-font-family: "Cambria", "Times New Roman", serif;
 }
 
-/* Nút nạp tiền (outline accent) */
+/* Nút "+ Nạp tiền" — viền nhạt trung tính như mockup */
 .topbar-deposit {
     -fx-background-color: transparent;
-    -fx-text-fill: -app-accent;
+    -fx-text-fill: -app-text-primary;
     -fx-font-size: 13px;
     -fx-font-weight: bold;
     -fx-padding: 8px 16px;
     -fx-cursor: hand;
-    -fx-border-color: -app-accent;
+    -fx-border-color: -app-border;
     -fx-border-width: 1px;
-    -fx-background-radius: 4px;
-    -fx-border-radius: 4px;
+    -fx-background-radius: 6px;
+    -fx-border-radius: 6px;
 }
 
 .topbar-deposit:hover {
-    -fx-background-color: -app-accent;
-    -fx-text-fill: white;
+    -fx-background-color: -app-bg-card;
+    -fx-border-color: -app-accent-border;
+}
+
+/* Avatar tròn chữ tắt (b1 / s1 / A) trên topbar */
+.avatar-circle {
+    -fx-min-width: 34px;
+    -fx-min-height: 34px;
+    -fx-max-width: 34px;
+    -fx-max-height: 34px;
+    -fx-background-radius: 17px;
+    -fx-alignment: center;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 0;
+}
+
+.avatar-bidder { -fx-background-color: #DCE7F2; -fx-text-fill: #3A5C86; }
+.avatar-seller { -fx-background-color: #EFE3C8; -fx-text-fill: #8B6914; }
+.avatar-admin  { -fx-background-color: #F2DADA; -fx-text-fill: #8B2F2F; }
+
+/* Menu "⋯" trên topbar (ẩn mũi tên mặc định) */
+.topbar-menu {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 6px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+
+.topbar-menu:hover {
+    -fx-background-color: -app-bg-card;
+    -fx-background-radius: 6px;
+}
+
+.topbar-menu > .label {
+    -fx-text-fill: -app-text-secondary;
+}
+
+.topbar-menu .arrow-button {
+    -fx-padding: 0;
+}
+
+.topbar-menu .arrow {
+    -fx-padding: 0;
+    -fx-shape: " ";
+    -fx-scale-x: 0;
+    -fx-scale-y: 0;
 }
 
 /* Nút đăng xuất bên phải */
@@ -867,19 +1024,22 @@
 
 /* === TEXT (alias) === */
 .title-serif {
-    -fx-font-size: 24px;
+    -fx-font-family: "Cambria", "Times New Roman", "Georgia", serif;
+    -fx-font-size: 34px;
     -fx-font-weight: bold;
     -fx-text-fill: -app-text-primary;
 }
 
 .title-serif-medium {
-    -fx-font-size: 16px;
+    -fx-font-family: "Cambria", "Times New Roman", "Georgia", serif;
+    -fx-font-size: 25px;
     -fx-font-weight: bold;
     -fx-text-fill: -app-text-primary;
 }
 
 .title-serif-small {
-    -fx-font-size: 14px;
+    -fx-font-family: "Cambria", "Times New Roman", "Georgia", serif;
+    -fx-font-size: 18px;
     -fx-font-weight: bold;
     -fx-text-fill: -app-text-primary;
 }
@@ -961,34 +1121,33 @@
 
 /* === PRICE (alias) === */
 .price-medium {
-    -fx-font-size: 18px;
+    -fx-font-size: 24px;
     -fx-font-weight: bold;
     -fx-text-fill: -app-accent;
-    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-font-family: "Cambria", "Times New Roman", serif;
 }
 
 .price-large {
-    -fx-font-size: 32px;
+    -fx-font-size: 38px;
     -fx-font-weight: bold;
-    -fx-text-fill: -app-text-primary;
-    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-text-fill: -app-accent;
+    -fx-font-family: "Cambria", "Times New Roman", serif;
 }
 
 .countdown-normal {
-    -fx-font-size: 28px;
+    -fx-font-size: 34px;
     -fx-font-weight: bold;
-    -fx-font-family: "Consolas", "Monaco", monospace;
-    -fx-text-fill: -app-accent;
+    -fx-font-family: "Cambria", "Times New Roman", monospace;
+    -fx-text-fill: -app-text-primary;
 }
 
-/* === BADGE (alias chung) === */
+/* === BADGE (chỉ layout chung — KHÔNG đặt màu, để class trạng thái tự tô) === */
 .badge {
-    -fx-font-size: 11px;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-padding: 4px 12px;
     -fx-background-radius: 12px;
-    -fx-background-color: -app-text-muted;
-    -fx-text-fill: white;
+    -fx-border-radius: 12px;
 }
 
 /* === INPUT (alias) === */
@@ -1033,20 +1192,21 @@
     -fx-text-fill: -app-text-muted;
 }
 
-/* === COUNTDOWN STATES (urgent/warning/normal) === */
-.countdown-urgent {
+/* === COUNTDOWN STATES — chỉ đổi MÀU, KHÔNG cố định cỡ chữ ===
+   (để đồng hồ lớn ở màn Chi tiết giữ size 34 từ .countdown-text;
+    đồng hồ nhỏ trên card lấy size mặc định)
+   urgent + emergency → ĐỎ, warning → vàng, normal → xám */
+.countdown-urgent,
+.countdown-emergency {
     -fx-text-fill: -app-danger;
-    -fx-font-size: 13px;
     -fx-font-weight: bold;
 }
 
 .countdown-warning {
     -fx-text-fill: -app-accent;
-    -fx-font-size: 13px;
     -fx-font-weight: bold;
 }
 
 .countdown-normal-text {
     -fx-text-fill: -app-text-secondary;
-    -fx-font-size: 13px;
 }

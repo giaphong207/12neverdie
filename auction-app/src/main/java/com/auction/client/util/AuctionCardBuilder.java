@@ -13,8 +13,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 /**
@@ -36,93 +36,118 @@ public final class AuctionCardBuilder {
     private AuctionCardBuilder() {}
 
     public static VBox build(Auction auction, Consumer<Auction> onViewDetail) {
-        VBox card = new VBox(14);
+        VBox card = new VBox(12);
         card.getStyleClass().add("auction-card");
-        card.setPadding(new Insets(20));
-        card.setPrefWidth(280);
-        card.setMaxWidth(320);
+        card.setPadding(new Insets(18));
+        card.setPrefWidth(300);
+        card.setMaxWidth(340);
 
-        // 1. Badge status
-        Label badge = new Label(EnumFormatter.auctionStatusVi(auction.getStatus()));
-        badge.getStyleClass().addAll("badge", EnumFormatter.auctionStatusBadgeClass(auction.getStatus()));
+        AuctionStatus status = auction.getStatus();
 
-        HBox badgeRow = new HBox(badge);
-        badgeRow.setAlignment(Pos.CENTER_LEFT);
+        // 1. Hàng đầu: icon chip (trái) + badge trạng thái (phải)
+        //    (Auction chưa có ItemType nên dùng icon chung)
+        Label iconChip = new Label("▣");
+        iconChip.getStyleClass().add("card-icon-chip");
 
-        // 2. Placeholder ảnh (chức năng ảnh thật chưa làm)
-        StackPane imageBox = new StackPane();
-        imageBox.setPrefHeight(160);
-        imageBox.getStyleClass().add("image-placeholder");
-        Label imgPlaceholder = new Label("●");
-        imgPlaceholder.getStyleClass().add("image-placeholder-icon");
-        imageBox.getChildren().add(imgPlaceholder);
+        Label badge = new Label(EnumFormatter.auctionStatusVi(status));
+        badge.getStyleClass().addAll("badge", EnumFormatter.auctionStatusBadgeClass(status));
 
-        // 3. Tên thật + mã phiên ngắn
+        Region topGrow = new Region();
+        HBox.setHgrow(topGrow, Priority.ALWAYS);
+        HBox topRow = new HBox(iconChip, topGrow, badge);
+        topRow.setAlignment(Pos.CENTER);
+
+        // 2. Tên sản phẩm
         String displayName = auction.getItemName();
         if (displayName == null || displayName.isBlank()) {
             displayName = "(Chưa có tên sản phẩm)";
         }
         Label itemName = new Label(displayName);
-        itemName.getStyleClass().add("title-medium");
+        itemName.getStyleClass().add("title-serif-small");
         itemName.setWrapText(true);
-        itemName.setMaxHeight(48);
+        itemName.setMaxHeight(52);
 
-        Label lotLabel = new Label("Mã phiên: " + shortId(auction.getId()));
-        lotLabel.getStyleClass().add("label-caption");
+        // 3. Mã phiên
+        Label codeLabel = new Label("Mã phiên: " + shortId(auction.getId()));
+        codeLabel.getStyleClass().add("label-caption");
 
-        // 4. Divider
         Separator divider = new Separator();
 
-        // 5. Price block
-        Label priceLabel = new Label("GIÁ HIỆN TẠI");
+        // 4. Giá — nhãn động theo trạng thái
+        String priceCaption;
+        long priceVal;
+        if (status == AuctionStatus.OPEN) {
+            priceCaption = "Giá khởi điểm";
+            priceVal = auction.getStartPrice();
+        } else if (status == AuctionStatus.FINISHED || status == AuctionStatus.PAID) {
+            priceCaption = "Giá chốt";
+            priceVal = auction.getCurrentPrice();
+        } else {
+            priceCaption = "Giá hiện tại";
+            priceVal = auction.getCurrentPrice();
+        }
+        Label priceLabel = new Label(priceCaption);
         priceLabel.getStyleClass().add("label-caption");
-
-        Label priceValue = new Label(MoneyFormatter.formatVnd(auction.getCurrentPrice()));
+        Label priceValue = new Label(MoneyFormatter.formatVnd(priceVal));
         priceValue.getStyleClass().add("price-medium");
 
-        // 6. Countdown — OPEN: đếm tới start, RUNNING: đếm tới end
-        Label countdown = new Label();
-        AuctionStatus status = auction.getStatus();
+        // 5. Hàng thông tin: đồng hồ + bước giá / "mở sau" / người thắng
+        HBox infoRow = new HBox(8);
+        infoRow.setAlignment(Pos.CENTER_LEFT);
+        Label info = new Label();
         if (status == AuctionStatus.OPEN) {
             Duration toStart = Duration.between(LocalDateTime.now(), auction.getStartTime());
             if (toStart.isNegative() || toStart.isZero()) {
-                countdown.setText("⏱  Đang bắt đầu...");
-                countdown.getStyleClass().add("countdown-warning");
+                info.setText("⏱  Đang bắt đầu...");
+                info.getStyleClass().add("countdown-warning");
             } else {
-                countdown.setText("⏱  Bắt đầu sau " + CountdownUtil.formatRemaining(toStart));
-                countdown.getStyleClass().add("countdown-normal-text");
+                info.setText("⏱  Mở sau " + CountdownUtil.formatRemaining(toStart));
+                info.getStyleClass().add("countdown-normal-text");
             }
+            infoRow.getChildren().add(info);
         } else if (status == AuctionStatus.RUNNING) {
             Duration remaining = Duration.between(LocalDateTime.now(), auction.getEndTime());
-            countdown.setText("⏱  Còn " + CountdownUtil.formatRemaining(remaining));
-
+            info.setText("⏱  " + CountdownUtil.formatRemaining(remaining));
             long totalSec = remaining.getSeconds();
             if (totalSec < 60) {
-                countdown.getStyleClass().add("countdown-urgent");
+                info.getStyleClass().add("countdown-urgent");
             } else if (totalSec < 300) {
-                countdown.getStyleClass().add("countdown-warning");
+                info.getStyleClass().add("countdown-warning");
             } else {
-                countdown.getStyleClass().add("countdown-normal-text");
+                info.getStyleClass().add("countdown-normal-text");
             }
+            Region g = new Region();
+            HBox.setHgrow(g, Priority.ALWAYS);
+            Label step = new Label("+" + MoneyFormatter.formatVndShort(auction.getMinIncrement()) + "/bước");
+            step.getStyleClass().add("label-caption");
+            infoRow.getChildren().addAll(info, g, step);
         } else {
-            countdown.setText("Đã kết thúc");
-            countdown.getStyleClass().add("text-muted");
+            // FINISHED / PAID / CANCELED
+            String winner = auction.getHighestBidderName();
+            info.setText(winner != null && !winner.isBlank()
+                    ? "Người thắng: " + winner
+                    : "Không có người thắng");
+            info.getStyleClass().add("text-muted");
+            infoRow.getChildren().add(info);
         }
 
-        // 7. Button
-        Button viewBtn = new Button("Xem chi tiết");
-        viewBtn.getStyleClass().add("btn-outline");
-        viewBtn.setMaxWidth(Double.MAX_VALUE);
-        viewBtn.setOnAction(e -> {
+        // 6. Nút theo trạng thái: RUNNING → "Vào đấu giá", còn lại → "Xem chi tiết"
+        Button actionBtn;
+        if (status == AuctionStatus.RUNNING) {
+            actionBtn = new Button("Vào đấu giá");
+            actionBtn.getStyleClass().add("btn-primary");
+        } else {
+            actionBtn = new Button("Xem chi tiết");
+            actionBtn.getStyleClass().add("btn-outline");
+        }
+        actionBtn.setMaxWidth(Double.MAX_VALUE);
+        actionBtn.setOnAction(e -> {
             if (onViewDetail != null) onViewDetail.accept(auction);
         });
 
-        Region spacer = new Region();
-        spacer.setPrefHeight(4);
-
         card.getChildren().addAll(
-                badgeRow, imageBox, itemName, lotLabel, divider,
-                priceLabel, priceValue, countdown, spacer, viewBtn
+                topRow, itemName, codeLabel, divider,
+                priceLabel, priceValue, infoRow, actionBtn
         );
 
         return card;

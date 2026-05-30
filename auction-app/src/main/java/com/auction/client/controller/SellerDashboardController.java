@@ -13,6 +13,8 @@ import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
@@ -66,6 +68,20 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
             colStatus.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
                             EnumFormatter.auctionStatusVi(c.getValue().getStatus())));
+            // Hiển thị trạng thái dạng badge màu
+            colStatus.setCellFactory(col -> new TableCell<>() {
+                @Override protected void updateItem(String text, boolean empty) {
+                    super.updateItem(text, empty);
+                    if (empty || text == null || getIndex() >= getTableView().getItems().size()) {
+                        setGraphic(null);
+                        return;
+                    }
+                    var status = getTableView().getItems().get(getIndex()).getStatus();
+                    Label badge = new Label(text);
+                    badge.getStyleClass().addAll("badge", EnumFormatter.auctionStatusBadgeClass(status));
+                    setGraphic(badge);
+                }
+            });
         }
         if (colEndTime != null) {
             colEndTime.setCellValueFactory(c -> {
@@ -137,7 +153,7 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
 
         long running = 0;
         long finished = 0;
-        long revenue = 0;
+        long totalBids = 0;
 
         List<Auction> myAuctions = new ArrayList<>();
 
@@ -145,17 +161,15 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
             if (!sellerId.equals(a.getSellerId())) continue;
             myAuctions.add(a);
 
+            totalBids += a.getBidHistory() == null ? 0 : a.getBidHistory().size();
             switch (a.getStatus()) {
                 case RUNNING -> running++;
-                case FINISHED, PAID -> {
-                    finished++;
-                    revenue += a.getCurrentPrice();
-                }
+                case FINISHED, PAID -> finished++;
                 default -> {}
             }
         }
 
-        renderStats(sellerItemCount, running, revenue, finished);
+        renderStats(sellerItemCount, running, totalBids, finished);
 
         // Sắp xếp theo thời gian kết thúc gần nhất
         myAuctions.sort(Comparator.comparing(
@@ -167,14 +181,14 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
         }
     }
 
-    private void renderStats(long itemCount, long running, long revenue, long finished) {
+    private void renderStats(long itemCount, long running, long totalBids, long finished) {
         if (statCardsContainer == null) return;
         statCardsContainer.getChildren().clear();
 
-        var c1 = StatCardBuilder.build("Số sản phẩm", String.valueOf(itemCount));
+        var c1 = StatCardBuilder.build("Sản phẩm", String.valueOf(itemCount));
         var c2 = StatCardBuilder.build("Phiên đang chạy", String.valueOf(running));
-        var c3 = StatCardBuilder.build("Tổng doanh thu", MoneyFormatter.formatVnd(revenue));
-        var c4 = StatCardBuilder.build("Phiên đã kết thúc", String.valueOf(finished));
+        var c3 = StatCardBuilder.build("Tổng lượt đặt giá", String.valueOf(totalBids));
+        var c4 = StatCardBuilder.build("Đã chốt", String.valueOf(finished));
 
         HBox.setHgrow(c1, Priority.ALWAYS);
         HBox.setHgrow(c2, Priority.ALWAYS);

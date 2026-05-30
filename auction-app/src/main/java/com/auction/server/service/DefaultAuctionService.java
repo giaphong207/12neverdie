@@ -30,6 +30,11 @@ public class DefaultAuctionService implements AuctionService {
     }
 
     @Override
+    public List<Auction> getAllAuctions() {
+        return auctionDao.findAll();
+    }
+
+    @Override
     public Optional<Auction> getAuctionById(String auctionId) {
         return auctionDao.findById(auctionId);
     }

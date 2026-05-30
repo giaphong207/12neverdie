@@ -71,8 +71,8 @@ public class AuctionListController implements AuctionEventObserver, Disposable {
                 AuctionStatus.OPEN,
                 AuctionStatus.RUNNING,
                 AuctionStatus.FINISHED,
-                AuctionStatus.PAID,
-                AuctionStatus.CANCELED
+                AuctionStatus.PAID
+                // CANCELED bị ẩn khỏi danh sách (xem computeFiltered)
         ));
         statusFilter.setConverter(new StringConverter<>() {
             @Override
@@ -123,6 +123,8 @@ public class AuctionListController implements AuctionEventObserver, Disposable {
 
         List<Auction> filtered = new ArrayList<>();
         for (Auction a : allAuctions) {
+            // Ẩn phiên đã hủy khỏi danh sách
+            if (a.getStatus() == AuctionStatus.CANCELED) continue;
             if (selectedStatus != null && a.getStatus() != selectedStatus) continue;
             if (!search.isEmpty()) {
                 boolean matchId = a.getId() != null && a.getId().toLowerCase().contains(search);
