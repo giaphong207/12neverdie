@@ -124,7 +124,9 @@ public class ClientHandler implements Runnable, EventReceiver {
     private void handleSubscribeAuctionListRequest() {
         subscriptionManager.subscribeList(this);
         try {
-            List<Auction> activeAuctions = auctionService.getActiveAuctions();
+            // Gửi TẤT CẢ phiên (gồm cả đã kết thúc) để client hiển thị đầy đủ;
+            // client tự lọc theo trạng thái nếu cần.
+            List<Auction> activeAuctions = auctionService.getAllAuctions();
             log.debug("Gửi {} auction snapshot cho client {}",
                     activeAuctions.size(), socket.getRemoteSocketAddress());
             for (Auction a : activeAuctions) {
