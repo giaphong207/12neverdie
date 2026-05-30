@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import com.auction.client.context.ClientSession;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.shared.factory.UserFactory;
+import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.Requests.DepositRequest;
 import com.auction.shared.networkMessage.Results.DepositResult;
@@ -15,6 +16,8 @@ import javafx.beans.WeakInvalidationListener;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -38,25 +41,31 @@ public final class TopbarBuilder {
         topbar.getStyleClass().add("topbar");
         topbar.setAlignment(Pos.CENTER_LEFT);
 
-        VBox brand = new VBox(2);
+        HBox brand = new HBox(12);
         brand.setAlignment(Pos.CENTER_LEFT);
         Label logo = new Label("Phiên Đấu Giá");
         logo.getStyleClass().add("topbar-logo");
+        Region brandDivider = new Region();
+        brandDivider.getStyleClass().add("topbar-divider");
         Label portalLabel = new Label(portalLabelFor(user));
         portalLabel.getStyleClass().add("topbar-portal-label");
-        brand.getChildren().addAll(logo, portalLabel);
+        brand.getChildren().addAll(logo, brandDivider, portalLabel);
 
         Region brandGap = new Region();
         brandGap.setPrefWidth(32);
 
         HBox navBox = new HBox(4);
         navBox.setAlignment(Pos.CENTER_LEFT);
+        navBox.setMinWidth(Region.USE_PREF_SIZE);   // cả dải nav không bị bóp nhỏ
         for (NavItem item : navItemsFor(user)) {
             Button btn = new Button(item.label);
             btn.getStyleClass().add("topbar-nav-item");
             if (item.key == activeKey) {
                 btn.getStyleClass().add("topbar-nav-item-active");
             }
+            // luôn giữ đủ bề rộng theo chữ → không bị cắt thành "Trang ch..."
+            btn.setMinWidth(Region.USE_PREF_SIZE);
+            btn.setWrapText(false);
             btn.setOnAction(e -> {
                 if (onNavClick != null) onNavClick.accept(item.key);
             });
@@ -66,46 +75,83 @@ public final class TopbarBuilder {
         Region grow = new Region();
         HBox.setHgrow(grow, Priority.ALWAYS);
 
-        // ── VÍ ──
-        VBox walletBox = new VBox(0);
-        walletBox.setAlignment(Pos.CENTER_RIGHT);
-        Label walletCaption = new Label("VÍ CỦA TÔI");
-        walletCaption.getStyleClass().add("topbar-role");
-        Label walletAmountLabel = new Label();
-        walletAmountLabel.getStyleClass().add("topbar-wallet");
+        // ── Khối bên phải: [ví + nạp tiền] (ẩn với admin) → avatar → menu "⋯" ──
+        HBox rightBox = new HBox(14);
+        rightBox.setAlignment(Pos.CENTER_RIGHT);
 
-// Hiển thị số dư hiện tại + cập nhật khi balance đổi,
-// nhưng KHÔNG để balanceProperty (tĩnh, sống mãi) giữ chặt label này.
-        Runnable refreshWallet = () -> walletAmountLabel.setText(
-                MoneyFormatter.formatVnd(ClientSession.balanceProperty().get()));
-        refreshWallet.run(); // set giá trị ban đầu ngay
+        boolean isAdmin = user != null && UserFactory.toRole(user) == Role.ADMIN;
+        if (!isAdmin) {
+            // ── VÍ ──
+            VBox walletBox = new VBox(0);
+            walletBox.setAlignment(Pos.CENTER_RIGHT);
+            Label walletCaption = new Label("VÍ CỦA TÔI");
+            walletCaption.getStyleClass().add("topbar-role");
+            Label walletAmountLabel = new Label();
+            walletAmountLabel.getStyleClass().add("topbar-wallet");
 
-        InvalidationListener walletListener = obs -> refreshWallet.run();
-        walletAmountLabel.getProperties().put("walletBalanceListener", walletListener); // giữ listener sống bằng tuổi label
-        ClientSession.balanceProperty().addListener(new WeakInvalidationListener(walletListener));
-        walletBox.getChildren().addAll(walletCaption, walletAmountLabel);
+            // Hiển thị số dư hiện tại + cập nhật khi balance đổi,
+            // nhưng KHÔNG để balanceProperty (tĩnh, sống mãi) giữ chặt label này.
+            Runnable refreshWallet = () -> walletAmountLabel.setText(
+                    MoneyFormatter.formatVnd(ClientSession.balanceProperty().get()));
+            refreshWallet.run(); // set giá trị ban đầu ngay
 
-        Button depositBtn = new Button("Nạp tiền");
-        depositBtn.getStyleClass().add("topbar-deposit");
-        depositBtn.setOnAction(e -> openDepositDialog());
+            InvalidationListener walletListener = obs -> refreshWallet.run();
+            walletAmountLabel.getProperties().put("walletBalanceListener", walletListener); // giữ listener sống bằng tuổi label
+            ClientSession.balanceProperty().addListener(new WeakInvalidationListener(walletListener));
+            walletBox.getChildren().addAll(walletCaption, walletAmountLabel);
 
-        VBox userBox = new VBox(0);
-        userBox.setAlignment(Pos.CENTER_RIGHT);
-        Label usernameLabel = new Label(user != null ? user.getUsername() : "Người dùng");
-        usernameLabel.getStyleClass().add("topbar-username");
-        Label roleLabel = new Label(user != null ? EnumFormatter.roleVi(UserFactory.toRole(user)) : "");
-        roleLabel.getStyleClass().add("topbar-role");
-        userBox.getChildren().addAll(usernameLabel, roleLabel);
+            Button depositBtn = new Button("+ Nạp tiền");
+            depositBtn.getStyleClass().add("topbar-deposit");
+            depositBtn.setOnAction(e -> openDepositDialog());
 
-        Button logoutBtn = new Button("Đăng xuất");
-        logoutBtn.getStyleClass().add("topbar-logout");
-        logoutBtn.setOnAction(e -> {
+            rightBox.getChildren().addAll(walletBox, depositBtn);
+        }
+
+        // ── Avatar tròn chữ tắt (b1 / s1 / A) màu theo vai trò ──
+        Label avatar = new Label(initialsFor(user));
+        avatar.getStyleClass().addAll("avatar-circle", avatarClassFor(user));
+
+        // ── Menu "⋯" chứa Đăng xuất ──
+        MenuButton menu = new MenuButton("⋯");
+        menu.getStyleClass().add("topbar-menu");
+        MenuItem logoutItem = new MenuItem("Đăng xuất");
+        logoutItem.setOnAction(e -> {
             if (onLogout != null) onLogout.run();
         });
+        menu.getItems().add(logoutItem);
 
-        topbar.getChildren().addAll(brand, brandGap, navBox, grow,
-                walletBox, depositBtn, userBox, logoutBtn);
+        rightBox.getChildren().addAll(avatar, menu);
+
+        topbar.getChildren().addAll(brand, brandGap, navBox, grow, rightBox);
         return topbar;
+    }
+
+    /** Chữ tắt cho avatar: chữ cái đầu + cụm số cuối nếu có (bidder1→b1, admin→A). */
+    private static String initialsFor(User user) {
+        if (user == null || user.getUsername() == null || user.getUsername().isBlank()) {
+            return "?";
+        }
+        String name = user.getUsername().trim();
+        char first = name.charAt(0);
+        // lấy cụm chữ số ở cuối tên (nếu có)
+        int i = name.length();
+        while (i > 0 && Character.isDigit(name.charAt(i - 1))) i--;
+        String trailingDigits = name.substring(i);
+        if (!trailingDigits.isEmpty()) {
+            return Character.toLowerCase(first) + trailingDigits;
+        }
+        // không có số → in hoa chữ cái đầu
+        return String.valueOf(Character.toUpperCase(first));
+    }
+
+    /** Class màu avatar theo vai trò. */
+    private static String avatarClassFor(User user) {
+        if (user == null) return "avatar-bidder";
+        return switch (UserFactory.toRole(user)) {
+            case BIDDER -> "avatar-bidder";
+            case SELLER -> "avatar-seller";
+            case ADMIN -> "avatar-admin";
+        };
     }
 
     /** Mở dialog nhập số tiền nạp, gửi DepositRequest, update ClientSession balance khi server trả về. */

@@ -41,8 +41,8 @@
                 <!-- === WON AUCTIONS TABLE === -->
                 <TableView fx:id="wonTable" prefHeight="500">
                     <columns>
-                        <TableColumn fx:id="colLot" 
-                                     text="Mã LOT" 
+                        <TableColumn fx:id="colLot"
+                                     text="Mã phiên"
                                      prefWidth="200"/>
                         <TableColumn fx:id="colPrice" 
                                      text="Giá thắng" 

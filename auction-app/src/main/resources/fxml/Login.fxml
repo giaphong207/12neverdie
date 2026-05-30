@@ -23,7 +23,10 @@
     <!-- === FORM ĐĂNG NHẬP Ở GIỮA === -->
     <VBox alignment="CENTER" spacing="32" maxWidth="440">
 
-        <Label text="Phiên Đấu Giá" styleClass="title-large"/>
+        <VBox alignment="CENTER" spacing="4">
+            <Label text="Phiên Đấu Giá" styleClass="title-large"/>
+            <Label text="Hệ thống đấu giá trực tuyến" styleClass="text-muted"/>
+        </VBox>
 
         <VBox styleClass="card" spacing="20" maxWidth="440">
             <padding>
