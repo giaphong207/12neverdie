@@ -64,7 +64,7 @@
                   minWidth="340" 
                   maxWidth="440">
 
-                <Label text="Chỉnh sửa sản phẩm" styleClass="title-medium"/>
+                <Label text="Thêm / Chỉnh sửa sản phẩm" styleClass="title-medium"/>
 
                 <VBox spacing="6">
                     <Label text="TÊN SẢN PHẨM" styleClass="label-caption"/>
@@ -110,8 +110,8 @@
 
                 <!-- === ACTION BUTTONS === -->
                 <HBox spacing="12">
-                    <Button text="Thêm" 
-                            styleClass="btn-outline" 
+                    <Button text="+ Thêm"
+                            styleClass="btn-outline"
                             onAction="#onAddClicked"/>
                     <Button text="Cập nhật" 
                             styleClass="btn-primary" 

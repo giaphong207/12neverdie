@@ -510,6 +510,16 @@
     -fx-border-color: -app-danger;
 }
 
+/* === BADGE VAI TRÒ (bảng Admin) === */
+.role-admin,
+.role-seller,
+.role-bidder {
+    -fx-border-width: 1px;
+}
+.role-admin  { -fx-background-color: #F2DADA; -fx-text-fill: #8B2F2F; -fx-border-color: #8B2F2F; }
+.role-seller { -fx-background-color: #EFE3C8; -fx-text-fill: #8B6914; -fx-border-color: #8B6914; }
+.role-bidder { -fx-background-color: #DCE7F2; -fx-text-fill: #3A5C86; -fx-border-color: #3A5C86; }
+
 /* === TABPANE === */
 .tab-pane {
     -fx-background-color: transparent;
