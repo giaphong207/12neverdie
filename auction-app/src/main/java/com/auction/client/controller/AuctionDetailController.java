@@ -214,9 +214,11 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             } else {
                 for (int i = bids.size() - 1; i >= 0; i--) {
                     Bid b = bids.get(i);
+                    String who = (b.getBidderName() != null && !b.getBidderName().isBlank())
+                            ? b.getBidderName() : b.getBidderId();
                     String auto = b.getSource() == BidSource.AUTO ? "  (AUTO)" : "";
                     bidHistoryListView.getItems().add(
-                            b.getBidderId() + auto + "   →   " + MoneyFormatter.formatVnd(b.getAmount())
+                            who + auto + "   →   " + MoneyFormatter.formatVnd(b.getAmount())
                     );
                 }
             }
