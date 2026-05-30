@@ -74,12 +74,12 @@ public class ServerApp {
         EventBroadcaster broadcaster = new EventBroadcaster(subscriptionManager, enricher);
 
         // ⑤ Service layer
+        WalletService walletService = new DefaultWalletService(userDao);
         AuctionLifecycleService lifecycleService =
-                new DefaultAuctionLifecycleService(auctionDao, broadcaster, lockManager);
+                new DefaultAuctionLifecycleService(auctionDao, broadcaster, lockManager, walletService);
         AuctionService auctionService =
                 new DefaultAuctionService(auctionDao, lifecycleService, broadcaster);
         ItemService itemService = new DefaultItemService(itemDao);
-        WalletService walletService = new DefaultWalletService(userDao);
         // AntiSniping cần Duration
         AntiSnipingService antiSniping = new DefaultAntiSnipingService(
                 Duration.ofSeconds(AppConfig.ANTI_SNIPING_TRIGGER_SECONDS),
