@@ -3,14 +3,12 @@ package com.auction.client.controller;
 import com.auction.client.chart.BidHistorySeriesBuilder;
 import com.auction.client.context.ClientSession;
 import com.auction.client.network.ServerConnection;
+import com.auction.client.network.ServerMessageListener;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
-import com.auction.client.util.AlertUtils;
-import com.auction.client.util.CountdownUtil;
-import com.auction.client.util.MoneyParser;
-import com.auction.client.util.SceneNavigator;
-import com.auction.shared.exception.AppExceptions.*;
+import com.auction.client.util.*;
 
+import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
@@ -45,7 +43,7 @@ import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
 import javafx.scene.layout.StackPane;
 import javafx.application.Platform;
-public class AuctionDetailController implements AuctionEventObserver {
+public class AuctionDetailController implements AuctionEventObserver, Disposable {
 
     @FXML private Label itemNameLabel;
     @FXML private Label auctionCodeLabel;
@@ -121,16 +119,9 @@ public class AuctionDetailController implements AuctionEventObserver {
         }
     }
 
-    private void handleLogout() {
-        ClientSession.clear();
-        SceneNavigator.switchScene("/fxml/Login.fxml");
-    }
-
     public void loadAuction(String auctionId) {
         this.currentAuctionId = auctionId;
         this.expiredHandled = false;
-
-        AuctionEventBus.getInstance().addObserver(this);
 
         try {
             ServerConnection.getInstance()
@@ -319,8 +310,6 @@ public class AuctionDetailController implements AuctionEventObserver {
     }
 
     public void onBackClicked() {
-        stopCountdown();
-        AuctionEventBus.getInstance().removeObserver(this); // Anti - sniping dùng ở đây
         SceneNavigator.switchScene("/fxml/AuctionList.fxml");
     }
 
@@ -355,36 +344,18 @@ public class AuctionDetailController implements AuctionEventObserver {
         bidAmountField.clear();
         messageLabel.setText("Đã gửi yêu cầu đặt giá. Đang chờ server xử lý...");
 
-        // === Phần 3: Gửi request + đợi response trên thread riêng ===
+        // === Phần 3: Gửi request qua RequestExecutor ===
         final String auctionId = currentAuction.getId();
         final String bidderId = currentUser.getId();
 
-        new Thread(() -> {
-            try {
-                ServerConnection.getInstance().send(new BidRequest(auctionId, bidderId, amount));
-                Object response = ClientApp.getListener().waitForResponse();
-
-                Platform.runLater(() -> handleBidResult(response));
-
-            } catch (IOException ex) {
-                Platform.runLater(() -> {
-                    AlertUtils.showError("Lỗi kết nối", "Không gửi được yêu cầu: " + ex.getMessage());
+        RequestExecutor.send(
+                new BidRequest(auctionId, bidderId, amount),
+                response -> handleBidResult(response),
+                error -> {
+                    AlertUtils.showError("Đặt giá thất bại", error);
                     messageLabel.setText("");
-                });
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                Platform.runLater(() -> {
-                    AlertUtils.showError("Bị gián đoạn", "Yêu cầu bị huỷ.");
-                    messageLabel.setText("");
-                });
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                Platform.runLater(() -> {
-                    AlertUtils.showError("Lỗi hệ thống", "Đã xảy ra sự cố: " + ex.getMessage());
-                    messageLabel.setText("");
-                });
-            }
-        }).start();
+                }
+        );
     }
 
     private void handleBidResult(Object response) {
@@ -404,6 +375,62 @@ public class AuctionDetailController implements AuctionEventObserver {
             messageLabel.setText("");
         }
     }
+    public void onConfigureAutoBidClicked() {
+        if (currentAuction == null) {
+            AlertUtils.showWarning("Thông báo", "Không có auction để cấu hình.");
+            return;
+        }
+
+        // === Phần 1: Validate (giữ nguyên) ===
+        User currentUser = ClientSession.getCurrentUser();
+        if (currentUser == null) {
+            AlertUtils.showWarning("Chưa đăng nhập", "Vui lòng đăng nhập để dùng đấu giá tự động.");
+            return;
+        }
+        if (UserFactory.toRole(currentUser) != Role.BIDDER) {
+            AlertUtils.showError("Lỗi Quyền", "Chỉ tài khoản BIDDER mới được đặt đấu giá tự động!");
+            return;
+        }
+
+        // === Phần 2: Mở dialog, nếu Cancel thì dừng (giữ nguyên) ===
+        var result = AutoBidDialogFactory.showDialog();
+        if (result.isEmpty()) {
+            return;
+        }
+        final long maxAmount = result.get().maxAmount;
+        final long increment = result.get().increment;
+
+        final String auctionId = currentAuction.getId();
+        final String bidderId  = currentUser.getId();
+
+        // === Phần 3: Báo "đang chờ" + gửi qua RequestExecutor ===
+        messageLabel.setText("Đang thiết lập đấu giá tự động...");
+
+        RequestExecutor.send(
+                new SetAutoBidRequest(auctionId, bidderId, maxAmount, increment),
+                this::handleSetAutoBidResponse,
+                error -> {
+                    AlertUtils.showError("Đấu giá tự động thất bại", error);
+                    messageLabel.setText("");
+                }
+        );
+    }
+
+    private void handleSetAutoBidResponse(Object response) {
+        if (response instanceof SetAutoBidResponse r) {
+            if (r.success()) {
+                AlertUtils.showInfo("Thành công", r.message());
+                messageLabel.setText("Đã bật đấu giá tự động.");
+            } else {
+                AlertUtils.showError("Thất bại", r.message());
+                messageLabel.setText("");
+            }
+        } else {
+            AlertUtils.showError("Lỗi",
+                    "Phản hồi không hợp lệ từ server: " + response.getClass().getSimpleName());
+            messageLabel.setText("");
+        }
+    }
 
     /**
      * Được AuctionEventBus gọi khi server broadcast AuctionUpdateEvent.
@@ -411,7 +438,7 @@ public class AuctionDetailController implements AuctionEventObserver {
      * HOẶC khi vừa subscribe (server gửi snapshot lần đầu).
      */
     @Override
-    public void onAuctionUpdated(AuctionEvent event) {
+    public void onAuctionEvent(AuctionEvent event) {
         Auction updated = event.getAuction();
 
         // Chỉ xử lý nếu đây đúng auction mình đang xem
@@ -438,11 +465,22 @@ public class AuctionDetailController implements AuctionEventObserver {
 
             // Khởi động countdown (tự pick startTime hoặc endTime tùy status)
             startCountdown();
+            if (event instanceof AuctionExtendedEvent ext) {
+                messageLabel.setText("Phiên được gia hạn thêm " + ext.getExtendedSeconds()
+                        + " giây do có người đấu giá phút chót!");
+            }
         });
     }
 
+    private void handleLogout() {
+        ClientSession.clear();
+        SceneNavigator.switchScene("/fxml/Login.fxml");
+    }
+
+    @Override
     public void dispose() {
         AuctionEventBus.getInstance().removeObserver(this);
+        stopCountdown();
     }
     private void renderBidHistoryChart(Auction auction) {
         if (bidHistoryChart == null) {

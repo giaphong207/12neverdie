@@ -1,8 +1,10 @@
 package com.auction.client.network;
 
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
@@ -35,9 +37,20 @@ public class ServerMessageListener implements Runnable {
         this.eventBus = eventBus;
     }
 
-    /** Controller gọi method này để chờ response từ server (blocking). */
-    public Object waitForResponse() throws InterruptedException {
-        return responseQueue.take();
+    /**
+     * Gửi request rồi chờ đúng Result trả về, trong một thao tác có khóa.
+     * Vì chỉ một luồng được vào tại một thời điểm (synchronized), không thể
+     * xảy ra cảnh 2 controller cùng chờ trên responseQueue và nhặt nhầm Result của nhau.
+     *
+     * @param request object request cần gửi
+     * @param timeoutMs thời gian chờ tối đa (ms); quá hạn coi như server không trả lời
+     * @return Result tương ứng, hoặc null nếu hết thời gian chờ
+     */
+    public synchronized Object sendAndWait(Object request, long timeoutMs)
+            throws IOException, InterruptedException {
+
+        ServerConnection.getInstance().send(request);          // (1) gửi đi
+        return responseQueue.poll(timeoutMs, TimeUnit.MILLISECONDS); // (2) chờ có giới hạn
     }
 
     @Override
@@ -87,7 +100,9 @@ public class ServerMessageListener implements Runnable {
                 } else if (incoming instanceof DepositResult) {
                     System.out.println("Nhan DepositResult -> day vao queue");
                     responseQueue.offer(incoming);
-
+                } else if (incoming instanceof SetAutoBidResponse) {
+                    System.out.println("Nhan SetAutoBidResponse -> day vao queue");
+                    responseQueue.offer(incoming);
                 } else if (incoming instanceof ErrorMessage error) {
                     System.err.println("Nhan loi tu server: " + error.message());
                     Platform.runLater(() ->

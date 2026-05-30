@@ -151,6 +151,11 @@
                                     styleClass="btn-primary"
                                     onAction="#onPlaceBidClicked"
                                     maxWidth="Infinity"/>
+
+                            <Button text="Đấu giá tự động"
+                                    styleClass="btn-secondary"
+                                    onAction="#onConfigureAutoBidClicked"
+                                    maxWidth="Infinity"/>
                         </VBox>
                     </VBox>
                 </HBox>

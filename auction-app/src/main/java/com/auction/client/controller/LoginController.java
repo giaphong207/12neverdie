@@ -1,12 +1,7 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
-import com.auction.client.main.ClientApp;
-import com.auction.client.network.ServerMessageListener;
-import com.auction.client.network.ServerConnection;
-import com.auction.client.util.AlertUtils;
-import com.auction.client.util.EnumFormatter;
-import com.auction.client.util.SceneStyler;
+import com.auction.client.util.*;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
@@ -14,9 +9,7 @@ import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
 
-import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 
@@ -24,7 +17,6 @@ public class LoginController {
 
     @FXML private TextField txtUsername;
     @FXML private PasswordField txtPassword;
-    @FXML private CheckBox chkRemember;
 
     @FXML
     public void onLoginClicked(javafx.event.ActionEvent event) {
@@ -36,27 +28,11 @@ public class LoginController {
             return;
         }
 
-        new Thread(() -> {
-            try {
-                ServerConnection conn = ServerConnection.getInstance();
-                conn.send(new LoginRequest(username, password));
-
-                ServerMessageListener listener = ClientApp.getListener();
-                if (listener == null) {
-                    Platform.runLater(() ->
-                            AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo"));
-                    return;
-                }
-
-                Object response = listener.waitForResponse();
-                Platform.runLater(() -> handleLoginResult(response, event));
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                Platform.runLater(() ->
-                        AlertUtils.showError("Lỗi mạng", "Không gửi được yêu cầu: " + e.getMessage()));
-            }
-        }).start();
+        RequestExecutor.send(
+                new LoginRequest(username, password),
+                response -> handleLoginResult(response, event),
+                error -> AlertUtils.showError("Đăng nhập thất bại", error)
+        );
     }
 
     private void handleLoginResult(Object response, javafx.event.ActionEvent event) {
@@ -67,7 +43,7 @@ public class LoginController {
                     ClientSession.setCurrentUser(user);
                     AlertUtils.showInfo("Thành công",
                             "Đăng nhập thành công với quyền " + EnumFormatter.roleVi(UserFactory.toRole(user)));
-                    navigateByRole(event, user);
+                    navigateByRole(user);
                 }
                 case LoginResult.Failure f -> {
                     AlertUtils.showError("Thất bại", f.reason());
@@ -79,55 +55,20 @@ public class LoginController {
         }
     }
 
-    private void navigateByRole(javafx.event.ActionEvent event, User user) {
-        try {
-            String fxmlPath;
-            String title;
-
-            if (user instanceof Seller) {
-                fxmlPath = "/fxml/SellerDashboard.fxml";
-                title = "AuctionHub — Người Bán";
-            } else if (user instanceof Bidder) {
-                fxmlPath = "/fxml/BidderDashboard.fxml";
-                title = "AuctionHub — Người Đấu Giá";
-            } else {
-                fxmlPath = "/fxml/AdminDashboard.fxml";
-                title = "AuctionHub — Quản trị viên";
-            }
-
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource(fxmlPath));
-            javafx.scene.Parent root = loader.load();
-            javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-
-            javafx.scene.Scene scene = new javafx.scene.Scene(root, 1280, 800);
-            SceneStyler.apply(scene);
-
-            stage.setScene(scene);
-            stage.setTitle(title);
-            stage.show();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            AlertUtils.showError("Lỗi hệ thống", "Không tải được FXML: " + e.getMessage());
+    private void navigateByRole(User user) {
+        String fxmlPath;
+        if (user instanceof Seller) {
+            fxmlPath = "/fxml/SellerDashboard.fxml";
+        } else if (user instanceof Bidder) {
+            fxmlPath = "/fxml/BidderDashboard.fxml";
+        } else {
+            fxmlPath = "/fxml/AdminDashboard.fxml";
         }
+        SceneNavigator.switchScene(fxmlPath);
     }
 
     @FXML
-    public void onOpenRegisterClicked(javafx.event.ActionEvent event) {
-        try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/Register.fxml"));
-            javafx.scene.Parent root = loader.load();
-            javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-
-            javafx.scene.Scene scene = new javafx.scene.Scene(root, 1280, 800);
-            SceneStyler.apply(scene);
-
-            stage.setScene(scene);
-            stage.setTitle("AuctionHub — Đăng ký tài khoản");
-            stage.show();
-        } catch (Exception e) {
-            e.printStackTrace();
-            AlertUtils.showError("Lỗi hệ thống", "Không thể mở Register.fxml");
-        }
+    public void onOpenRegisterClicked() {
+        SceneNavigator.switchScene("/fxml/Register.fxml");
     }
 }

@@ -1,18 +1,11 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
-import com.auction.client.main.ClientApp;
-import com.auction.client.network.ServerMessageListener;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
-import com.auction.client.util.AlertUtils;
-import com.auction.client.util.EnumFormatter;
-import com.auction.client.util.MoneyFormatter;
-import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.*;
 import com.auction.client.util.SidebarBuilder.NavKey;
-import com.auction.client.util.TopbarBuilder;
-import com.auction.client.util.StatCardBuilder;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.networkMessage.AuctionEvents.*;
@@ -31,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class SellerDashboardController implements AuctionEventObserver {
+public class SellerDashboardController implements AuctionEventObserver, Disposable {
 
     @FXML private StackPane topbarContainer;
     @FXML private HBox statCardsContainer;
@@ -100,13 +93,9 @@ public class SellerDashboardController implements AuctionEventObserver {
         var user = ClientSession.getCurrentUser();
         if (user == null) return;
 
-        new Thread(() -> {
-            try {
-                ServerConnection.getInstance().send(new GetSellerItemsRequest(user.getId()));
-                ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.waitForResponse();
-
-                Platform.runLater(() -> {
+        RequestExecutor.send(
+                new GetSellerItemsRequest(user.getId()),
+                response -> {
                     if (response instanceof GetSellerItemsResult result) {
                         switch (result) {
                             case GetSellerItemsResult.Success s -> {
@@ -114,20 +103,17 @@ public class SellerDashboardController implements AuctionEventObserver {
                                 sellerItemCount = items == null ? 0 : items.size();
                                 recompute();
                             }
-                            case GetSellerItemsResult.Failure f -> {
-                                System.err.println("Không load được items: " + f.reason());
-                            }
+                            case GetSellerItemsResult.Failure f ->
+                                    System.err.println("Không load được items: " + f.reason());
                         }
                     }
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+                },
+                error -> System.err.println("Không tải được số lượng sản phẩm: " + error)
+        );
     }
 
     @Override
-    public void onAuctionUpdated(AuctionEvent event) {
+    public void onAuctionEvent(AuctionEvent event) {
         Auction updated = event.getAuction();
         Platform.runLater(() -> {
             int idx = indexOfAuction(updated.getId());
@@ -208,13 +194,17 @@ public class SellerDashboardController implements AuctionEventObserver {
     }
 
     private void handleLogout() {
-        AuctionEventBus.getInstance().removeObserver(this);
         ClientSession.clear();
         SceneNavigator.switchScene("/fxml/Login.fxml");
+    }
+    @Override
+    public void dispose() {
+        AuctionEventBus.getInstance().removeObserver(this);
     }
 
     private String shortId(String id) {
         if (id == null) return "---";
         return id.length() > 6 ? id.substring(0, 6).toUpperCase() : id.toUpperCase();
     }
+
 }

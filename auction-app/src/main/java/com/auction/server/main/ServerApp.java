@@ -10,6 +10,7 @@ import com.auction.server.seed.DatabaseSeeder;
 import com.auction.server.service.*;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.config.AppConfig;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -22,8 +23,33 @@ import org.slf4j.LoggerFactory;
 public class ServerApp {
     private static final Logger log = LoggerFactory.getLogger(ServerApp.class);
 
+    private static void rescheduleUnfinishedAuctions(AuctionDao auctionDao,
+                                                     AuctionLifecycleService lifecycleService) {
+        for (Auction a : auctionDao.findAll()) {
+            AuctionStatus s = a.getStatus();
+            if (s == AuctionStatus.OPEN) {
+                lifecycleService.scheduleStart(a);
+                lifecycleService.scheduleClose(a);
+            } else if (s == AuctionStatus.RUNNING) {
+                lifecycleService.scheduleClose(a);
+            } else if (s == AuctionStatus.FINISHED) {
+                lifecycleService.schedulePaymentTimeout(a);
+            }
+        }
+    }
+
+    private static void registerShutdownHook(AuctionLifecycleService lifecycleService,
+                                             Database db) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            log.info("[Shutdown] Đóng scheduler...");
+            lifecycleService.shutdown();
+            log.info("[Shutdown] Đóng connection pool...");
+            db.shutdown();
+        }));
+    }
+
     public static void main(String[] args) {
-        int port = 9999;
+        int port = AppConfig.SERVER_PORT;
 
         log.info("=== HỆ THỐNG ĐẤU GIÁ SERVER ===");
 
@@ -52,41 +78,25 @@ public class ServerApp {
                 new DefaultAuctionLifecycleService(auctionDao, broadcaster, lockManager);
         AuctionService auctionService =
                 new DefaultAuctionService(auctionDao, lifecycleService, broadcaster);
-
+        ItemService itemService = new DefaultItemService(itemDao);
+        WalletService walletService = new DefaultWalletService(userDao);
         // AntiSniping cần Duration
         AntiSnipingService antiSniping = new DefaultAntiSnipingService(
-                Duration.ofSeconds(60),   // trigger window
-                Duration.ofSeconds(60)    // extension
+                Duration.ofSeconds(AppConfig.ANTI_SNIPING_TRIGGER_SECONDS),
+                Duration.ofSeconds(AppConfig.ANTI_SNIPING_EXTENSION_SECONDS)
         );
         AutoBidService autoBidService = new DefaultAutoBidService(autoBidDao,lockManager);
         AuthService authService = new DefaultAuthService(userDao);
-        WalletService walletService = new DefaultWalletService(userDao);
 
         BidService bidService = new DefaultBidService(
                 db, auctionDao, bidDao, userDao, lifecycleService,
                 lockManager, antiSniping, autoBidService);
 
         // ⑥ Re-schedule tasks sau restart cho các auction chưa terminal
-        for (Auction a : auctionDao.findAll()) {
-            AuctionStatus s = a.getStatus();
-            if (s == AuctionStatus.OPEN) {
-                lifecycleService.scheduleStart(a);
-                lifecycleService.scheduleClose(a);
-            } else if (s == AuctionStatus.RUNNING) {
-                lifecycleService.scheduleClose(a);
-            } else if (s == AuctionStatus.FINISHED) {
-                lifecycleService.schedulePaymentTimeout(a);
-            }
-            // PAID, CANCELED → không cần schedule
-        }
+        rescheduleUnfinishedAuctions(auctionDao, lifecycleService);
 
-        // ⑥ Shutdown hook
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            log.info("[Shutdown] Đóng scheduler...");
-            lifecycleService.shutdown();
-            log.info("[Shutdown] Đóng connection pool...");
-            db.shutdown();
-        }));
+        // ⑦ Shutdown hook
+        registerShutdownHook(lifecycleService, db);
 
         // ⑦ Listen socket
         try (ServerSocket serverSocket = new ServerSocket(port)) {
@@ -98,7 +108,7 @@ public class ServerApp {
 
                 ClientHandler handler = new ClientHandler(
                         socket, bidService, authService, walletService,
-                        auctionDao, auctionService, itemDao,
+                        auctionService, itemService, autoBidService,
                         subscriptionManager, broadcaster, enricher);
                 new Thread(handler).start();
             }

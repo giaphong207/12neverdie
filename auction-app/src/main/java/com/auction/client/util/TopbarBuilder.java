@@ -4,17 +4,14 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.auction.client.context.ClientSession;
-import com.auction.client.main.ClientApp;
-import com.auction.client.network.ServerConnection;
-import com.auction.client.network.ServerMessageListener;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.Requests.DepositRequest;
 import com.auction.shared.networkMessage.Results.DepositResult;
 
-import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
+import javafx.beans.InvalidationListener;
+import javafx.beans.WeakInvalidationListener;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -76,10 +73,16 @@ public final class TopbarBuilder {
         walletCaption.getStyleClass().add("topbar-role");
         Label walletAmountLabel = new Label();
         walletAmountLabel.getStyleClass().add("topbar-wallet");
-        walletAmountLabel.textProperty().bind(
-                Bindings.createStringBinding(
-                        () -> MoneyFormatter.formatVnd(ClientSession.balanceProperty().get()),
-                        ClientSession.balanceProperty()));
+
+// Hiển thị số dư hiện tại + cập nhật khi balance đổi,
+// nhưng KHÔNG để balanceProperty (tĩnh, sống mãi) giữ chặt label này.
+        Runnable refreshWallet = () -> walletAmountLabel.setText(
+                MoneyFormatter.formatVnd(ClientSession.balanceProperty().get()));
+        refreshWallet.run(); // set giá trị ban đầu ngay
+
+        InvalidationListener walletListener = obs -> refreshWallet.run();
+        walletAmountLabel.getProperties().put("walletBalanceListener", walletListener); // giữ listener sống bằng tuổi label
+        ClientSession.balanceProperty().addListener(new WeakInvalidationListener(walletListener));
         walletBox.getChildren().addAll(walletCaption, walletAmountLabel);
 
         Button depositBtn = new Button("Nạp tiền");
@@ -133,12 +136,9 @@ public final class TopbarBuilder {
             return;
         }
 
-        new Thread(() -> {
-            try {
-                ServerConnection.getInstance().send(new DepositRequest(user.getId(), amount));
-                ServerMessageListener listener = ClientApp.getListener();
-                Object response = listener.waitForResponse();
-                Platform.runLater(() -> {
+        RequestExecutor.send(
+                new DepositRequest(user.getId(), amount),
+                response -> {
                     if (response instanceof DepositResult.Success ok) {
                         ClientSession.setBalance(ok.newBalance());
                         AlertUtils.showInfo("Thành công",
@@ -147,13 +147,9 @@ public final class TopbarBuilder {
                     } else if (response instanceof DepositResult.Failure f) {
                         AlertUtils.showError("Nạp thất bại", f.reason());
                     }
-                });
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                Platform.runLater(() ->
-                        AlertUtils.showError("Lỗi mạng", "Không gửi được yêu cầu: " + ex.getMessage()));
-            }
-        }).start();
+                },
+                error -> AlertUtils.showError("Lỗi mạng", "Không gửi được yêu cầu: " + error)
+        );
     }
 
     private static String portalLabelFor(User user) {

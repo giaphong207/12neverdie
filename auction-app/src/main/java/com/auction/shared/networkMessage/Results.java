@@ -2,6 +2,7 @@ package com.auction.shared.networkMessage;
 
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
+import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
 
 import java.io.Serializable;
@@ -72,5 +73,13 @@ public class Results {
     }
 
     public static record SetAutoBidResponse(boolean success, String message) implements Serializable {}
+    public static record UserRow(String username, Role role) implements Serializable {}
+
+    public sealed interface GetAllUsersResult extends Serializable
+            permits GetAllUsersResult.Success, GetAllUsersResult.Failure {
+
+        record Success(List<UserRow> users) implements GetAllUsersResult {}
+        record Failure(String reason) implements GetAllUsersResult {}
+    }
     public static record ErrorMessage(String message) implements Serializable {}
 }

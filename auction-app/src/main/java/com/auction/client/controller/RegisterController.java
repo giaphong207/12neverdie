@@ -1,16 +1,13 @@
 package com.auction.client.controller;
 
-import com.auction.client.main.ClientApp;
-import com.auction.client.network.ServerMessageListener;
-import com.auction.client.network.ServerConnection;
 import com.auction.client.util.AlertUtils;
-import com.auction.client.util.SceneStyler;
+import com.auction.client.util.RequestExecutor;
+import com.auction.client.util.SceneNavigator;
 
 import com.auction.shared.model.user.Role;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
 
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
@@ -48,7 +45,7 @@ public class RegisterController {
     }
 
     @FXML
-    public void onRegisterClicked(javafx.event.ActionEvent event) {
+    public void onRegisterClicked() {
         String username = txtUsername.getText();
         String password = txtPassword.getText();
         Role role = cbRole.getValue();
@@ -58,39 +55,21 @@ public class RegisterController {
             return;
         }
 
-        new Thread(() -> {
-            try {
-                ServerConnection conn = ServerConnection.getInstance();
-                conn.send(new RegisterRequest(username, password, role));
-
-                ServerMessageListener listener = ClientApp.getListener();
-                if (listener == null) {
-                    Platform.runLater(() ->
-                            AlertUtils.showError("Lỗi", "Listener chưa được khởi tạo"));
-                    return;
-                }
-
-                Object response = listener.waitForResponse();
-                Platform.runLater(() -> handleRegisterResult(response, event));
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                Platform.runLater(() ->
-                        AlertUtils.showError("Lỗi mạng", "Không gửi được yêu cầu: " + e.getMessage()));
-            }
-        }).start();
+        RequestExecutor.send(
+                new RegisterRequest(username, password, role),
+                this::handleRegisterResult,
+                error -> AlertUtils.showError("Đăng ký thất bại", error)
+        );
     }
 
-    private void handleRegisterResult(Object response, javafx.event.ActionEvent event) {
+    private void handleRegisterResult(Object response) {
         if (response instanceof RegisterResult result) {
             switch (result) {
                 case RegisterResult.Success s -> {
                     AlertUtils.showInfo("Thành công", "Đăng ký thành công! Vui lòng đăng nhập.");
-                    openLoginScreen(event);
+                    openLoginScreen();
                 }
-                case RegisterResult.Failure f -> {
-                    AlertUtils.showError("Thất bại", f.reason());
-                }
+                case RegisterResult.Failure f -> AlertUtils.showError("Thất bại", f.reason());
             }
         } else {
             AlertUtils.showError("Lỗi", "Phản hồi không hợp lệ");
@@ -99,24 +78,10 @@ public class RegisterController {
 
     @FXML
     public void onBackToLoginClicked(javafx.event.ActionEvent event) {
-        openLoginScreen(event);
+        openLoginScreen();
     }
 
-    private void openLoginScreen(javafx.event.ActionEvent event) {
-        try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
-            javafx.scene.Parent root = loader.load();
-            javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-
-            javafx.scene.Scene scene = new javafx.scene.Scene(root, 1280, 800);
-            SceneStyler.apply(scene);
-
-            stage.setScene(scene);
-            stage.setTitle("AuctionHub — Đăng nhập");
-            stage.show();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            AlertUtils.showError("Lỗi", "Không mở được màn Login: " + ex.getMessage());
-        }
+    private void openLoginScreen() {
+        SceneNavigator.switchScene("/fxml/Login.fxml");
     }
 }

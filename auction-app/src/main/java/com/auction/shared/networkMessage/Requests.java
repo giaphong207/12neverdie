@@ -30,8 +30,23 @@ public class Requests {
             }
         }
     }
-    public static record GetSellerItemsRequest(String sellerId) implements Serializable{}
-    public static record DeleteItemRequest(String itemId) implements Serializable {}
+    public static record GetSellerItemsRequest(String sellerId) implements Serializable {
+        public GetSellerItemsRequest {
+            if (sellerId == null || sellerId.isBlank()) {
+                throw new InvalidItemException("sellerId không được rỗng");
+            }
+        }
+    }
+    public static record DeleteItemRequest(String itemId, String sellerId) implements Serializable {
+        public DeleteItemRequest {
+            if (itemId == null || itemId.isBlank()) {
+                throw new InvalidItemException("itemId không được rỗng");
+            }
+            if (sellerId == null || sellerId.isBlank()) {
+                throw new InvalidItemException("sellerId không được rỗng");
+            }
+        }
+    }
     public static record AddItemRequest(String name, String description, long startPrice,
                                         ItemType type, String sellerId,
                                         LocalDateTime startTime, LocalDateTime endTime) implements Serializable {
@@ -115,6 +130,7 @@ public class Requests {
         }
     }
     public static record SubscribeAuctionListRequest() implements Serializable {}
+    public static record GetAllUsersRequest() implements Serializable {}
     public static record SubscribeAuctionRequest(String auctionId) implements Serializable{}
 
     public static record GetBalanceRequest(String userId) implements Serializable {}

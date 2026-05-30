@@ -1,37 +1,36 @@
 package com.auction.server.realtime;
 
-import com.auction.server.handler.ClientHandler;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AuctionSubscriptionManager {
-    // Danh sách những người đang ở màn hình AuctionList
-    private final Set<ClientHandler> listSubscribers = ConcurrentHashMap.newKeySet();
+    // Những người đang ở màn hình AuctionList
+    private final Set<EventReceiver> listSubscribers = ConcurrentHashMap.newKeySet();
 
-    // Danh sách những người đang ở màn hình chi tiết của từng Auction (Map: AuctionId -> Set of Clients)
-    private final ConcurrentHashMap<String, Set<ClientHandler>> auctionSubscribers = new ConcurrentHashMap<>();
+    // Map: AuctionId -> những người đang xem chi tiết phiên đó
+    private final ConcurrentHashMap<String, Set<EventReceiver>> auctionSubscribers = new ConcurrentHashMap<>();
 
-    public void subscribeList(ClientHandler handler) {
-        listSubscribers.add(handler);
+    public void subscribeList(EventReceiver subscriber) {
+        listSubscribers.add(subscriber);
     }
 
-    public void subscribeAuction(String auctionId, ClientHandler handler) {
-        auctionSubscribers.computeIfAbsent(auctionId, k -> ConcurrentHashMap.newKeySet()).add(handler);
+    public void subscribeAuction(String auctionId, EventReceiver subscriber) {
+        auctionSubscribers.computeIfAbsent(auctionId, k -> ConcurrentHashMap.newKeySet()).add(subscriber);
     }
 
-    public Set<ClientHandler> getListSubscribers() {
+    public Set<EventReceiver> getListSubscribers() {
         return listSubscribers;
     }
 
-    public Set<ClientHandler> getAuctionSubscribers(String auctionId) {
+    public Set<EventReceiver> getAuctionSubscribers(String auctionId) {
         return auctionSubscribers.getOrDefault(auctionId, ConcurrentHashMap.newKeySet());
     }
 
-    // Khi client tắt app hoặc mất mạng, phải xóa họ khỏi danh sách để tránh lỗi
-    public void remove(ClientHandler handler) {
-        listSubscribers.remove(handler);
-        for (Set<ClientHandler> subscribers : auctionSubscribers.values()) {
-            subscribers.remove(handler);
+    // Khi client tắt app / mất mạng, xóa khỏi mọi danh sách
+    public void remove(EventReceiver subscriber) {
+        listSubscribers.remove(subscriber);
+        for (Set<EventReceiver> subscribers : auctionSubscribers.values()) {
+            subscribers.remove(subscriber);
         }
     }
 }

@@ -1,23 +1,17 @@
 package com.auction.server.handler;
 
-import com.auction.server.dao.AuctionDao;
-import com.auction.server.dao.ItemDao;
 import com.auction.server.realtime.AuctionEnricher;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
-import com.auction.server.service.AuctionService;
-import com.auction.server.service.AuthService;
-import com.auction.server.service.BidOutcome;
-import com.auction.server.service.BidService;
-import com.auction.server.service.WalletService;
+import com.auction.server.realtime.EventReceiver;
+import com.auction.server.service.*;
 import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
-import com.auction.shared.model.user.User;
+import com.auction.shared.model.user.*;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
-import com.auction.shared.factory.ItemFactory;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -26,18 +20,17 @@ import java.net.Socket;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-public class ClientHandler implements Runnable {
+public class ClientHandler implements Runnable, EventReceiver {
     private final Socket socket;
     private final BidService bidService;
     private final AuthService authService;
     private final WalletService walletService;
-    private final AuctionDao auctionDao;
     private final AuctionService auctionService;
-    private final ItemDao itemDao;
+    private final ItemService itemService;
+    private final AutoBidService autoBidService;
     private final AuctionSubscriptionManager subscriptionManager;
     private final EventBroadcaster broadcaster;
     private final AuctionEnricher enricher;
@@ -50,9 +43,9 @@ public class ClientHandler implements Runnable {
                          BidService bidService,
                          AuthService authService,
                          WalletService walletService,
-                         AuctionDao auctionDao,
                          AuctionService auctionService,
-                         ItemDao itemDao,
+                         ItemService itemService,
+                         AutoBidService autoBidService,
                          AuctionSubscriptionManager subscriptionManager,
                          EventBroadcaster broadcaster,
                          AuctionEnricher enricher) {
@@ -60,9 +53,9 @@ public class ClientHandler implements Runnable {
         this.bidService = bidService;
         this.authService = authService;
         this.walletService = walletService;
-        this.auctionDao = auctionDao;
         this.auctionService = auctionService;
-        this.itemDao = itemDao;
+        this.itemService = itemService;
+        this.autoBidService = autoBidService;
         this.subscriptionManager = subscriptionManager;
         this.broadcaster = broadcaster;
         this.enricher = enricher;
@@ -78,28 +71,23 @@ public class ClientHandler implements Runnable {
             while (!socket.isClosed()) {
                 Object incoming = in.readObject();
 
-                if (incoming instanceof LoginRequest req) {
-                    handleLoginRequest(req);
-                } else if (incoming instanceof RegisterRequest req) {
-                    handleRegisterRequest(req);
-                } else if (incoming instanceof SubscribeAuctionListRequest) {
-                    handleSubscribeAuctionListRequest();
-                } else if (incoming instanceof SubscribeAuctionRequest req) {
-                    handleSubscribeAuctionRequest(req);
-                } else if (incoming instanceof BidRequest req) {
-                    handleBidRequest(req);
-                } else if (incoming instanceof AddItemRequest req) {
-                    handleAddItemRequest(req);
-                } else if (incoming instanceof UpdateItemRequest req) {
-                    handleUpdateItemRequest(req);
-                } else if (incoming instanceof DeleteItemRequest req) {
-                    handleDeleteItemRequest(req);
-                } else if (incoming instanceof GetSellerItemsRequest req) {
-                    handleGetSellerItemsRequest(req);
-                } else if (incoming instanceof GetBalanceRequest req) {
-                    handleGetBalanceRequest(req);
-                } else if (incoming instanceof DepositRequest req) {
-                    handleDepositRequest(req);
+                switch (incoming) {
+                    case LoginRequest req               -> handleLoginRequest(req);
+                    case RegisterRequest req            -> handleRegisterRequest(req);
+                    case SubscribeAuctionListRequest _  -> handleSubscribeAuctionListRequest();
+                    case SubscribeAuctionRequest req    -> handleSubscribeAuctionRequest(req);
+                    case BidRequest req                 -> handleBidRequest(req);
+                    case AddItemRequest req             -> handleAddItemRequest(req);
+                    case UpdateItemRequest req          -> handleUpdateItemRequest(req);
+                    case DeleteItemRequest req          -> handleDeleteItemRequest(req);
+                    case GetSellerItemsRequest req      -> handleGetSellerItemsRequest(req);
+                    case GetAllUsersRequest _            -> handleGetAllUsersRequest();
+                    case GetBalanceRequest req          -> handleGetBalanceRequest(req);
+                    case DepositRequest req             -> handleDepositRequest(req);
+                    case SetAutoBidRequest req          -> handleSetAutoBidRequest(req);
+                    case null    -> log.warn("Nhận message null từ client");
+                    default      -> log.warn("Nhận message không xác định: {}",
+                            incoming.getClass().getSimpleName());
                 }
             }
         } catch (Exception e) {
@@ -112,12 +100,11 @@ public class ClientHandler implements Runnable {
     private void handleLoginRequest(LoginRequest req) {
         try {
             User user = authService.login(req.username(), req.password());
-            if (user != null) {
-                send(new LoginResult.Success(user));
-            } else {
-                send(new LoginResult.Failure("Sai tên đăng nhập hoặc mật khẩu"));
-            }
+            send(new LoginResult.Success(user));
+        } catch (AppException e) {
+            send(new LoginResult.Failure(e.getMessage()));
         } catch (Exception e) {
+            log.error("Lỗi server khi login", e);
             send(new LoginResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
@@ -125,12 +112,11 @@ public class ClientHandler implements Runnable {
     private void handleRegisterRequest(RegisterRequest req) {
         try {
             User user = authService.register(req.username(), req.password(), req.role());
-            if (user != null) {
-                send(new RegisterResult.Success(user));
-            } else {
-                send(new RegisterResult.Failure("Tên đăng nhập đã tồn tại"));
-            }
+            send(new RegisterResult.Success(user));
+        } catch (AppException e) {
+            send(new RegisterResult.Failure(e.getMessage()));
         } catch (Exception e) {
+            log.error("Lỗi server khi register", e);
             send(new RegisterResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
@@ -138,7 +124,7 @@ public class ClientHandler implements Runnable {
     private void handleSubscribeAuctionListRequest() {
         subscriptionManager.subscribeList(this);
         try {
-            List<Auction> activeAuctions = auctionDao.findActiveAuctions();
+            List<Auction> activeAuctions = auctionService.getActiveAuctions();
             log.debug("Gửi {} auction snapshot cho client {}",
                     activeAuctions.size(), socket.getRemoteSocketAddress());
             for (Auction a : activeAuctions) {
@@ -153,7 +139,7 @@ public class ClientHandler implements Runnable {
     private void handleSubscribeAuctionRequest(SubscribeAuctionRequest req) {
         subscriptionManager.subscribeAuction(req.auctionId(), this);
         try {
-            Optional<Auction> auctionOpt = auctionDao.findById(req.auctionId());
+            Optional<Auction> auctionOpt = auctionService.getAuctionById(req.auctionId());
             if (auctionOpt.isPresent()) {
                 Auction a = auctionOpt.get();
                 enricher.enrich(a);
@@ -178,6 +164,10 @@ public class ClientHandler implements Runnable {
             // ai vừa bid bao nhiêu (không chỉ thấy giá đổi)
             broadcaster.broadcast(new BidPlacedEvent(result.auction(), result.bid()));
 
+            if (result.extendedSeconds() > 0) {
+                broadcaster.broadcast(new AuctionExtendedEvent(result.auction(), result.extendedSeconds()));
+            }
+
         } catch (AppException ex) {
             send(new BidResult.Failure(ex.getMessage()));
         }catch (Exception ex) {
@@ -190,44 +180,21 @@ public class ClientHandler implements Runnable {
 
     private void handleAddItemRequest(AddItemRequest req) {
         try {
-            // Validate
-            if (req.name() == null || req.name().isBlank()) {
-                send(new AddItemResult.Failure("Tên sản phẩm không được rỗng"));
-                return;
-            }
-            if (req.startPrice() <= 0) {
-                send(new AddItemResult.Failure("Giá khởi điểm phải > 0"));
-                return;
-            }
-            if (req.type() == null) {
-                send(new AddItemResult.Failure("Phải chọn loại sản phẩm"));
-                return;
-            }
-
-            LocalDateTime now = LocalDateTime.now();
-            if (req.startTime() == null || req.endTime() == null) {
-                send(new AddItemResult.Failure("Phải chọn thời gian bắt đầu và kết thúc"));
-                return;
-            }
-            if (!req.endTime().isAfter(req.startTime())) {
-                send(new AddItemResult.Failure("Thời gian kết thúc phải sau thời gian bắt đầu"));
-                return;
-            }
-            if (req.startTime().isBefore(now.minusMinutes(1))) {
+            // Check quá khứ — record không lo, vì phụ thuộc "now" của server
+            if (req.startTime().isBefore(LocalDateTime.now().minusMinutes(1))) {
                 send(new AddItemResult.Failure("Thời gian bắt đầu không được trong quá khứ"));
                 return;
             }
 
-            // Tạo item
-            String itemId = UUID.randomUUID().toString();
-            Item item = ItemFactory.createItem(
-                    req.type(), itemId, req.sellerId(),
-                    req.name(), req.description(), req.startPrice());
-            itemDao.save(item);
+            // Service tạo item (tự validate name/price/type + tạo + save)
+            Item item = itemService.addItem(
+                    req.sellerId(), req.name(), req.description(),
+                    req.startPrice(), req.type());
 
+            // Auction theo giờ seller chọn (null + endTime>startTime đã được record check)
             long minIncrement = Math.max(1000L, req.startPrice() / 100);
             Auction auction = auctionService.createAuction(
-                    req.sellerId(), itemId,
+                    req.sellerId(), item.getId(),
                     req.startPrice(), minIncrement,
                     req.startTime(), req.endTime());
 
@@ -236,6 +203,8 @@ public class ClientHandler implements Runnable {
 
             send(new AddItemResult.Success(item));
 
+        } catch (AppException e) {
+            send(new AddItemResult.Failure(e.getMessage()));
         } catch (Exception e) {
             log.error("Lỗi tạo item/auction", e);
             send(new AddItemResult.Failure("Lỗi server: " + e.getMessage()));
@@ -244,23 +213,15 @@ public class ClientHandler implements Runnable {
 
     private void handleUpdateItemRequest(UpdateItemRequest req) {
         try {
-            if (req.name() == null || req.name().isBlank()) {
-                send(new UpdateItemResult.Failure("Tên sản phẩm không được rỗng"));
-                return;
-            }
-
-            Optional<Item> existing = itemDao.findById(req.itemId());
-            if (existing.isEmpty()) {
-                send(new UpdateItemResult.Failure("Sản phẩm không tồn tại"));
-                return;
-            }
-
-            Item updated = ItemFactory.createItem(
-                    req.type(), req.itemId(), req.sellerId(),
-                    req.name(), req.description(), req.startPrice());
-            itemDao.save(updated);
+            Item updated = itemService.updateItem(
+                    req.itemId(), req.sellerId(),
+                    req.name(), req.description(),
+                    req.startPrice(), req.type());
 
             send(new UpdateItemResult.Success(updated));
+
+        } catch (AppException e) {
+            send(new UpdateItemResult.Failure(e.getMessage()));
         } catch (Exception e) {
             log.error("Lỗi cập nhật item", e);
             send(new UpdateItemResult.Failure("Lỗi server: " + e.getMessage()));
@@ -269,19 +230,17 @@ public class ClientHandler implements Runnable {
 
     private void handleDeleteItemRequest(DeleteItemRequest req) {
         try {
-            Optional<Item> existing = itemDao.findById(req.itemId());
-            if (existing.isEmpty()) {
-                send(new DeleteItemResult.Failure("Sản phẩm không tồn tại"));
-                return;
-            }
-
-            itemDao.deleteById(req.itemId());
+            itemService.deleteItem(req.itemId(), req.sellerId());
             send(new DeleteItemResult.Success());
+
+        } catch (AppException e) {
+            send(new DeleteItemResult.Failure(e.getMessage()));
         } catch (Exception e) {
             String msg = e.getMessage();
             if (msg != null && msg.contains("foreign key")) {
                 send(new DeleteItemResult.Failure("Không xoá được: sản phẩm đang có trong phiên đấu giá"));
             } else {
+                log.error("Lỗi xóa item", e);
                 send(new DeleteItemResult.Failure("Lỗi server: " + msg));
             }
         }
@@ -289,14 +248,32 @@ public class ClientHandler implements Runnable {
 
     private void handleGetSellerItemsRequest(GetSellerItemsRequest req) {
         try {
-            List<Item> items = itemDao.findBySellerId(req.sellerId());
+            List<Item> items = itemService.getItemsBySeller(req.sellerId());
             send(new GetSellerItemsResult.Success(items));
         } catch (Exception e) {
             log.error("Lỗi cập nhật item", e);
             send(new GetSellerItemsResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
+    private void handleGetAllUsersRequest() {
+        try {
+            List<UserRow> rows = authService.getAllUsers().stream()
+                    .map(u -> new UserRow(u.getUsername(), roleOf(u)))
+                    .toList();
+            send(new GetAllUsersResult.Success(rows));
+        } catch (Exception e) {
+            log.error("Lỗi lấy danh sách user", e);
+            send(new GetAllUsersResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
 
+    private static Role roleOf(User u) {
+        return switch (u) {
+            case Admin a  -> Role.ADMIN;
+            case Seller s -> Role.SELLER;
+            case Bidder b -> Role.BIDDER;
+        };
+    }
     // ===== WALLET =====
 
     private void handleGetBalanceRequest(GetBalanceRequest req) {
@@ -319,6 +296,36 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    private void handleSetAutoBidRequest(SetAutoBidRequest req) {
+        try {
+            // Validate cơ bản (phòng khi client gửi số xấu)
+            if (req.maxAmount() <= 0 || req.increment() <= 0) {
+                send(new SetAutoBidResponse(false, "Mức tối đa và bước giá phải lớn hơn 0"));
+                return;
+            }
+
+            // Fix #3 — check ví: không cho auto-bid vượt số dư hiện có.
+            //   (Check tại thời điểm set; nếu sau này ví tụt thì không đảm bảo tuyệt đối,
+            //    nhưng đủ để không tự bid hộ user quá số tiền họ từng có.)
+            long balance = walletService.getBalance(req.bidderId());
+            if (req.maxAmount() > balance) {
+                send(new SetAutoBidResponse(false,
+                        "Mức tối đa vượt số dư ví (ví hiện có " + balance + " VNĐ)"));
+                return;
+            }
+
+            autoBidService.upsertConfig(
+                    req.auctionId(), req.bidderId(),
+                    req.maxAmount(), req.increment());
+
+            send(new SetAutoBidResponse(true, "Đã thiết lập đấu giá tự động"));
+
+        } catch (Exception e) {
+            log.error("Lỗi setAutoBid", e);
+            send(new SetAutoBidResponse(false, "Không thể thiết lập: " + e.getMessage()));
+        }
+    }
+    @Override
     public synchronized void send(Object message) {
         try {
             if (out != null && !socket.isClosed()) {

@@ -10,6 +10,7 @@ import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
+import com.auction.client.util.Disposable;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.networkMessage.AuctionEvents.*;
@@ -24,6 +25,9 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.Node;
+import java.util.HashMap;
+import java.util.Map;
 import javafx.util.StringConverter;
 
 import java.io.IOException;
@@ -31,7 +35,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class AuctionListController implements AuctionEventObserver {
+public class AuctionListController implements AuctionEventObserver, Disposable {
 
     @FXML private StackPane topbarContainer;
     @FXML private Label resultCountLabel;
@@ -42,8 +46,9 @@ public class AuctionListController implements AuctionEventObserver {
     @FXML private VBox emptyState;
 
     private final List<Auction> allAuctions = new ArrayList<>();
+    private final Map<String, Node> cardById = new HashMap<>();
+    private List<String> displayedIds = new ArrayList<>();
 
-    // Filter "Tất cả" cho status & type
     private static final String TYPE_ALL = "Tất cả loại";
 
     @FXML
@@ -110,44 +115,40 @@ public class AuctionListController implements AuctionEventObserver {
         return -1;
     }
 
-    private void applyFilters() {
+    /** Chỉ TÍNH danh sách đã lọc + sắp xếp, KHÔNG vẽ. */
+    private List<Auction> computeFiltered() {
         AuctionStatus selectedStatus = statusFilter.getSelectionModel().getSelectedItem();
-        String selectedType = typeFilter.getSelectionModel().getSelectedItem();
-        String search = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
+        String search = searchField.getText() == null
+                ? "" : searchField.getText().trim().toLowerCase();
 
         List<Auction> filtered = new ArrayList<>();
         for (Auction a : allAuctions) {
-            // Status filter
             if (selectedStatus != null && a.getStatus() != selectedStatus) continue;
-
-            // Search filter (theo auction ID)
             if (!search.isEmpty()) {
                 boolean matchId = a.getId() != null && a.getId().toLowerCase().contains(search);
                 if (!matchId) continue;
             }
-
-            // Type filter — vì code không có field type trên Auction, ta skip filter này khi user chọn "Tất cả"
-            // Phase 5 có thể nâng cấp thêm: lookup Item.type qua itemId
-            if (selectedType != null && !TYPE_ALL.equals(selectedType)) {
-                // Bỏ qua phần filter type tạm thời — sẽ làm sau khi có ItemDao client-side
-                // Hiện tại tất cả auctions sẽ qua filter này
-            }
-
             filtered.add(a);
         }
 
-        // Sort: phiên RUNNING lên đầu, sau đó theo endTime gần nhất
         filtered.sort(Comparator
                 .comparing((Auction a) -> a.getStatus() != AuctionStatus.RUNNING)
                 .thenComparing(a -> a.getEndTime() == null
                         ? java.time.LocalDateTime.MAX
                         : a.getEndTime()));
 
-        renderGrid(filtered);
+        return filtered;
+    }
+
+    /** Lọc rồi vẽ lại toàn bộ — dùng cho đổi filter / search / refresh. */
+    private void applyFilters() {
+        renderGrid(computeFiltered());
     }
 
     private void renderGrid(List<Auction> auctions) {
         auctionGrid.getChildren().clear();
+        cardById.clear();
+        displayedIds = new ArrayList<>();
 
         if (auctions.isEmpty()) {
             auctionGrid.setVisible(false);
@@ -166,6 +167,8 @@ public class AuctionListController implements AuctionEventObserver {
         for (Auction a : auctions) {
             var card = AuctionCardBuilder.build(a, this::openAuctionDetail);
             auctionGrid.getChildren().add(card);
+            cardById.put(a.getId(), card);
+            displayedIds.add(a.getId());
         }
 
         resultCountLabel.setText("Hiển thị " + auctions.size() + " phiên đấu giá");
@@ -209,21 +212,47 @@ public class AuctionListController implements AuctionEventObserver {
     }
 
     @Override
-    public void onAuctionUpdated(AuctionEvent event) {
+    public void onAuctionEvent(AuctionEvent event) {
         Auction updated = event.getAuction();
         Platform.runLater(() -> updateAuctionRow(updated));   // ← Wrap!
     }
 
     private void updateAuctionRow(Auction updated) {
+        // 1) Luôn cập nhật dữ liệu ngầm (giữ data tươi, kể cả phiên đang bị lọc ra)
         int idx = indexOfAuction(updated.getId());
         if (idx >= 0) allAuctions.set(idx, updated);
         else allAuctions.add(updated);
-        applyFilters();
+
+        // 2) Tính xem SAU cập nhật thì danh sách lọc/sắp xếp trông thế nào
+        List<Auction> newFiltered = computeFiltered();
+        List<String> newIds = new ArrayList<>();
+        for (Auction a : newFiltered) newIds.add(a.getId());
+
+        // 3) Nếu tập phiên + thứ tự KHÔNG đổi → chỉ thay nội dung đúng 1 card
+        if (newIds.equals(displayedIds)) {
+            Node oldCard = cardById.get(updated.getId());
+            if (oldCard != null) {                                   // card đang hiển thị
+                int pos = auctionGrid.getChildren().indexOf(oldCard);
+                if (pos >= 0) {
+                    Node newCard = AuctionCardBuilder.build(updated, this::openAuctionDetail);
+                    auctionGrid.getChildren().set(pos, newCard);     // thay tại chỗ, không clear
+                    cardById.put(updated.getId(), newCard);
+                }
+            }
+            // oldCard == null → phiên ngoài tầm nhìn (đã lọc ra) → KHÔNG đụng vào lưới
+            return;
+        }
+
+        // 4) Tập/thứ tự thật sự đổi (thêm / bớt / đảo vị trí) → vẽ lại đầy đủ
+        renderGrid(newFiltered);
     }
 
     private void handleLogout() {
-        AuctionEventBus.getInstance().removeObserver(this);
         ClientSession.clear();
         SceneNavigator.switchScene("/fxml/Login.fxml");
+    }
+    @Override
+    public void dispose() {
+        AuctionEventBus.getInstance().removeObserver(this);
     }
 }
