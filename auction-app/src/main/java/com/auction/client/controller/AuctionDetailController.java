@@ -46,6 +46,7 @@ import javafx.application.Platform;
 public class AuctionDetailController implements AuctionEventObserver, Disposable {
 
     @FXML private Label itemNameLabel;
+    @FXML private Label auctionCodeLabel;
     @FXML private Label descriptionLabel;
     @FXML private Label sellerLabel;
     @FXML private Label currentPriceLabel;
@@ -56,6 +57,7 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     @FXML private Button placeBidButton;
 
     @FXML private TextField bidAmountField;
+    @FXML private Label minBidLabel;
     @FXML private Label highestBidderLabel;
     @FXML private ListView<String> bidHistoryListView;
     @FXML private StackPane topbarContainer;
@@ -138,9 +140,26 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     }
 
     private void renderAuction(Auction auction) {
-        itemNameLabel.setText("LOT №" + shortId(auction.getItemId()));
-        descriptionLabel.setText("Mã phiên: " + auction.getId());
-        sellerLabel.setText(auction.getSellerId());
+        // Tên + mô tả thật từ Item (server đã enrich)
+        String itemName = auction.getItemName();
+        itemNameLabel.setText(itemName != null && !itemName.isBlank()
+                ? itemName
+                : "(Chưa có tên sản phẩm)");
+
+        if (auctionCodeLabel != null) {
+            auctionCodeLabel.setText("Mã phiên: " + shortId(auction.getId()));
+        }
+
+        String desc = auction.getItemDescription();
+        descriptionLabel.setText(desc != null && !desc.isBlank()
+                ? desc
+                : "(chưa có mô tả)");
+
+        String sellerName = auction.getSellerName();
+        sellerLabel.setText(sellerName != null && !sellerName.isBlank()
+                ? sellerName
+                : auction.getSellerId());
+
         currentPriceLabel.setText(MoneyFormatter.formatVnd(auction.getCurrentPrice()));
 
         // Status badge với style class tương ứng
@@ -149,26 +168,41 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
                 "badge-open", "badge-running", "badge-finished", "badge-paid", "badge-canceled");
         statusLabel.getStyleClass().add(EnumFormatter.auctionStatusBadgeClass(auction.getStatus()));
 
+        // Tối thiểu = currentPrice + minIncrement (chỉ ý nghĩa khi RUNNING)
+        long minNext = auction.getCurrentPrice() + auction.getMinIncrement();
+        if (minBidLabel != null) {
+            minBidLabel.setText("Tối thiểu: " + MoneyFormatter.formatVnd(minNext));
+        }
+        if (bidAmountField != null) {
+            bidAmountField.setPromptText(MoneyFormatter.formatVnd(minNext) + " trở lên");
+        }
+
+        // Tên thật người dẫn đầu (server enrich)
+        String leaderName = auction.getHighestBidderName();
+        String leaderDisplay = (leaderName != null && !leaderName.isBlank())
+                ? leaderName
+                : auction.getHighestBidderId();
+
         if (auction.isFinished()) {
             remainingTimeLabel.setText("Đã kết thúc");
             placeBidButton.setDisable(true);
             if (auction.getWinnerBidderId() != null) {
-                messageLabel.setText("Người thắng: " + auction.getWinnerBidderId());
+                messageLabel.setText("Người thắng: " + leaderDisplay);
             } else {
                 messageLabel.setText("Phiên đã kết thúc — chưa có người thắng");
             }
         } else {
             placeBidButton.setDisable(auction.getStatus() != AuctionStatus.RUNNING);
             if (auction.getHighestBidderId() != null) {
-                messageLabel.setText("Đang dẫn đầu: " + auction.getHighestBidderId());
+                messageLabel.setText("Đang dẫn đầu: " + leaderDisplay);
             } else {
                 messageLabel.setText("Chưa có ai đặt giá");
             }
         }
 
-        String leader = auction.getHighestBidderId();
         if (highestBidderLabel != null) {
-            highestBidderLabel.setText("● Người dẫn đầu: " + (leader != null ? leader : "Chưa có"));
+            highestBidderLabel.setText("● Người dẫn đầu: "
+                    + (auction.getHighestBidderId() != null ? leaderDisplay : "Chưa có"));
         }
 
         if (bidHistoryListView != null) {

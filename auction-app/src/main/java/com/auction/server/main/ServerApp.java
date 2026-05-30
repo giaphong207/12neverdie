@@ -3,6 +3,7 @@ package com.auction.server.main;
 import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.server.dao.*;
 import com.auction.server.handler.ClientHandler;
+import com.auction.server.realtime.AuctionEnricher;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
 import com.auction.server.seed.DatabaseSeeder;
@@ -69,7 +70,8 @@ public class ServerApp {
         // Khởi tạo dependencies cần trước
         AuctionLockManager lockManager = new AuctionLockManager();
         AuctionSubscriptionManager subscriptionManager = new AuctionSubscriptionManager();
-        EventBroadcaster broadcaster = new EventBroadcaster(subscriptionManager);
+        AuctionEnricher enricher = new AuctionEnricher(itemDao, userDao);
+        EventBroadcaster broadcaster = new EventBroadcaster(subscriptionManager, enricher);
 
         // ⑤ Service layer
         AuctionLifecycleService lifecycleService =
@@ -107,7 +109,7 @@ public class ServerApp {
                 ClientHandler handler = new ClientHandler(
                         socket, bidService, authService, walletService,
                         auctionService, itemService, autoBidService,
-                        subscriptionManager, broadcaster);
+                        subscriptionManager, broadcaster, enricher);
                 new Thread(handler).start();
             }
         } catch (IOException e) {
