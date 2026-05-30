@@ -468,6 +468,19 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             if (event instanceof AuctionExtendedEvent ext) {
                 messageLabel.setText("Phiên được gia hạn thêm " + ext.getExtendedSeconds()
                         + " giây do có người đấu giá phút chót!");
+            } else if (event instanceof AuctionCancelledEvent) {
+                messageLabel.setText("⚠ Phiên đấu giá đã bị huỷ.");
+                AlertUtils.showWarning("Phiên bị huỷ",
+                        "Phiên đấu giá này đã bị huỷ. Bạn không thể đặt giá nữa.");
+            } else if (event instanceof AuctionEndedEvent) {
+                String winner = updated.getHighestBidderName();
+                String msg = (winner != null && !winner.isBlank())
+                        ? "Phiên đã kết thúc. Người thắng: " + winner
+                        : "Phiên đã kết thúc. Không có người thắng.";
+                messageLabel.setText(msg);
+                AlertUtils.showInfo("Phiên kết thúc", msg);
+            } else if (event instanceof AuctionPaidEvent) {
+                messageLabel.setText("✓ Phiên đã thanh toán xong.");
             }
         });
     }
