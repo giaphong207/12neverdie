@@ -86,11 +86,8 @@
                             </HBox>
                         </VBox>
 
-                        <!-- Tabs: Lịch sử + Biểu đồ -->
+                        <!-- Tabs: Biểu đồ trước, Lịch sử sau -->
                         <TabPane tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
-                            <Tab text="LỊCH SỬ ĐẤU GIÁ">
-                                <ListView fx:id="bidHistoryListView" prefHeight="320"/>
-                            </Tab>
                             <Tab text="BIỂU ĐỒ GIÁ">
                                 <LineChart fx:id="bidHistoryChart"
                                            createSymbols="true"
@@ -105,6 +102,9 @@
                                         <NumberAxis fx:id="bidPriceAxis" label="Giá (VND)"/>
                                     </yAxis>
                                 </LineChart>
+                            </Tab>
+                            <Tab text="LỊCH SỬ ĐẤU GIÁ">
+                                <ListView fx:id="bidHistoryListView" prefHeight="320"/>
                             </Tab>
                         </TabPane>
                     </VBox>

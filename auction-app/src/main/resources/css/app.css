@@ -615,6 +615,24 @@
     -fx-font-size: 12px;
 }
 
+/* === LỊCH SỬ ĐẤU GIÁ (mỗi dòng) === */
+/* Nhãn AUTO nhỏ cạnh tên */
+.auto-tag {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3A5C86;
+    -fx-background-color: #DCE7F2;
+    -fx-padding: 1px 7px;
+    -fx-background-radius: 8px;
+}
+
+/* Số tiền căn phải trong mỗi dòng lịch sử */
+.bid-amount {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+}
+
 /* === CONTENT SCROLL (ScrollPane trong content area) === */
 .content-scroll {
     -fx-background-color: transparent;
