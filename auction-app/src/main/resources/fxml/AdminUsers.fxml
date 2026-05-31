@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.AdminUsersController"
+            styleClass="root"
+            prefWidth="1280"
+            prefHeight="800">
+
+    <!-- === TOPBAR === -->
+    <top>
+        <StackPane fx:id="topbarContainer"/>
+    </top>
+
+    <!-- === CONTENT AREA === -->
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
+            <VBox spacing="28">
+                <padding>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
+                </padding>
+
+                <!-- === HEADER === -->
+                <VBox spacing="8">
+                    <Label text="Quản lý người dùng" styleClass="title-large"/>
+                    <Label fx:id="summaryLabel"
+                           text="Đang tải..."
+                           styleClass="text-secondary"/>
+                </VBox>
+
+                <!-- === STAT CARDS === -->
+                <HBox fx:id="statCardsContainer" spacing="20"/>
+
+                <!-- === SEARCH + TABLE === -->
+                <VBox spacing="16">
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="Danh sách tài khoản" styleClass="title-medium"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <TextField fx:id="searchField"
+                                   promptText="Tìm theo tên đăng nhập..."
+                                   prefWidth="280"/>
+                    </HBox>
+                    <TableView fx:id="usersTable" prefHeight="440">
+                        <columns>
+                            <TableColumn fx:id="colUserName"
+                                         text="Người dùng"
+                                         prefWidth="320"/>
+                            <TableColumn fx:id="colUserRole"
+                                         text="Vai trò"
+                                         prefWidth="220"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>
