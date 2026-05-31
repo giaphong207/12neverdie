@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.HelpController"
+            styleClass="root"
+            prefWidth="1280"
+            prefHeight="800">
+
+    <!-- === TOPBAR === -->
+    <top>
+        <StackPane fx:id="topbarContainer"/>
+    </top>
+
+    <!-- === CONTENT === -->
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
+            <VBox spacing="28" maxWidth="900">
+                <padding>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
+                </padding>
+
+                <Label fx:id="pageTitle" text="Hướng dẫn sử dụng" styleClass="title-large"/>
+
+                <!-- Các mục hướng dẫn được dựng động theo vai trò -->
+                <VBox fx:id="sectionsBox" spacing="28"/>
+
+                <Label text="© 2026 12neverdie. Bảo lưu mọi quyền."
+                       styleClass="text-secondary"/>
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>
