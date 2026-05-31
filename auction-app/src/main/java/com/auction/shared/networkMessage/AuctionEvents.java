@@ -62,6 +62,41 @@ public class AuctionEvents {
             super(auction);
         }
     }
+    /**
+     * Báo số dư ví mới sau khi phiên thanh toán xong: winner bị trừ, seller được cộng.
+     * Client đối chiếu id của mình với winnerId/sellerId để cập nhật ví realtime.
+     */
+    public static class WalletUpdatedEvent extends AuctionEvent {
+        private final String winnerId;
+        private final long winnerBalance;
+        private final String sellerId;
+        private final long sellerBalance;
+
+        public WalletUpdatedEvent(Auction auction, String winnerId, long winnerBalance,
+                                  String sellerId, long sellerBalance) {
+            super(auction);
+            this.winnerId = winnerId;
+            this.winnerBalance = winnerBalance;
+            this.sellerId = sellerId;
+            this.sellerBalance = sellerBalance;
+        }
+
+        public String getWinnerId() {
+            return winnerId;
+        }
+
+        public long getWinnerBalance() {
+            return winnerBalance;
+        }
+
+        public String getSellerId() {
+            return sellerId;
+        }
+
+        public long getSellerBalance() {
+            return sellerBalance;
+        }
+    }
     public static class AuctionCancelledEvent extends AuctionEvent {
         public AuctionCancelledEvent(Auction auction) {
             super(auction);
