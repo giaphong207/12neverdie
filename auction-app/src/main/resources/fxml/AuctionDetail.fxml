@@ -158,6 +158,14 @@
                                     styleClass="btn-outline"
                                     onAction="#onConfigureAutoBidClicked"
                                     maxWidth="Infinity"/>
+
+                            <Button fx:id="cancelAuctionButton"
+                                    text="Hủy phiên"
+                                    styleClass="btn-danger"
+                                    onAction="#onCancelAuctionClicked"
+                                    visible="false"
+                                    managed="false"
+                                    maxWidth="Infinity"/>
                         </VBox>
                     </VBox>
                 </HBox>

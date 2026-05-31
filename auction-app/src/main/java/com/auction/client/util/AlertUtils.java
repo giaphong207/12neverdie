@@ -1,6 +1,9 @@
 package com.auction.client.util;
 
-import javafx.scene.control.Alert;
+import java.util.Optional;   
+
+import javafx.scene.control.Alert; 
+import javafx.scene.control.ButtonType; 
 
 public final class AlertUtils {
     //Không cho phép khởi tạo đối tượng bằng từ khóa new
@@ -31,5 +34,15 @@ public final class AlertUtils {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    //Hộp thoại xác nhận (OK/Cancel) — trả về true nếu user bấm OK
+    public static boolean showConfirm(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
     }
 }
