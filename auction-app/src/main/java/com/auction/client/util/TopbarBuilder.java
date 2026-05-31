@@ -14,10 +14,11 @@ import com.auction.shared.networkMessage.Results.DepositResult;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.geometry.Pos;
+import javafx.geometry.Side;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.CustomMenuItem;
 import javafx.scene.control.Label;
-import javafx.scene.control.MenuButton;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -28,7 +29,8 @@ import javafx.scene.layout.VBox;
  * Topbar ngang đặt ở trên cùng — thay thế sidebar bên trái.
  * Tái sử dụng {@link SidebarBuilder.NavKey} để controller không phải đổi logic.
  *
- * Layout: [Logo · Portal] [Nav 1] [Nav 2] ... [Nav N] [spacer] [User · Role] [Đăng xuất]
+ * Layout: [Logo · Portal] [Nav 1] ... [Nav N] [spacer] [Ví · Nạp tiền] [Avatar]
+ * Nav có mục "Hướng dẫn" mở cửa sổ thông tin; bấm avatar hiện popup "Đăng xuất".
  */
 public final class TopbarBuilder {
 
@@ -67,7 +69,13 @@ public final class TopbarBuilder {
             btn.setMinWidth(Region.USE_PREF_SIZE);
             btn.setWrapText(false);
             btn.setOnAction(e -> {
-                if (onNavClick != null) onNavClick.accept(item.key);
+                // "Hướng dẫn" điều hướng tới trang Help ngay trong cửa sổ
+                // (không cần controller xử lý → tránh popup "đang phát triển").
+                if (isHelpKey(item.key)) {
+                    SceneNavigator.switchScene("/fxml/Help.fxml");
+                } else if (onNavClick != null) {
+                    onNavClick.accept(item.key);
+                }
             });
             navBox.getChildren().add(btn);
         }
@@ -75,7 +83,7 @@ public final class TopbarBuilder {
         Region grow = new Region();
         HBox.setHgrow(grow, Priority.ALWAYS);
 
-        // ── Khối bên phải: [ví + nạp tiền] (ẩn với admin) → avatar → menu "⋯" ──
+        // ── Khối bên phải: [ví + nạp tiền] (ẩn với admin) → avatar ──
         HBox rightBox = new HBox(14);
         rightBox.setAlignment(Pos.CENTER_RIGHT);
 
@@ -108,22 +116,42 @@ public final class TopbarBuilder {
         }
 
         // ── Avatar tròn chữ tắt (b1 / s1 / A) màu theo vai trò ──
+        // Bấm vào avatar → popup nhỏ gọn chỉ có "Đăng xuất".
         Label avatar = new Label(initialsFor(user));
         avatar.getStyleClass().addAll("avatar-circle", avatarClassFor(user));
 
-        // ── Menu "⋯" chứa Đăng xuất ──
-        MenuButton menu = new MenuButton("⋯");
-        menu.getStyleClass().add("topbar-menu");
-        MenuItem logoutItem = new MenuItem("Đăng xuất");
-        logoutItem.setOnAction(e -> {
-            if (onLogout != null) onLogout.run();
-        });
-        menu.getItems().add(logoutItem);
+        ContextMenu accountMenu = buildAccountMenu(onLogout);
+        avatar.setOnMouseClicked(e ->
+                accountMenu.show(avatar, Side.BOTTOM, 0, 8));
 
-        rightBox.getChildren().addAll(avatar, menu);
+        rightBox.getChildren().add(avatar);
 
         topbar.getChildren().addAll(brand, brandGap, navBox, grow, rightBox);
         return topbar;
+    }
+
+    /** Các nav key "Hướng dẫn" (trước đây là Cài đặt/Cấu hình) — mở cửa sổ thông tin. */
+    private static boolean isHelpKey(NavKey key) {
+        return key == NavKey.BIDDER_SETTINGS
+                || key == NavKey.SELLER_SETTINGS
+                || key == NavKey.ADMIN_SETTINGS;
+    }
+
+    /** Popup nhỏ gọn (dropdown) dưới avatar, chỉ có một mục "Đăng xuất". */
+    private static ContextMenu buildAccountMenu(Runnable onLogout) {
+        ContextMenu menu = new ContextMenu();
+        menu.getStyleClass().add("account-menu");
+
+        Label logout = new Label("Đăng xuất");
+        logout.getStyleClass().add("account-menu-item");
+        logout.setMaxWidth(Double.MAX_VALUE);
+
+        CustomMenuItem item = new CustomMenuItem(logout, true);
+        item.setOnAction(e -> {
+            if (onLogout != null) onLogout.run();
+        });
+        menu.getItems().add(item);
+        return menu;
     }
 
     /** Chữ tắt cho avatar: chữ cái đầu + cụm số cuối nếu có (bidder1→b1, admin→A). */
@@ -207,6 +235,16 @@ public final class TopbarBuilder {
         };
     }
 
+    /** Nav key "Hướng dẫn" tương ứng vai trò — để HelpController highlight đúng mục. */
+    public static NavKey helpKeyFor(User user) {
+        if (user == null) return NavKey.BIDDER_SETTINGS;
+        return switch (UserFactory.toRole(user)) {
+            case BIDDER -> NavKey.BIDDER_SETTINGS;
+            case SELLER -> NavKey.SELLER_SETTINGS;
+            case ADMIN -> NavKey.ADMIN_SETTINGS;
+        };
+    }
+
     private static java.util.List<NavItem> navItemsFor(User user) {
         if (user == null) return java.util.List.of();
         return switch (UserFactory.toRole(user)) {
@@ -215,21 +253,20 @@ public final class TopbarBuilder {
                     new NavItem(NavKey.BIDDER_LIVE, "Phiên đang diễn ra"),
                     new NavItem(NavKey.BIDDER_MINE, "Phiên của tôi"),
                     new NavItem(NavKey.BIDDER_WON, "Đã thắng"),
-                    new NavItem(NavKey.BIDDER_SETTINGS, "Cài đặt")
+                    new NavItem(NavKey.BIDDER_SETTINGS, "Hướng dẫn")
             );
             case SELLER -> java.util.List.of(
                     new NavItem(NavKey.SELLER_OVERVIEW, "Tổng quan"),
                     new NavItem(NavKey.SELLER_PRODUCTS, "Sản phẩm của tôi"),
                     new NavItem(NavKey.SELLER_AUCTIONS, "Phiên đấu giá"),
-                    new NavItem(NavKey.SELLER_REVENUE, "Doanh thu"),
-                    new NavItem(NavKey.SELLER_SETTINGS, "Cài đặt")
+                    new NavItem(NavKey.SELLER_SETTINGS, "Hướng dẫn")
             );
             case ADMIN -> java.util.List.of(
                     new NavItem(NavKey.ADMIN_OVERVIEW, "Tổng quan"),
                     new NavItem(NavKey.ADMIN_USERS, "Người dùng"),
                     new NavItem(NavKey.ADMIN_AUCTIONS, "Phiên đấu giá"),
                     new NavItem(NavKey.ADMIN_REPORTS, "Báo cáo"),
-                    new NavItem(NavKey.ADMIN_SETTINGS, "Cấu hình")
+                    new NavItem(NavKey.ADMIN_SETTINGS, "Hướng dẫn")
             );
         };
     }
