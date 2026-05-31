@@ -145,22 +145,8 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     }
 
     private void handleNavClick(NavKey key) {
-        switch (key) {
-            // Bidder routes
-            case BIDDER_HOME -> SceneNavigator.switchScene("/fxml/BidderDashboard.fxml");
-            case BIDDER_LIVE -> SceneNavigator.switchScene("/fxml/AuctionList.fxml");
-
-            // Seller routes
-            case SELLER_OVERVIEW -> SceneNavigator.switchScene("/fxml/SellerDashboard.fxml");
-            case SELLER_PRODUCTS -> SceneNavigator.switchScene("/fxml/ProductManagement.fxml");
-            case SELLER_AUCTIONS -> SceneNavigator.switchScene("/fxml/SellerAuctions.fxml");
-
-            // Admin routes
-            case ADMIN_OVERVIEW -> SceneNavigator.switchScene("/fxml/AdminDashboard.fxml");
-            case ADMIN_AUCTIONS -> SceneNavigator.switchScene("/fxml/AuctionList.fxml");
-
-            default -> AlertUtils.showInfo("Sắp ra mắt", "Tính năng này đang được phát triển.");
-        }
+        // Trang chi tiết không phải mục nav nào → luôn điều hướng theo mục được bấm.
+        NavRouter.route(key);
     }
 
     public void loadAuction(String auctionId) {

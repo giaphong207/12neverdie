@@ -6,6 +6,7 @@ import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.AuctionCardBuilder;
+import com.auction.client.util.NavRouter;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
@@ -235,11 +236,8 @@ public class BidderDashboardController implements AuctionEventObserver, Disposab
     }
 
     private void handleNavClick(NavKey key) {
-        switch (key) {
-            case BIDDER_HOME -> { /* đang ở đây */ }
-            case BIDDER_LIVE -> SceneNavigator.switchScene("/fxml/AuctionList.fxml");
-            default -> AlertUtils.showInfo("Sắp ra mắt", "Tính năng này đang được phát triển.");
-        }
+        if (key == NavKey.BIDDER_HOME) return; // đang ở đây
+        NavRouter.route(key);
     }
 
     private void handleLogout() {

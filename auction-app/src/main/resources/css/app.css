@@ -29,6 +29,7 @@
 
     /* Border & Divider */
     -app-border: #E7E2D8;
+    -app-border-card: #D9D9D9;   /* viền thẻ: xám trung tính (không ám vàng) */
 
     /* Font chung */
     -fx-font-family: "Inter", "Segoe UI", "Arial", sans-serif;
@@ -314,7 +315,7 @@
 .card {
     -fx-background-color: -app-bg-main;
     -fx-background-radius: 8px;
-    -fx-border-color: -app-border;
+    -fx-border-color: -app-border-card;
     -fx-border-width: 1px;
     -fx-border-radius: 8px;
     -fx-padding: 24px;
@@ -324,7 +325,7 @@
 .stat-card {
     -fx-background-color: -app-bg-main;
     -fx-background-radius: 8px;
-    -fx-border-color: -app-border;
+    -fx-border-color: -app-border-card;
     -fx-border-width: 1px;
     -fx-border-radius: 8px;
     -fx-padding: 20px;
@@ -349,7 +350,7 @@
 .auction-card {
     -fx-background-color: -app-bg-main;
     -fx-background-radius: 8px;
-    -fx-border-color: -app-border;
+    -fx-border-color: -app-border-card;
     -fx-border-width: 1px;
     -fx-border-radius: 8px;
     -fx-padding: 16px;
@@ -855,6 +856,52 @@
     -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+/* === POPUP TÀI KHOẢN (dropdown dưới avatar) === */
+.account-menu {
+    -fx-background-color: -app-bg-main;
+    -fx-background-radius: 10px;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-padding: 4px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.16), 16, 0.0, 0, 6);
+}
+.account-menu .context-menu { -fx-background-color: transparent; }
+.account-menu-item {
+    -fx-font-size: 14px;
+    -fx-text-fill: -app-text-primary;
+    -fx-padding: 8px 18px;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+}
+.account-menu .menu-item:focused .account-menu-item,
+.account-menu-item:hover {
+    -fx-background-color: -app-accent-soft;
+    -fx-text-fill: -app-accent-hover;
+}
+
+/* === CỬA SỔ HƯỚNG DẪN === */
+.help-scroll {
+    -fx-background-color: -app-bg-soft;
+    -fx-background: -app-bg-soft;
+}
+.help-content {
+    -fx-padding: 28px;
+    -fx-background-color: -app-bg-soft;
+}
+.help-title {
+    -fx-font-family: "Cambria", "Times New Roman", "Georgia", serif;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-accent;
+}
+.help-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: -app-text-primary;
+    -fx-line-spacing: 4px;
 }
 
 .avatar-bidder { -fx-background-color: #DCE7F2; -fx-text-fill: #3A5C86; }
@@ -1070,7 +1117,7 @@
 .card-elevated {
     -fx-background-color: -app-bg-main;
     -fx-background-radius: 8px;
-    -fx-border-color: -app-border;
+    -fx-border-color: -app-border-card;
     -fx-border-width: 1px;
     -fx-border-radius: 8px;
     -fx-padding: 24px;

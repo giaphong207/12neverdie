@@ -162,6 +162,10 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
             a.markPaid();
             auctionDao.save(a);
             broadcaster.broadcast(new AuctionPaidEvent(a));
+            // Realtime: báo số dư mới cho winner (bị trừ) và seller (được cộng)
+            broadcaster.broadcast(new WalletUpdatedEvent(a,
+                    winnerId, walletService.getBalance(winnerId),
+                    a.getSellerId(), walletService.getBalance(a.getSellerId())));
             log.info("Phiên {} thanh toán tự động OK: winner {} → seller {} ({}).",
                     a.getId(), winnerId, a.getSellerId(), a.getCurrentPrice());
         } else {

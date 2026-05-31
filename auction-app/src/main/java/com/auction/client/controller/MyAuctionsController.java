@@ -152,13 +152,8 @@ public class MyAuctionsController implements AuctionEventObserver, Disposable {
     }
 
     private void handleNavClick(NavKey key) {
-        switch (key) {
-            case BIDDER_HOME -> SceneNavigator.switchScene("/fxml/BidderDashboard.fxml");
-            case BIDDER_LIVE -> SceneNavigator.switchScene("/fxml/AuctionList.fxml");
-            case BIDDER_MINE -> { /* đang ở đây */ }
-            case BIDDER_WON -> SceneNavigator.switchScene("/fxml/WonAuctions.fxml");
-            default -> AlertUtils.showInfo("Sắp ra mắt", "Tính năng này đang được phát triển.");
-        }
+        if (key == NavKey.BIDDER_MINE) return; // đang ở đây
+        NavRouter.route(key);
     }
 
     private void handleLogout() {

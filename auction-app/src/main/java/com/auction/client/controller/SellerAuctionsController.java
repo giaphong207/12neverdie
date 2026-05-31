@@ -143,12 +143,8 @@ public class SellerAuctionsController implements AuctionEventObserver, Disposabl
     }
 
     private void handleNavClick(NavKey key) {
-        switch (key) {
-            case SELLER_OVERVIEW -> SceneNavigator.switchScene("/fxml/SellerDashboard.fxml");
-            case SELLER_PRODUCTS -> SceneNavigator.switchScene("/fxml/ProductManagement.fxml");
-            case SELLER_AUCTIONS -> { /* đang ở đây */ }
-            default -> AlertUtils.showInfo("Sắp ra mắt", "Tính năng này đang được phát triển.");
-        }
+        if (key == NavKey.SELLER_AUCTIONS) return; // đang ở đây
+        NavRouter.route(key);
     }
 
     private void handleLogout() {

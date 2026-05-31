@@ -7,6 +7,7 @@ import com.auction.client.realtime.AuctionEventObserver;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.AuctionCardBuilder;
 import com.auction.client.util.EnumFormatter;
+import com.auction.client.util.NavRouter;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
@@ -193,24 +194,10 @@ public class AuctionListController implements AuctionEventObserver, Disposable {
     }
 
     private void handleNavClick(NavKey key) {
-        switch (key) {
-            // Bidder routes
-            case BIDDER_HOME -> SceneNavigator.switchScene("/fxml/BidderDashboard.fxml");
-            case BIDDER_LIVE -> { /* đang ở đây */ }
-            case BIDDER_MINE -> SceneNavigator.switchScene("/fxml/MyAuctions.fxml");
-            case BIDDER_WON -> SceneNavigator.switchScene("/fxml/WonAuctions.fxml");
-
-            // Seller routes
-            case SELLER_OVERVIEW -> SceneNavigator.switchScene("/fxml/SellerDashboard.fxml");
-            case SELLER_PRODUCTS -> SceneNavigator.switchScene("/fxml/ProductManagement.fxml");
-            case SELLER_AUCTIONS -> SceneNavigator.switchScene("/fxml/SellerAuctions.fxml");
-
-            // Admin routes
-            case ADMIN_OVERVIEW -> SceneNavigator.switchScene("/fxml/AdminDashboard.fxml");
-            case ADMIN_AUCTIONS -> { /* đang ở đây */ }
-
-            default -> AlertUtils.showInfo("Sắp ra mắt", "Tính năng này đang được phát triển.");
-        }
+        // Trang này dùng chung cho Bidder ("Phiên đang diễn ra") và Admin ("Phiên đấu giá").
+        // Bấm đúng mục đang xem → bỏ qua; còn lại để NavRouter điều hướng.
+        if (key == NavKey.BIDDER_LIVE || key == NavKey.ADMIN_AUCTIONS) return;
+        NavRouter.route(key);
     }
 
     @Override

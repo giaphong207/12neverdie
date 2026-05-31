@@ -6,9 +6,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import com.auction.client.context.ClientSession;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
 
+import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Results.*;
 import javafx.application.Platform;
@@ -61,7 +63,11 @@ public class ServerMessageListener implements Runnable {
             try {
                 Object incoming = inputStream.readObject();
 
-                if (incoming instanceof AuctionEvent event) {
+                if (incoming instanceof WalletUpdatedEvent walletEvent) {
+                    System.out.println("Nhan WalletUpdatedEvent -> cap nhat so du");
+                    applyWalletUpdate(walletEvent);
+
+                } else if (incoming instanceof AuctionEvent event) {
                     System.out.println("Nhan AuctionUpdateEvent: " + event.getAuction().getId());
                     eventBus.publish(event);
 
@@ -141,5 +147,27 @@ public class ServerMessageListener implements Runnable {
 
     public void stop() {
         running = false;
+    }
+
+    /**
+     * Cập nhật số dư ví khi phiên vừa thanh toán xong. Chỉ áp dụng nếu event
+     * liên quan tới user đang đăng nhập (là winner hoặc seller).
+     * Balance là JavaFX property bound vào topbar → phải set trên FX thread.
+     */
+    private void applyWalletUpdate(WalletUpdatedEvent event) {
+        User me = ClientSession.getCurrentUser();
+        if (me == null) {
+            return;
+        }
+        String myId = me.getId();
+        long newBalance;
+        if (myId.equals(event.getWinnerId())) {
+            newBalance = event.getWinnerBalance();
+        } else if (myId.equals(event.getSellerId())) {
+            newBalance = event.getSellerBalance();
+        } else {
+            return; // event không liên quan tới mình
+        }
+        Platform.runLater(() -> ClientSession.setBalance(newBalance));
     }
 }
