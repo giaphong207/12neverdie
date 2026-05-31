@@ -1,9 +1,10 @@
 package com.auction.shared.networkMessage;
 
+import java.io.Serializable;
+
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.Bid;
-
-import java.io.Serializable;
+import com.auction.shared.model.user.Role;
 
 public class AuctionEvents {
     public static abstract class AuctionEvent implements Serializable {
@@ -97,9 +98,18 @@ public class AuctionEvents {
             return sellerBalance;
         }
     }
-    public static class AuctionCancelledEvent extends AuctionEvent {
-        public AuctionCancelledEvent(Auction auction) {
+
+    public static class AuctionCancelledEvent extends AuctionEvent { //thêm Role
+        private final Role cancelledByRole;   //ai hủy (theo vai trò); null = hệ thống tự hủy
+        public AuctionCancelledEvent(Auction auction) {       
+            this(auction, null);
+        }
+        public AuctionCancelledEvent(Auction auction, Role cancelledByRole) {
             super(auction);
+            this.cancelledByRole = cancelledByRole;
+        }
+        public Role getCancelledByRole() {
+            return cancelledByRole;
         }
     }
 }

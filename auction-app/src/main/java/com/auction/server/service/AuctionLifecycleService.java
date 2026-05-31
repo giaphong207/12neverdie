@@ -1,6 +1,7 @@
 package com.auction.server.service;
 
 import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.user.Role;
 
 public interface AuctionLifecycleService {
 
@@ -24,9 +25,9 @@ public interface AuctionLifecycleService {
     Auction finishAuction(String auctionId);
 
     /**
-     * Cancel thủ công (vd: admin hủy phiên).
+     * Cancel theo vai trò.
      */
-    Auction cancelAuction(String auctionId);
+    Auction cancelAuction(String auctionId, Role cancelledByRole);
     Auction markAuctionPaid(String auctionId);
 
 

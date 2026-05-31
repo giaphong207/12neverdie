@@ -1,21 +1,33 @@
 package com.auction.server.service;
 
-import com.auction.server.dao.AuctionDao;
-import com.auction.server.realtime.EventBroadcaster;
-import com.auction.server.concurrency.AuctionLockManager;
-import com.auction.shared.exception.AppExceptions.*;
-import com.auction.shared.model.auction.Auction;
-import com.auction.shared.model.auction.AuctionStatus;
-import com.auction.shared.networkMessage.AuctionEvents.*;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.auction.server.concurrency.AuctionLockManager;
+import com.auction.server.dao.AuctionDao;
+import com.auction.server.realtime.EventBroadcaster;
+import com.auction.shared.exception.AppExceptions.*;
+import com.auction.shared.exception.AppExceptions.AuctionNotFoundException;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.user.Role;
+import com.auction.shared.networkMessage.AuctionEvents.*;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionCancelledEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionEndedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionPaidEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionStartedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionUpdatedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.WalletUpdatedEvent;
 public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
     private static final Logger log = LoggerFactory.getLogger(DefaultAuctionLifecycleService.class);
 
@@ -230,7 +242,7 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
     }
 
     @Override
-    public Auction cancelAuction(String auctionId) {
+    public Auction cancelAuction(String auctionId, Role cancelledByRole) {
         ReentrantLock lock = lockManager.getLock(auctionId);
         lock.lock();
         try {
@@ -238,7 +250,7 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
                     .orElseThrow(() -> new AuctionNotFoundException(auctionId));
             a.cancel();
             auctionDao.save(a);
-            broadcaster.broadcast(new AuctionCancelledEvent(a));
+            broadcaster.broadcast(new AuctionCancelledEvent(a, cancelledByRole));
 
             // Cleanup task chưa fire
             cancelScheduledTask(startTasks, auctionId);

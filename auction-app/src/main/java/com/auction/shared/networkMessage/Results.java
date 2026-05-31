@@ -1,12 +1,12 @@
 package com.auction.shared.networkMessage;
 
+import java.io.Serializable;
+import java.util.List;
+
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
-
-import java.io.Serializable;
-import java.util.List;
 
 public class Results {
     public sealed interface LoginResult extends Serializable
@@ -82,4 +82,10 @@ public class Results {
         record Failure(String reason) implements GetAllUsersResult {}
     }
     public static record ErrorMessage(String message) implements Serializable {}
+
+    public sealed interface CancelAuctionResult extends Serializable
+            permits CancelAuctionResult.Success, CancelAuctionResult.Failure {
+        record Success(Auction auction) implements CancelAuctionResult {}
+        record Failure(String reason) implements CancelAuctionResult {}
+    }
 }

@@ -1,17 +1,5 @@
 package com.auction.server.main;
 
-import com.auction.server.concurrency.AuctionLockManager;
-import com.auction.server.dao.*;
-import com.auction.server.handler.ClientHandler;
-import com.auction.server.realtime.AuctionEnricher;
-import com.auction.server.realtime.AuctionSubscriptionManager;
-import com.auction.server.realtime.EventBroadcaster;
-import com.auction.server.seed.DatabaseSeeder;
-import com.auction.server.service.*;
-import com.auction.shared.model.auction.Auction;
-import com.auction.shared.model.auction.AuctionStatus;
-import com.auction.shared.config.AppConfig;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -19,6 +7,43 @@ import java.time.Duration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.auction.server.concurrency.AuctionLockManager;
+import com.auction.server.dao.AuctionDao;
+import com.auction.server.dao.AutoBidDao;
+import com.auction.server.dao.BidDao;
+import com.auction.server.dao.Database;
+import com.auction.server.dao.ItemDao;
+import com.auction.server.dao.JdbcAuctionDao;
+import com.auction.server.dao.JdbcAutoBidDao;
+import com.auction.server.dao.JdbcBidDao;
+import com.auction.server.dao.JdbcItemDao;
+import com.auction.server.dao.JdbcUserDao;
+import com.auction.server.dao.UserDao;
+import com.auction.server.handler.ClientHandler;
+import com.auction.server.realtime.AuctionEnricher;
+import com.auction.server.realtime.AuctionSubscriptionManager;
+import com.auction.server.realtime.EventBroadcaster;
+import com.auction.server.seed.DatabaseSeeder;
+import com.auction.server.service.AntiSnipingService;
+import com.auction.server.service.AuctionLifecycleService;
+import com.auction.server.service.AuctionService;
+import com.auction.server.service.AuthService;
+import com.auction.server.service.AutoBidService;
+import com.auction.server.service.BidService;
+import com.auction.server.service.DefaultAntiSnipingService;
+import com.auction.server.service.DefaultAuctionLifecycleService;
+import com.auction.server.service.DefaultAuctionService;
+import com.auction.server.service.DefaultAuthService;
+import com.auction.server.service.DefaultAutoBidService;
+import com.auction.server.service.DefaultBidService;
+import com.auction.server.service.DefaultItemService;
+import com.auction.server.service.DefaultWalletService;
+import com.auction.server.service.ItemService;
+import com.auction.server.service.WalletService;
+import com.auction.shared.config.AppConfig;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
 
 public class ServerApp {
     private static final Logger log = LoggerFactory.getLogger(ServerApp.class);
@@ -109,7 +134,7 @@ public class ServerApp {
                 ClientHandler handler = new ClientHandler(
                         socket, bidService, authService, walletService,
                         auctionService, itemService, autoBidService,
-                        subscriptionManager, broadcaster, enricher);
+                        subscriptionManager, broadcaster, enricher, lifecycleService);
                 new Thread(handler).start();
             }
         } catch (IOException e) {
