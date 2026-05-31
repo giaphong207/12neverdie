@@ -6,6 +6,7 @@ import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.MoneyFormatter;
+import com.auction.client.util.NavRouter;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
@@ -183,11 +184,8 @@ public class AdminDashboardController implements AuctionEventObserver, Disposabl
     }
 
     private void handleNavClick(NavKey key) {
-        switch (key) {
-            case ADMIN_OVERVIEW -> { /* đang ở đây */ }
-            case ADMIN_AUCTIONS -> SceneNavigator.switchScene("/fxml/AuctionList.fxml");
-            default -> AlertUtils.showInfo("Sắp ra mắt", "Tính năng này đang được phát triển.");
-        }
+        if (key == NavKey.ADMIN_OVERVIEW) return; // đang ở đây
+        NavRouter.route(key);
     }
 
     private void handleLogout() {

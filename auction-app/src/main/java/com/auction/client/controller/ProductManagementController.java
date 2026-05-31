@@ -114,13 +114,8 @@ public class ProductManagementController {
     }
 
     private void handleNavClick(NavKey key) {
-        switch (key) {
-            case SELLER_OVERVIEW -> SceneNavigator.switchScene("/fxml/SellerDashboard.fxml");
-            case SELLER_PRODUCTS -> { /* đang ở đây */ }
-            case SELLER_AUCTIONS -> SceneNavigator.switchScene("/fxml/SellerAuctions.fxml");
-
-            default -> AlertUtils.showInfo("Sắp ra mắt", "Tính năng này đang được phát triển.");
-        }
+        if (key == NavKey.SELLER_PRODUCTS) return; // đang ở đây
+        NavRouter.route(key);
     }
 
     private void handleLogout() {
