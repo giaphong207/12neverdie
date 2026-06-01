@@ -88,6 +88,21 @@ public class Results {
     record Success(List<ItemRow> items) implements GetAllItemsResult {}
     record Failure(String reason) implements GetAllItemsResult {}
     }
+
+    public static record AdminStats(
+        long totalUsers, long sellers, long bidders,
+        long totalItems,
+        long totalAuctions, long running, long open, long finished, long paid, long canceled,
+        long totalBids,
+        long totalRevenue        // tổng tiền các phiên đã PAID
+    ) implements Serializable {}
+
+    public sealed interface GetAdminStatsResult extends Serializable
+        permits GetAdminStatsResult.Success, GetAdminStatsResult.Failure {
+    record Success(AdminStats stats) implements GetAdminStatsResult {}
+    record Failure(String reason) implements GetAdminStatsResult {}
+    }
+    
     public static record ErrorMessage(String message) implements Serializable {}
 
     public sealed interface CancelAuctionResult extends Serializable

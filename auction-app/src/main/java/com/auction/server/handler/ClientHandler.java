@@ -42,6 +42,7 @@ import com.auction.shared.networkMessage.Requests.BidRequest;
 import com.auction.shared.networkMessage.Requests.CancelAuctionRequest;
 import com.auction.shared.networkMessage.Requests.DeleteItemRequest;
 import com.auction.shared.networkMessage.Requests.DepositRequest;
+import com.auction.shared.networkMessage.Requests.GetAdminStatsRequest;
 import com.auction.shared.networkMessage.Requests.GetAllItemsRequest;
 import com.auction.shared.networkMessage.Requests.GetAllUsersRequest;
 import com.auction.shared.networkMessage.Requests.GetBalanceRequest;
@@ -55,11 +56,13 @@ import com.auction.shared.networkMessage.Requests.UpdateItemRequest;
 import com.auction.shared.networkMessage.Results.*;
 import com.auction.shared.networkMessage.Results.AddItemResult;
 import com.auction.shared.networkMessage.Results.AdminDeleteItemResult;
+import com.auction.shared.networkMessage.Results.AdminStats;
 import com.auction.shared.networkMessage.Results.BidResult;
 import com.auction.shared.networkMessage.Results.CancelAuctionResult;
 import com.auction.shared.networkMessage.Results.DeleteItemResult;
 import com.auction.shared.networkMessage.Results.DepositResult;
 import com.auction.shared.networkMessage.Results.ErrorMessage;
+import com.auction.shared.networkMessage.Results.GetAdminStatsResult;
 import com.auction.shared.networkMessage.Results.GetAllItemsResult;
 import com.auction.shared.networkMessage.Results.GetAllUsersResult;
 import com.auction.shared.networkMessage.Results.GetBalanceResult;
@@ -134,6 +137,7 @@ public class ClientHandler implements Runnable, EventReceiver {
                     case GetSellerItemsRequest req      -> handleGetSellerItemsRequest(req);
                     case GetAllUsersRequest _            -> handleGetAllUsersRequest();
                     case GetAllItemsRequest _           -> handleGetAllItemsRequest();
+                    case GetAdminStatsRequest _         -> handleGetAdminStatsRequest();
                     case GetBalanceRequest req          -> handleGetBalanceRequest(req);
                     case DepositRequest req             -> handleDepositRequest(req);
                     case SetAutoBidRequest req          -> handleSetAutoBidRequest(req);
@@ -351,6 +355,56 @@ public class ClientHandler implements Runnable, EventReceiver {
         } catch (Exception e) {
             log.error("Lỗi lấy danh sách sản phẩm", e);
             send(new GetAllItemsResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
+
+    private void handleGetAdminStatsRequest() {
+        try {
+            requireLogin();
+            if (roleOf(currentUser) != Role.ADMIN) {
+                throw new AuthenticationException("Chỉ quản trị viên mới được xem báo cáo");
+            }
+
+            // Người dùng
+            List<User> users = authService.getAllUsers();
+            long totalUsers = users.size();
+            long sellers = users.stream().filter(u -> roleOf(u) == Role.SELLER).count();
+            long bidders = users.stream().filter(u -> roleOf(u) == Role.BIDDER).count();
+
+            // Sản phẩm
+            long totalItems = itemService.getAllItems().size();
+
+            // Phiên — đếm theo trạng thái + tổng lượt bid + tổng tiền PAID
+            List<Auction> auctions = auctionService.getAllAuctions();
+            long running = 0, open = 0, finished = 0, paid = 0, canceled = 0;
+            long totalBids = 0;
+            long totalRevenue = 0;
+            for (Auction a : auctions) {
+                switch (a.getStatus()) {
+                    case RUNNING  -> running++;
+                    case OPEN     -> open++;
+                    case FINISHED -> finished++;
+                    case PAID     -> { paid++; totalRevenue += a.getCurrentPrice(); }
+                    case CANCELED -> canceled++;
+                }
+                if (a.getBidHistory() != null) {
+                    totalBids += a.getBidHistory().size();
+                }
+            }
+
+            AdminStats stats = new AdminStats(
+                    totalUsers, sellers, bidders,
+                    totalItems,
+                    auctions.size(), running, open, finished, paid, canceled,
+                    totalBids,
+                    totalRevenue);
+            send(new GetAdminStatsResult.Success(stats));
+
+        } catch (AppException e) {
+            send(new GetAdminStatsResult.Failure(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Lỗi tạo báo cáo", e);
+            send(new GetAdminStatsResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
 
