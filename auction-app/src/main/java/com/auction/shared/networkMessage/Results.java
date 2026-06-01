@@ -81,6 +81,12 @@ public class Results {
         record Success(List<UserRow> users) implements GetAllUsersResult {}
         record Failure(String reason) implements GetAllUsersResult {}
     }
+    public sealed interface GetAllItemsResult extends Serializable
+        permits GetAllItemsResult.Success, GetAllItemsResult.Failure {
+
+    record Success(List<Item> items) implements GetAllItemsResult {}
+    record Failure(String reason) implements GetAllItemsResult {}
+    }
     public static record ErrorMessage(String message) implements Serializable {}
 
     public sealed interface CancelAuctionResult extends Serializable

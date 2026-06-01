@@ -43,6 +43,7 @@ import com.auction.shared.networkMessage.Requests.BidRequest;
 import com.auction.shared.networkMessage.Requests.CancelAuctionRequest;
 import com.auction.shared.networkMessage.Requests.DeleteItemRequest;
 import com.auction.shared.networkMessage.Requests.DepositRequest;
+import com.auction.shared.networkMessage.Requests.GetAllItemsRequest;
 import com.auction.shared.networkMessage.Requests.GetAllUsersRequest;
 import com.auction.shared.networkMessage.Requests.GetBalanceRequest;
 import com.auction.shared.networkMessage.Requests.GetSellerItemsRequest;
@@ -60,6 +61,7 @@ import com.auction.shared.networkMessage.Results.CancelAuctionResult;
 import com.auction.shared.networkMessage.Results.DeleteItemResult;
 import com.auction.shared.networkMessage.Results.DepositResult;
 import com.auction.shared.networkMessage.Results.ErrorMessage;
+import com.auction.shared.networkMessage.Results.GetAllItemsResult;
 import com.auction.shared.networkMessage.Results.GetAllUsersResult;
 import com.auction.shared.networkMessage.Results.GetBalanceResult;
 import com.auction.shared.networkMessage.Results.GetSellerItemsResult;
@@ -131,6 +133,7 @@ public class ClientHandler implements Runnable, EventReceiver {
                     case DeleteItemRequest req          -> handleDeleteItemRequest(req);
                     case GetSellerItemsRequest req      -> handleGetSellerItemsRequest(req);
                     case GetAllUsersRequest _            -> handleGetAllUsersRequest();
+                    case GetAllItemsRequest _           -> handleGetAllItemsRequest();
                     case GetBalanceRequest req          -> handleGetBalanceRequest(req);
                     case DepositRequest req             -> handleDepositRequest(req);
                     case SetAutoBidRequest req          -> handleSetAutoBidRequest(req);
@@ -319,6 +322,21 @@ public class ClientHandler implements Runnable, EventReceiver {
         } catch (Exception e) {
             log.error("Lỗi lấy danh sách user", e);
             send(new GetAllUsersResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
+    private void handleGetAllItemsRequest() {
+        try {
+            requireLogin();
+            if (roleOf(currentUser) != Role.ADMIN) {
+                throw new AuthenticationException("Chỉ quản trị viên mới được xem toàn bộ sản phẩm");
+            }
+            List<Item> items = itemService.getAllItems();
+            send(new GetAllItemsResult.Success(items));
+        } catch (AppException e) {
+            send(new GetAllItemsResult.Failure(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Lỗi lấy danh sách sản phẩm", e);
+            send(new GetAllItemsResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
 

@@ -133,6 +133,7 @@ public class Requests {
     }
     public static record SubscribeAuctionListRequest() implements Serializable {}
     public static record GetAllUsersRequest() implements Serializable {}
+    public static record GetAllItemsRequest() implements Serializable {}
     public static record SubscribeAuctionRequest(String auctionId) implements Serializable{}
 
     public static record GetBalanceRequest(String userId) implements Serializable {}

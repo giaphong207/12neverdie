@@ -5,7 +5,6 @@ import java.util.UUID;
 
 import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.ItemDao;
-import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.exception.AppExceptions.InvalidItemException;
 import com.auction.shared.exception.AppExceptions.ItemNotFoundException;
 import com.auction.shared.factory.ItemFactory;
@@ -32,6 +31,11 @@ public class DefaultItemService implements ItemService {
     public List<Item> getItemsBySeller(String sellerId) {
         requireNonBlank(sellerId, "sellerId");
         return itemDao.findBySellerId(sellerId);
+    }
+
+    @Override
+    public List<Item> getAllItems() {
+        return itemDao.findAll();
     }
 
     @Override
