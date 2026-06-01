@@ -36,7 +36,6 @@ import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionExtendedEvent;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionUpdatedEvent;
 import com.auction.shared.networkMessage.AuctionEvents.BidPlacedEvent;
-import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Requests.AddItemRequest;
 import com.auction.shared.networkMessage.Requests.AdminDeleteItemRequest;
 import com.auction.shared.networkMessage.Requests.BidRequest;
@@ -65,6 +64,7 @@ import com.auction.shared.networkMessage.Results.GetAllItemsResult;
 import com.auction.shared.networkMessage.Results.GetAllUsersResult;
 import com.auction.shared.networkMessage.Results.GetBalanceResult;
 import com.auction.shared.networkMessage.Results.GetSellerItemsResult;
+import com.auction.shared.networkMessage.Results.ItemRow;
 import com.auction.shared.networkMessage.Results.LoginResult;
 import com.auction.shared.networkMessage.Results.RegisterResult;
 import com.auction.shared.networkMessage.Results.SetAutoBidResponse;
@@ -330,8 +330,22 @@ public class ClientHandler implements Runnable, EventReceiver {
             if (roleOf(currentUser) != Role.ADMIN) {
                 throw new AuthenticationException("Chỉ quản trị viên mới được xem toàn bộ sản phẩm");
             }
-            List<Item> items = itemService.getAllItems();
-            send(new GetAllItemsResult.Success(items));
+
+            // Bảng tra id -> username (để hiện tên seller thay vì id)
+            java.util.Map<String, String> idToName = new java.util.HashMap<>();
+            for (User u : authService.getAllUsers()) {
+                idToName.put(u.getId(), u.getUsername());
+            }
+
+            List<ItemRow> rows = itemService.getAllItems().stream()
+                    .map(it -> new ItemRow(
+                            it.getId(),
+                            it.getName(),
+                            idToName.getOrDefault(it.getSellerId(), it.getSellerId()), // không thấy thì hiện id
+                            com.auction.shared.factory.ItemFactory.toItemType(it).name()))
+                    .toList();
+
+            send(new GetAllItemsResult.Success(rows));
         } catch (AppException e) {
             send(new GetAllItemsResult.Failure(e.getMessage()));
         } catch (Exception e) {

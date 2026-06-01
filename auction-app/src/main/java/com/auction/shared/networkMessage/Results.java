@@ -74,6 +74,7 @@ public class Results {
 
     public static record SetAutoBidResponse(boolean success, String message) implements Serializable {}
     public static record UserRow(String username, Role role) implements Serializable {}
+    public static record ItemRow(String itemId, String name, String sellerName, String type) implements Serializable {}
 
     public sealed interface GetAllUsersResult extends Serializable
             permits GetAllUsersResult.Success, GetAllUsersResult.Failure {
@@ -84,7 +85,7 @@ public class Results {
     public sealed interface GetAllItemsResult extends Serializable
         permits GetAllItemsResult.Success, GetAllItemsResult.Failure {
 
-    record Success(List<Item> items) implements GetAllItemsResult {}
+    record Success(List<ItemRow> items) implements GetAllItemsResult {}
     record Failure(String reason) implements GetAllItemsResult {}
     }
     public static record ErrorMessage(String message) implements Serializable {}

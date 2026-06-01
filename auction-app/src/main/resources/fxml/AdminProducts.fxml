@@ -32,7 +32,7 @@
 
                 <VBox spacing="8">
                     <Label text="Quản lý sản phẩm" styleClass="title-large"/>
-                    <Label fx:id="summaryLabel" text="Đang tải..." styleClass="text-secondary"/>
+                    <Label fx:id="summaryLabel" text="Đang tải danh sách sản phẩm..." styleClass="text-secondary"/>
                 </VBox>
 
                 <VBox spacing="16">

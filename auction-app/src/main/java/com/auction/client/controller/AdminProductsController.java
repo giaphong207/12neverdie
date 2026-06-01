@@ -10,12 +10,11 @@ import com.auction.client.util.RequestExecutor;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
-import com.auction.shared.factory.ItemFactory;
-import com.auction.shared.model.item.Item;
 import com.auction.shared.networkMessage.Requests.AdminDeleteItemRequest;
 import com.auction.shared.networkMessage.Requests.GetAllItemsRequest;
 import com.auction.shared.networkMessage.Results.AdminDeleteItemResult;
 import com.auction.shared.networkMessage.Results.GetAllItemsResult;
+import com.auction.shared.networkMessage.Results.ItemRow;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -39,15 +38,15 @@ public class AdminProductsController implements Disposable {
 
     @FXML private StackPane topbarContainer;
     @FXML private Label summaryLabel;
-    @FXML private TableView<Item> productsTable;
-    @FXML private TableColumn<Item, String> colName;
-    @FXML private TableColumn<Item, String> colSeller;
-    @FXML private TableColumn<Item, String> colType;
-    @FXML private TableColumn<Item, String> colAction;
+    @FXML private TableView<ItemRow> productsTable;
+    @FXML private TableColumn<ItemRow, String> colName;
+    @FXML private TableColumn<ItemRow, String> colSeller;
+    @FXML private TableColumn<ItemRow, String> colType;
+    @FXML private TableColumn<ItemRow, String> colAction;
     @FXML private TextField searchField;
 
-    private final ObservableList<Item> allItems = FXCollections.observableArrayList();
-    private FilteredList<Item> filtered;
+    private final ObservableList<ItemRow> allItems = FXCollections.observableArrayList();
+    private FilteredList<ItemRow> filtered;
 
     @FXML
     public void initialize() {
@@ -66,6 +65,11 @@ public class AdminProductsController implements Disposable {
         filtered = new FilteredList<>(allItems, i -> true);
         if (productsTable != null) productsTable.setItems(filtered);
 
+        if (productsTable != null) {
+            productsTable.setPlaceholder(new javafx.scene.control.Label("Chưa có sản phẩm nào."));
+        }
+
+
         if (searchField != null) {
             searchField.textProperty().addListener((obs, old, text) -> applyFilter(text));
         }
@@ -75,24 +79,23 @@ public class AdminProductsController implements Disposable {
 
     private void setupColumns() {
         if (colName != null) {
-            colName.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getName()));
+            colName.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().name()));
         }
         if (colSeller != null) {
-            colSeller.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getSellerId()));
+            colSeller.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().sellerName()));
         }
         if (colType != null) {
-            colType.setCellValueFactory(c ->
-                    new SimpleStringProperty(ItemFactory.toItemType(c.getValue()).name()));
+            colType.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().type()));
         }
         if (colAction != null) {
-            // Cột này không gắn dữ liệu cụ thể, chỉ chứa nút Gỡ
+            //cột này không gắn dữ liệu cụ thể, chỉ chứa nút Gỡ
             colAction.setCellValueFactory(c -> new SimpleStringProperty(""));
             colAction.setCellFactory(col -> new TableCell<>() {
                 private final Button removeBtn = new Button("Gỡ");
                 {
                     removeBtn.getStyleClass().add("btn-danger");
                     removeBtn.setOnAction(e -> {
-                        Item item = getTableView().getItems().get(getIndex());
+                        ItemRow item = getTableView().getItems().get(getIndex());
                         confirmAndRemove(item);
                     });
                 }
@@ -110,15 +113,16 @@ public class AdminProductsController implements Disposable {
         }
     }
 
-    private void confirmAndRemove(Item item) {
+    private void confirmAndRemove(ItemRow item) {
         if (item == null) return;
         boolean ok = AlertUtils.showConfirm("Xác nhận gỡ sản phẩm",
-                "Gỡ sản phẩm \"" + item.getName() + "\"? Phiên đấu giá của nó (nếu có) "
-                        + "cũng sẽ bị xóa. Hành động không thể hoàn tác.");
+                "Gỡ sản phẩm \"" + item.name() + "\"?\n"
+                        + "Phiên đấu giá của sản phẩm (nếu có) cũng sẽ bị xoá.\n"
+                        + "Hành động không thể hoàn tác.");
         if (!ok) return;
 
         RequestExecutor.send(
-                new AdminDeleteItemRequest(item.getId()),
+                new AdminDeleteItemRequest(item.itemId()),
                 response -> {
                     if (response instanceof AdminDeleteItemResult result) {
                         switch (result) {
@@ -139,7 +143,7 @@ public class AdminProductsController implements Disposable {
         if (filtered == null) return;
         String q = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
         filtered.setPredicate(i -> q.isEmpty()
-                || (i.getName() != null && i.getName().toLowerCase(Locale.ROOT).contains(q)));
+                || (i.name() != null && i.name().toLowerCase(Locale.ROOT).contains(q)));
         if (summaryLabel != null) {
             summaryLabel.setText(q.isEmpty()
                     ? "Tổng " + allItems.size() + " sản phẩm"
