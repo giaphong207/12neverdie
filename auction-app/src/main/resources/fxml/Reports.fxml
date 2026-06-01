@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.AdminReportsController"
+            styleClass="root"
+            prefWidth="1280"
+            prefHeight="800">
+
+    <top>
+        <StackPane fx:id="topbarContainer"/>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
+            <VBox spacing="32">
+                <padding>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
+                </padding>
+
+                <VBox spacing="8">
+                    <Label text="Báo cáo &amp; Thống kê" styleClass="title-large"/>
+                    <Label fx:id="summaryLabel"
+                           text="Đang tải số liệu..."
+                           styleClass="text-secondary"/>
+                </VBox>
+
+                <HBox fx:id="statCardsRow1" spacing="20"/>
+                <HBox fx:id="statCardsRow2" spacing="20"/>
+
+                <VBox spacing="16">
+                    <Label text="Phiên đấu giá theo trạng thái" styleClass="title-medium"/>
+                    <BarChart fx:id="auctionStatusChart"
+                              legendVisible="false"
+                              animated="false"
+                              prefHeight="360"
+                              minHeight="320">
+                        <xAxis>
+                            <CategoryAxis fx:id="statusAxis" label="Trạng thái"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis fx:id="countAxis" label="Số phiên"/>
+                        </yAxis>
+                    </BarChart>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>
