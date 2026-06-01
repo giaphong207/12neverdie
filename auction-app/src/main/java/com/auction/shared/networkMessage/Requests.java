@@ -1,10 +1,12 @@
 package com.auction.shared.networkMessage;
 
-import com.auction.shared.model.item.ItemType;
-import com.auction.shared.model.user.Role;
-import com.auction.shared.exception.AppExceptions.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+
+import com.auction.shared.exception.AppExceptions.InvalidBidException;
+import com.auction.shared.exception.AppExceptions.InvalidItemException;
+import com.auction.shared.model.item.ItemType;
+import com.auction.shared.model.user.Role;
 
 public class Requests {
     public static record LoginRequest(String username, String password) implements Serializable {
@@ -131,6 +133,8 @@ public class Requests {
     }
     public static record SubscribeAuctionListRequest() implements Serializable {}
     public static record GetAllUsersRequest() implements Serializable {}
+    public static record GetAllItemsRequest() implements Serializable {}
+    public static record GetAdminStatsRequest() implements Serializable {}
     public static record SubscribeAuctionRequest(String auctionId) implements Serializable{}
 
     public static record GetBalanceRequest(String userId) implements Serializable {}
@@ -141,6 +145,22 @@ public class Requests {
             }
             if (amount <= 0) {
                 throw new IllegalArgumentException("amount phải dương");
+            }
+        }
+    }
+
+    public static record CancelAuctionRequest(String auctionId) implements Serializable { //client ycau lên server xem huỷ phiên nào
+        public CancelAuctionRequest {
+            if (auctionId == null || auctionId.isBlank()) {
+                throw new IllegalArgumentException("auctionId không được rỗng");
+            }
+        }
+    }
+
+    public static record AdminDeleteItemRequest(String itemId) implements Serializable {
+        public AdminDeleteItemRequest {
+            if (itemId == null || itemId.isBlank()) {
+                throw new IllegalArgumentException("itemId không được rỗng");
             }
         }
     }

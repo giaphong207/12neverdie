@@ -25,7 +25,7 @@ public final class SidebarBuilder {
         // Seller
         SELLER_OVERVIEW, SELLER_PRODUCTS, SELLER_AUCTIONS, SELLER_REVENUE, SELLER_SETTINGS,
         // Admin
-        ADMIN_OVERVIEW, ADMIN_USERS, ADMIN_AUCTIONS, ADMIN_REPORTS, ADMIN_SETTINGS
+        ADMIN_OVERVIEW, ADMIN_USERS, ADMIN_PRODUCTS, ADMIN_AUCTIONS, ADMIN_REPORTS, ADMIN_SETTINGS
     }
 
     private SidebarBuilder() {}
@@ -128,6 +128,7 @@ public final class SidebarBuilder {
             case ADMIN -> java.util.List.of(
                     new NavItem(NavKey.ADMIN_OVERVIEW, "Tổng quan hệ thống"),
                     new NavItem(NavKey.ADMIN_USERS, "Người dùng"),
+                    new NavItem(NavKey.ADMIN_PRODUCTS, "Sản phẩm"),
                     new NavItem(NavKey.ADMIN_AUCTIONS, "Phiên đấu giá"),
                     new NavItem(NavKey.ADMIN_REPORTS, "Báo cáo"),
                     new NavItem(NavKey.ADMIN_SETTINGS, "Cấu hình hệ thống")

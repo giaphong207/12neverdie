@@ -33,7 +33,9 @@ public final class NavRouter {
             // ===== Admin =====
             case ADMIN_OVERVIEW -> SceneNavigator.switchScene("/fxml/AdminDashboard.fxml");
             case ADMIN_USERS -> SceneNavigator.switchScene("/fxml/AdminUsers.fxml");
+            case ADMIN_PRODUCTS -> SceneNavigator.switchScene("/fxml/AdminProducts.fxml");
             case ADMIN_AUCTIONS -> SceneNavigator.switchScene("/fxml/AuctionList.fxml");
+            case ADMIN_REPORTS -> SceneNavigator.switchScene("/fxml/Reports.fxml");
             case ADMIN_SETTINGS -> SceneNavigator.switchScene("/fxml/Help.fxml");
 
             // Các mục chưa có trang riêng

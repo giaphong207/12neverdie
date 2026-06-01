@@ -264,6 +264,7 @@ public final class TopbarBuilder {
             case ADMIN -> java.util.List.of(
                     new NavItem(NavKey.ADMIN_OVERVIEW, "Tổng quan"),
                     new NavItem(NavKey.ADMIN_USERS, "Người dùng"),
+                    new NavItem(NavKey.ADMIN_PRODUCTS, "Sản phẩm"),
                     new NavItem(NavKey.ADMIN_AUCTIONS, "Phiên đấu giá"),
                     new NavItem(NavKey.ADMIN_REPORTS, "Báo cáo"),
                     new NavItem(NavKey.ADMIN_SETTINGS, "Hướng dẫn")

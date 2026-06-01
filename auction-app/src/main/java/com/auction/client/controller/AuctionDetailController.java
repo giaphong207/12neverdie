@@ -1,14 +1,27 @@
 package com.auction.client.controller;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import com.auction.client.chart.BidHistorySeriesBuilder;
 import com.auction.client.context.ClientSession;
 import com.auction.client.network.ServerConnection;
-import com.auction.client.network.ServerMessageListener;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.realtime.AuctionEventObserver;
-import com.auction.client.util.*;
-
-import com.auction.shared.exception.AppExceptions.*;
+import com.auction.client.util.AlertUtils;
+import com.auction.client.util.AutoBidDialogFactory;
+import com.auction.client.util.CountdownUtil;
+import com.auction.client.util.Disposable;
+import com.auction.client.util.EnumFormatter;
+import com.auction.client.util.MoneyFormatter;
+import com.auction.client.util.MoneyParser;
+import com.auction.client.util.NavRouter;
+import com.auction.client.util.RequestExecutor;
+import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.SidebarBuilder.NavKey;
+import com.auction.client.util.TopbarBuilder;
+import com.auction.shared.exception.AppExceptions.AppException;
 import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
@@ -16,14 +29,25 @@ import com.auction.shared.model.bid.Bid;
 import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
-import com.auction.shared.networkMessage.AuctionEvents.*;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionCancelledEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionEndedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionExtendedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionPaidEvent;
 import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Requests.BidRequest;
+import com.auction.shared.networkMessage.Requests.CancelAuctionRequest;
+import com.auction.shared.networkMessage.Requests.SetAutoBidRequest;
+import com.auction.shared.networkMessage.Requests.SubscribeAuctionRequest;
 import com.auction.shared.networkMessage.Results.*;
-import com.auction.client.main.ClientApp;
+import com.auction.shared.networkMessage.Results.BidResult;
+import com.auction.shared.networkMessage.Results.CancelAuctionResult;
+import com.auction.shared.networkMessage.Results.SetAutoBidResponse;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
@@ -36,19 +60,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.geometry.Pos;
-import javafx.util.Duration;
-
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.List;
-
-import com.auction.client.util.EnumFormatter;
-import com.auction.client.util.MoneyFormatter;
-import com.auction.client.util.SidebarBuilder.NavKey;
-import com.auction.client.util.TopbarBuilder;
 import javafx.scene.layout.StackPane;
-import javafx.application.Platform;
+import javafx.util.Duration;
 public class AuctionDetailController implements AuctionEventObserver, Disposable {
 
     @FXML private Label itemNameLabel;
@@ -61,6 +74,7 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     @FXML private Label countdownCaptionLabel;
     @FXML private Label messageLabel;
     @FXML private Button placeBidButton;
+    @FXML private Button cancelAuctionButton;
 
     @FXML private TextField bidAmountField;
     @FXML private Label minBidLabel;
@@ -243,6 +257,20 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
                 bidHistoryListView.getItems().add(bids.get(i));
             }
         }
+
+        updateCancelButtonVisibility(auction);
+    }
+
+    /** Chỉ admin mới thấy nút Hủy, và chỉ khi phiên chưa ở trạng thái cuối. */
+    private void updateCancelButtonVisibility(Auction auction) {
+        if (cancelAuctionButton == null) return;
+        User user = ClientSession.getCurrentUser();
+        boolean isAdmin = user != null && UserFactory.toRole(user) == Role.ADMIN;
+        boolean cancelable = auction.getStatus() == AuctionStatus.OPEN
+                || auction.getStatus() == AuctionStatus.RUNNING;
+        boolean show = isAdmin && cancelable;
+        cancelAuctionButton.setVisible(show);
+        cancelAuctionButton.setManaged(show);
     }
 
     private String shortId(String id) {
@@ -456,6 +484,51 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         }
     }
 
+    public void onCancelAuctionClicked() {
+        if (currentAuction == null) {
+            AlertUtils.showWarning("Thông báo", "Không có phiên để hủy.");
+            return;
+        }
+        User user = ClientSession.getCurrentUser();
+        if (user == null || UserFactory.toRole(user) != Role.ADMIN) {
+            AlertUtils.showError("Lỗi Quyền", "Chỉ quản trị viên mới được hủy phiên!");
+            return;
+        }
+
+        boolean ok = AlertUtils.showConfirm("Xác nhận hủy phiên",
+                "Bạn chắc chắn muốn hủy phiên này? Hành động không thể hoàn tác.");
+        if (!ok) return;
+
+        final String auctionId = currentAuction.getId();
+        messageLabel.setText("Đang gửi yêu cầu hủy phiên...");
+
+        RequestExecutor.send(
+                new CancelAuctionRequest(auctionId),
+                this::handleCancelResult,
+                error -> {
+                    AlertUtils.showError("Hủy phiên thất bại", error);
+                    messageLabel.setText("");
+                }
+        );
+    }
+
+    private void handleCancelResult(Object response) {
+        if (response instanceof CancelAuctionResult result) {
+            switch (result) {
+                case CancelAuctionResult.Success s ->
+                    AlertUtils.showInfo("Thành công", "Đã hủy phiên đấu giá.");
+                case CancelAuctionResult.Failure f -> {
+                    AlertUtils.showError("Hủy phiên thất bại", f.reason());
+                    messageLabel.setText("");
+                }
+            }
+        } else {
+            AlertUtils.showError("Lỗi",
+                    "Phản hồi không hợp lệ từ server: " + response.getClass().getSimpleName());
+            messageLabel.setText("");
+        }
+    }
+
     /**
      * Được AuctionEventBus gọi khi server broadcast AuctionUpdateEvent.
      * Xảy ra khi: có bid mới, anti-sniping gia hạn thời gian, auto-bid chạy,
@@ -492,10 +565,12 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             if (event instanceof AuctionExtendedEvent ext) {
                 messageLabel.setText("Phiên được gia hạn thêm " + ext.getExtendedSeconds()
                         + " giây do có người đấu giá phút chót!");
-            } else if (event instanceof AuctionCancelledEvent) {
-                messageLabel.setText("⚠ Phiên đấu giá đã bị huỷ.");
+            } else if (event instanceof AuctionCancelledEvent cancelEvent) {
+                Role byRole = cancelEvent.getCancelledByRole();
+                String byText = (byRole != null) ? " bởi " + EnumFormatter.roleVi(byRole) : "";
+                messageLabel.setText("⚠ Phiên đấu giá đã bị huỷ" + byText + ".");
                 AlertUtils.showWarning("Phiên bị huỷ",
-                        "Phiên đấu giá này đã bị huỷ. Bạn không thể đặt giá nữa.");
+                        "Phiên đấu giá này đã bị huỷ" + byText + ". Bạn không thể đặt giá nữa.");
             } else if (event instanceof AuctionEndedEvent) {
                 String winner = updated.getHighestBidderName();
                 String msg = (winner != null && !winner.isBlank())

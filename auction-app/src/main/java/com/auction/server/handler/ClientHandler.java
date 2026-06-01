@@ -1,18 +1,5 @@
 package com.auction.server.handler;
 
-import com.auction.server.realtime.AuctionEnricher;
-import com.auction.server.realtime.AuctionSubscriptionManager;
-import com.auction.server.realtime.EventBroadcaster;
-import com.auction.server.realtime.EventReceiver;
-import com.auction.server.service.*;
-import com.auction.shared.exception.AppExceptions.*;
-import com.auction.shared.model.auction.Auction;
-import com.auction.shared.model.item.Item;
-import com.auction.shared.model.user.*;
-import com.auction.shared.networkMessage.AuctionEvents.*;
-import com.auction.shared.networkMessage.Requests.*;
-import com.auction.shared.networkMessage.Results.*;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -23,6 +10,69 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.auction.server.realtime.AuctionEnricher;
+import com.auction.server.realtime.AuctionSubscriptionManager;
+import com.auction.server.realtime.EventBroadcaster;
+import com.auction.server.realtime.EventReceiver;
+import com.auction.server.service.AuctionLifecycleService;
+import com.auction.server.service.AuctionService;
+import com.auction.server.service.AuthService;
+import com.auction.server.service.AutoBidService;
+import com.auction.server.service.BidOutcome;
+import com.auction.server.service.BidService;
+import com.auction.server.service.ItemService;
+import com.auction.server.service.WalletService;
+import com.auction.shared.exception.AppExceptions.AppException;
+import com.auction.shared.exception.AppExceptions.AuctionNotFoundException;
+import com.auction.shared.exception.AppExceptions.AuthenticationException;
+import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.model.user.Admin;
+import com.auction.shared.model.user.Bidder;
+import com.auction.shared.model.user.Role;
+import com.auction.shared.model.user.Seller;
+import com.auction.shared.model.user.User;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionExtendedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionUpdatedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.BidPlacedEvent;
+import com.auction.shared.networkMessage.Requests.AddItemRequest;
+import com.auction.shared.networkMessage.Requests.AdminDeleteItemRequest;
+import com.auction.shared.networkMessage.Requests.BidRequest;
+import com.auction.shared.networkMessage.Requests.CancelAuctionRequest;
+import com.auction.shared.networkMessage.Requests.DeleteItemRequest;
+import com.auction.shared.networkMessage.Requests.DepositRequest;
+import com.auction.shared.networkMessage.Requests.GetAdminStatsRequest;
+import com.auction.shared.networkMessage.Requests.GetAllItemsRequest;
+import com.auction.shared.networkMessage.Requests.GetAllUsersRequest;
+import com.auction.shared.networkMessage.Requests.GetBalanceRequest;
+import com.auction.shared.networkMessage.Requests.GetSellerItemsRequest;
+import com.auction.shared.networkMessage.Requests.LoginRequest;
+import com.auction.shared.networkMessage.Requests.RegisterRequest;
+import com.auction.shared.networkMessage.Requests.SetAutoBidRequest;
+import com.auction.shared.networkMessage.Requests.SubscribeAuctionListRequest;
+import com.auction.shared.networkMessage.Requests.SubscribeAuctionRequest;
+import com.auction.shared.networkMessage.Requests.UpdateItemRequest;
+import com.auction.shared.networkMessage.Results.*;
+import com.auction.shared.networkMessage.Results.AddItemResult;
+import com.auction.shared.networkMessage.Results.AdminDeleteItemResult;
+import com.auction.shared.networkMessage.Results.AdminStats;
+import com.auction.shared.networkMessage.Results.BidResult;
+import com.auction.shared.networkMessage.Results.CancelAuctionResult;
+import com.auction.shared.networkMessage.Results.DeleteItemResult;
+import com.auction.shared.networkMessage.Results.DepositResult;
+import com.auction.shared.networkMessage.Results.ErrorMessage;
+import com.auction.shared.networkMessage.Results.GetAdminStatsResult;
+import com.auction.shared.networkMessage.Results.GetAllItemsResult;
+import com.auction.shared.networkMessage.Results.GetAllUsersResult;
+import com.auction.shared.networkMessage.Results.GetBalanceResult;
+import com.auction.shared.networkMessage.Results.GetSellerItemsResult;
+import com.auction.shared.networkMessage.Results.ItemRow;
+import com.auction.shared.networkMessage.Results.LoginResult;
+import com.auction.shared.networkMessage.Results.RegisterResult;
+import com.auction.shared.networkMessage.Results.SetAutoBidResponse;
+import com.auction.shared.networkMessage.Results.UpdateItemResult;
+import com.auction.shared.networkMessage.Results.UserRow;
 public class ClientHandler implements Runnable, EventReceiver {
     private final Socket socket;
     private final BidService bidService;
@@ -34,6 +84,8 @@ public class ClientHandler implements Runnable, EventReceiver {
     private final AuctionSubscriptionManager subscriptionManager;
     private final EventBroadcaster broadcaster;
     private final AuctionEnricher enricher;
+    private final AuctionLifecycleService lifecycleService;
+    private User currentUser; // user đang đăng nhập trên kết nối này (null nếu chưa login)
 
     private ObjectOutputStream out;
     private ObjectInputStream in;
@@ -48,7 +100,8 @@ public class ClientHandler implements Runnable, EventReceiver {
                          AutoBidService autoBidService,
                          AuctionSubscriptionManager subscriptionManager,
                          EventBroadcaster broadcaster,
-                         AuctionEnricher enricher) {
+                         AuctionEnricher enricher,
+                         AuctionLifecycleService lifecycleService) {
         this.socket = socket;
         this.bidService = bidService;
         this.authService = authService;
@@ -59,6 +112,7 @@ public class ClientHandler implements Runnable, EventReceiver {
         this.subscriptionManager = subscriptionManager;
         this.broadcaster = broadcaster;
         this.enricher = enricher;
+        this.lifecycleService = lifecycleService;  
     }
 
     @Override
@@ -82,9 +136,13 @@ public class ClientHandler implements Runnable, EventReceiver {
                     case DeleteItemRequest req          -> handleDeleteItemRequest(req);
                     case GetSellerItemsRequest req      -> handleGetSellerItemsRequest(req);
                     case GetAllUsersRequest _            -> handleGetAllUsersRequest();
+                    case GetAllItemsRequest _           -> handleGetAllItemsRequest();
+                    case GetAdminStatsRequest _         -> handleGetAdminStatsRequest();
                     case GetBalanceRequest req          -> handleGetBalanceRequest(req);
                     case DepositRequest req             -> handleDepositRequest(req);
                     case SetAutoBidRequest req          -> handleSetAutoBidRequest(req);
+                    case CancelAuctionRequest req       -> handleCancelAuctionRequest(req);
+                    case AdminDeleteItemRequest req     -> handleAdminDeleteItemRequest(req);
                     case null    -> log.warn("Nhận message null từ client");
                     default      -> log.warn("Nhận message không xác định: {}",
                             incoming.getClass().getSimpleName());
@@ -100,6 +158,7 @@ public class ClientHandler implements Runnable, EventReceiver {
     private void handleLoginRequest(LoginRequest req) {
         try {
             User user = authService.login(req.username(), req.password());
+            this.currentUser = user;
             send(new LoginResult.Success(user));
         } catch (AppException e) {
             send(new LoginResult.Failure(e.getMessage()));
@@ -112,6 +171,7 @@ public class ClientHandler implements Runnable, EventReceiver {
     private void handleRegisterRequest(RegisterRequest req) {
         try {
             User user = authService.register(req.username(), req.password(), req.role());
+            this.currentUser = user;
             send(new RegisterResult.Success(user));
         } catch (AppException e) {
             send(new RegisterResult.Failure(e.getMessage()));
@@ -266,6 +326,135 @@ public class ClientHandler implements Runnable, EventReceiver {
         } catch (Exception e) {
             log.error("Lỗi lấy danh sách user", e);
             send(new GetAllUsersResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
+    private void handleGetAllItemsRequest() {
+        try {
+            requireLogin();
+            if (roleOf(currentUser) != Role.ADMIN) {
+                throw new AuthenticationException("Chỉ quản trị viên mới được xem toàn bộ sản phẩm");
+            }
+
+            // Bảng tra id -> username (để hiện tên seller thay vì id)
+            java.util.Map<String, String> idToName = new java.util.HashMap<>();
+            for (User u : authService.getAllUsers()) {
+                idToName.put(u.getId(), u.getUsername());
+            }
+
+            List<ItemRow> rows = itemService.getAllItems().stream()
+                    .map(it -> new ItemRow(
+                            it.getId(),
+                            it.getName(),
+                            idToName.getOrDefault(it.getSellerId(), it.getSellerId()), // không thấy thì hiện id
+                            com.auction.shared.factory.ItemFactory.toItemType(it).name()))
+                    .toList();
+
+            send(new GetAllItemsResult.Success(rows));
+        } catch (AppException e) {
+            send(new GetAllItemsResult.Failure(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Lỗi lấy danh sách sản phẩm", e);
+            send(new GetAllItemsResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
+
+    private void handleGetAdminStatsRequest() {
+        try {
+            requireLogin();
+            if (roleOf(currentUser) != Role.ADMIN) {
+                throw new AuthenticationException("Chỉ quản trị viên mới được xem báo cáo");
+            }
+
+            // Người dùng
+            List<User> users = authService.getAllUsers();
+            long totalUsers = users.size();
+            long sellers = users.stream().filter(u -> roleOf(u) == Role.SELLER).count();
+            long bidders = users.stream().filter(u -> roleOf(u) == Role.BIDDER).count();
+
+            // Sản phẩm
+            long totalItems = itemService.getAllItems().size();
+
+            // Phiên — đếm theo trạng thái + tổng lượt bid + tổng tiền PAID
+            List<Auction> auctions = auctionService.getAllAuctions();
+            long running = 0, open = 0, finished = 0, paid = 0, canceled = 0;
+            long totalBids = 0;
+            long totalRevenue = 0;
+            for (Auction a : auctions) {
+                switch (a.getStatus()) {
+                    case RUNNING  -> running++;
+                    case OPEN     -> open++;
+                    case FINISHED -> finished++;
+                    case PAID     -> { paid++; totalRevenue += a.getCurrentPrice(); }
+                    case CANCELED -> canceled++;
+                }
+                if (a.getBidHistory() != null) {
+                    totalBids += a.getBidHistory().size();
+                }
+            }
+
+            AdminStats stats = new AdminStats(
+                    totalUsers, sellers, bidders,
+                    totalItems,
+                    auctions.size(), running, open, finished, paid, canceled,
+                    totalBids,
+                    totalRevenue);
+            send(new GetAdminStatsResult.Success(stats));
+
+        } catch (AppException e) {
+            send(new GetAdminStatsResult.Failure(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Lỗi tạo báo cáo", e);
+            send(new GetAdminStatsResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
+
+    private User requireLogin() {
+        if (currentUser == null) {
+            throw new AuthenticationException("Bạn cần đăng nhập trước");
+        }
+        return currentUser;
+    }
+
+    // ===== ADMIN/SELLER: HỦY PHIÊN =====
+    private void handleCancelAuctionRequest(CancelAuctionRequest req) {
+        try {
+            requireLogin();
+            Auction target = auctionService.getAuctionById(req.auctionId())
+                    .orElseThrow(() -> new AuctionNotFoundException(req.auctionId()));
+            if (!currentUser.canManage(target)) {
+                throw new AuthenticationException("Bạn không có quyền hủy phiên này");
+            }
+            Auction updated = lifecycleService.cancelAuction(req.auctionId(), roleOf(currentUser));
+            log.warn("ADMIN ACTION | {} ({}) HỦY phiên {}",
+                    currentUser.getUsername(), roleOf(currentUser), req.auctionId());
+            send(new CancelAuctionResult.Success(updated));
+
+        } catch (AppException e) {
+            send(new CancelAuctionResult.Failure(e.getMessage()));
+        } catch (IllegalStateException e) {            // guard trạng thái từ Auction.cancel()
+            send(new CancelAuctionResult.Failure(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Lỗi hủy phiên", e);
+            send(new CancelAuctionResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
+
+    // ===== ADMIN: GỠ SẢN PHẨM VI PHẠM  =====
+    private void handleAdminDeleteItemRequest(AdminDeleteItemRequest req) {
+        try {
+            requireLogin(); //chỉ admin mới được quyền gỡ, ko lquan đến chủ sở hữu nên ko dùng canManage
+            if (roleOf(currentUser) != Role.ADMIN) {
+                throw new AuthenticationException("Chỉ quản trị viên mới được gỡ sản phẩm");
+            }
+            itemService.deleteItemAsAdmin(req.itemId());
+            log.warn("ADMIN ACTION | {} GỠ sản phẩm {}", currentUser.getUsername(), req.itemId());
+            send(new AdminDeleteItemResult.Success(req.itemId()));
+
+        } catch (AppException e) {
+            send(new AdminDeleteItemResult.Failure(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Lỗi gỡ sản phẩm", e);
+            send(new AdminDeleteItemResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
 

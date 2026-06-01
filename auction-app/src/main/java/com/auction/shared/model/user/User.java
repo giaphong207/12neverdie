@@ -2,6 +2,8 @@ package com.auction.shared.model.user;
 
 import java.io.Serializable;
 
+import com.auction.shared.model.auction.Auction;
+
 public sealed abstract class User implements Serializable permits Admin, Seller, Bidder {
     private static final long serialVersionUID = 2L;
 
@@ -30,6 +32,8 @@ public sealed abstract class User implements Serializable permits Admin, Seller,
         this.password = password;
         this.balance = balance;
     }
+
+    public abstract boolean canManage(Auction auction); //quyền can thiệp lên 1 phiên đấu (admin: mọi phiên; seller: chỉ phiên mình; bidder: ko)
 
     public String getId() {
         return id;

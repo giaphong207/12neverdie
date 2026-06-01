@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.AdminProductsController"
+            styleClass="root"
+            prefWidth="1280"
+            prefHeight="800">
+
+    <top>
+        <StackPane fx:id="topbarContainer"/>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
+            <VBox spacing="28">
+                <padding>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
+                </padding>
+
+                <VBox spacing="8">
+                    <Label text="Quản lý sản phẩm" styleClass="title-large"/>
+                    <Label fx:id="summaryLabel" text="Đang tải danh sách sản phẩm..." styleClass="text-secondary"/>
+                </VBox>
+
+                <VBox spacing="16">
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="Danh sách sản phẩm" styleClass="title-medium"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <TextField fx:id="searchField"
+                                   promptText="Tìm theo tên sản phẩm..."
+                                   prefWidth="280"/>
+                    </HBox>
+                    <TableView fx:id="productsTable" prefHeight="460">
+                        <columns>
+                            <TableColumn fx:id="colName" text="Sản phẩm" prefWidth="360"/>
+                            <TableColumn fx:id="colSeller" text="Người bán" prefWidth="220"/>
+                            <TableColumn fx:id="colType" text="Loại" prefWidth="180"/>
+                            <TableColumn fx:id="colAction" text="Thao tác" prefWidth="160"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

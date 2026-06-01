@@ -1,12 +1,12 @@
 package com.auction.shared.networkMessage;
 
+import java.io.Serializable;
+import java.util.List;
+
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
-
-import java.io.Serializable;
-import java.util.List;
 
 public class Results {
     public sealed interface LoginResult extends Serializable
@@ -74,6 +74,7 @@ public class Results {
 
     public static record SetAutoBidResponse(boolean success, String message) implements Serializable {}
     public static record UserRow(String username, Role role) implements Serializable {}
+    public static record ItemRow(String itemId, String name, String sellerName, String type) implements Serializable {}
 
     public sealed interface GetAllUsersResult extends Serializable
             permits GetAllUsersResult.Success, GetAllUsersResult.Failure {
@@ -81,5 +82,38 @@ public class Results {
         record Success(List<UserRow> users) implements GetAllUsersResult {}
         record Failure(String reason) implements GetAllUsersResult {}
     }
+    public sealed interface GetAllItemsResult extends Serializable
+        permits GetAllItemsResult.Success, GetAllItemsResult.Failure {
+
+    record Success(List<ItemRow> items) implements GetAllItemsResult {}
+    record Failure(String reason) implements GetAllItemsResult {}
+    }
+
+    public static record AdminStats(
+        long totalUsers, long sellers, long bidders,
+        long totalItems,
+        long totalAuctions, long running, long open, long finished, long paid, long canceled,
+        long totalBids,
+        long totalRevenue        // tổng tiền các phiên đã PAID
+    ) implements Serializable {}
+
+    public sealed interface GetAdminStatsResult extends Serializable
+        permits GetAdminStatsResult.Success, GetAdminStatsResult.Failure {
+    record Success(AdminStats stats) implements GetAdminStatsResult {}
+    record Failure(String reason) implements GetAdminStatsResult {}
+    }
+    
     public static record ErrorMessage(String message) implements Serializable {}
+
+    public sealed interface CancelAuctionResult extends Serializable
+            permits CancelAuctionResult.Success, CancelAuctionResult.Failure {
+        record Success(Auction auction) implements CancelAuctionResult {}
+        record Failure(String reason) implements CancelAuctionResult {}
+    }
+
+    public sealed interface AdminDeleteItemResult extends Serializable
+        permits AdminDeleteItemResult.Success, AdminDeleteItemResult.Failure {
+    record Success(String itemId) implements AdminDeleteItemResult {}
+    record Failure(String reason) implements AdminDeleteItemResult {}
+}
 }
