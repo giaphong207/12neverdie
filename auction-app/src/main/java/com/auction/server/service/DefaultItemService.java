@@ -1,22 +1,31 @@
 package com.auction.server.service;
 
+import java.util.List; 
+import java.util.UUID;
+
+import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.ItemDao;
 import com.auction.shared.exception.AppExceptions.*;
+import com.auction.shared.exception.AppExceptions.InvalidItemException;
+import com.auction.shared.exception.AppExceptions.ItemNotFoundException;
 import com.auction.shared.factory.ItemFactory;
+import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.item.ItemType;
 
-import java.util.List;
-import java.util.UUID;
-
 public class DefaultItemService implements ItemService {
     private final ItemDao itemDao;
+    private final AuctionDao auctionDao;
 
-    public DefaultItemService(ItemDao itemDao) {
+    public DefaultItemService(ItemDao itemDao, AuctionDao auctionDao) {
         if (itemDao == null) {
             throw new InvalidItemException("ItemDao không được null");
         }
+        if (auctionDao == null) {
+            throw new InvalidItemException("AuctionDao không được null");
+        }
         this.itemDao = itemDao;
+        this.auctionDao = auctionDao;
     }
 
     @Override
@@ -66,6 +75,22 @@ public class DefaultItemService implements ItemService {
 
         if (!existing.getSellerId().equals(sellerId)) {
             throw new InvalidItemException("Bạn không có quyền xóa sản phẩm này");
+        }
+
+        itemDao.deleteById(itemId);
+    }
+
+    @Override
+    public void deleteItemAsAdmin(String itemId) {
+        requireNonBlank(itemId, "itemId");
+
+        itemDao.findById(itemId) //item phải tổn tại (ko ktra chủ sở hữu)
+                .orElseThrow(() -> new ItemNotFoundException(itemId));
+
+        for (Auction a : auctionDao.findAll()) {
+            if (itemId.equals(a.getItemId())) {
+                auctionDao.deleteById(a.getId());
+            }
         }
 
         itemDao.deleteById(itemId);

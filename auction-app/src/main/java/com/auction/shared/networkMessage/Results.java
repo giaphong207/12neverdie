@@ -88,4 +88,10 @@ public class Results {
         record Success(Auction auction) implements CancelAuctionResult {}
         record Failure(String reason) implements CancelAuctionResult {}
     }
+
+    public sealed interface AdminDeleteItemResult extends Serializable
+        permits AdminDeleteItemResult.Success, AdminDeleteItemResult.Failure {
+    record Success(String itemId) implements AdminDeleteItemResult {}
+    record Failure(String reason) implements AdminDeleteItemResult {}
+}
 }

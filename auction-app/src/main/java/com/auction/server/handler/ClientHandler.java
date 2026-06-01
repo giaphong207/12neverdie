@@ -23,7 +23,6 @@ import com.auction.server.service.BidOutcome;
 import com.auction.server.service.BidService;
 import com.auction.server.service.ItemService;
 import com.auction.server.service.WalletService;
-import com.auction.shared.exception.AppExceptions.*;
 import com.auction.shared.exception.AppExceptions.AppException;
 import com.auction.shared.exception.AppExceptions.AuctionNotFoundException;
 import com.auction.shared.exception.AppExceptions.AuthenticationException;
@@ -34,12 +33,12 @@ import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
-import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionExtendedEvent;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionUpdatedEvent;
 import com.auction.shared.networkMessage.AuctionEvents.BidPlacedEvent;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Requests.AddItemRequest;
+import com.auction.shared.networkMessage.Requests.AdminDeleteItemRequest;
 import com.auction.shared.networkMessage.Requests.BidRequest;
 import com.auction.shared.networkMessage.Requests.CancelAuctionRequest;
 import com.auction.shared.networkMessage.Requests.DeleteItemRequest;
@@ -55,6 +54,7 @@ import com.auction.shared.networkMessage.Requests.SubscribeAuctionRequest;
 import com.auction.shared.networkMessage.Requests.UpdateItemRequest;
 import com.auction.shared.networkMessage.Results.*;
 import com.auction.shared.networkMessage.Results.AddItemResult;
+import com.auction.shared.networkMessage.Results.AdminDeleteItemResult;
 import com.auction.shared.networkMessage.Results.BidResult;
 import com.auction.shared.networkMessage.Results.CancelAuctionResult;
 import com.auction.shared.networkMessage.Results.DeleteItemResult;
@@ -135,6 +135,7 @@ public class ClientHandler implements Runnable, EventReceiver {
                     case DepositRequest req             -> handleDepositRequest(req);
                     case SetAutoBidRequest req          -> handleSetAutoBidRequest(req);
                     case CancelAuctionRequest req       -> handleCancelAuctionRequest(req);
+                    case AdminDeleteItemRequest req     -> handleAdminDeleteItemRequest(req);
                     case null    -> log.warn("Nhận message null từ client");
                     default      -> log.warn("Nhận message không xác định: {}",
                             incoming.getClass().getSimpleName());
@@ -328,7 +329,7 @@ public class ClientHandler implements Runnable, EventReceiver {
         return currentUser;
     }
 
-    // ===== ADMIN/SELLER: HỦY PHIÊN (Chức năng 1) =====
+    // ===== ADMIN/SELLER: HỦY PHIÊN =====
     private void handleCancelAuctionRequest(CancelAuctionRequest req) {
         try {
             requireLogin();
@@ -349,6 +350,25 @@ public class ClientHandler implements Runnable, EventReceiver {
         } catch (Exception e) {
             log.error("Lỗi hủy phiên", e);
             send(new CancelAuctionResult.Failure("Lỗi server: " + e.getMessage()));
+        }
+    }
+
+    // ===== ADMIN: GỠ SẢN PHẨM VI PHẠM  =====
+    private void handleAdminDeleteItemRequest(AdminDeleteItemRequest req) {
+        try {
+            requireLogin(); //chỉ admin mới được quyền gỡ, ko lquan đến chủ sở hữu nên ko dùng canManage
+            if (roleOf(currentUser) != Role.ADMIN) {
+                throw new AuthenticationException("Chỉ quản trị viên mới được gỡ sản phẩm");
+            }
+            itemService.deleteItemAsAdmin(req.itemId());
+            log.warn("ADMIN ACTION | {} GỠ sản phẩm {}", currentUser.getUsername(), req.itemId());
+            send(new AdminDeleteItemResult.Success(req.itemId()));
+
+        } catch (AppException e) {
+            send(new AdminDeleteItemResult.Failure(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Lỗi gỡ sản phẩm", e);
+            send(new AdminDeleteItemResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
 

@@ -154,4 +154,12 @@ public class Requests {
             }
         }
     }
+
+    public static record AdminDeleteItemRequest(String itemId) implements Serializable {
+        public AdminDeleteItemRequest {
+            if (itemId == null || itemId.isBlank()) {
+                throw new IllegalArgumentException("itemId không được rỗng");
+            }
+        }
+    }
 }
