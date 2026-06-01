@@ -6,9 +6,15 @@
 --
 -- CÁCH CHẠY (từ terminal):
 --   mysql -u auction_user -p auction_db < sql/schema.sql
+--   mysql -u auction_user -p auction_db < sql/seed.sql       (optional: data demo)
 --
 -- HOẶC trong Workbench:
 --   File → Open SQL Script → chọn file này → Ctrl+Shift+Enter
+--
+-- ⚠ NẾU DB CỦA BẠN ĐÃ SETUP TRƯỚC KHI CÓ TÍNH NĂNG VÍ (balance):
+--   KHÔNG drop & recreate (mất data). Thay vào đó chạy migration:
+--     mysql -u auction_user -p auction_db < sql/migration_001_balance.sql
+--   File này chỉ thêm cột `balance` vào bảng users, không đụng data hiện có.
 -- ========================================================================
 
 USE auction_db;

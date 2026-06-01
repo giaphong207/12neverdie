@@ -18,12 +18,15 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- USERS (4 user: 1 admin, 1 seller, 2 bidder)
 -- LƯU Ý: password ở đây là plain text 'pwd_demo' để dễ test.
 -- Khi áp BCrypt ở Phase 9, hash sẽ khác.
+--
+-- BALANCE: mọi user mặc định = 0₫. Bidder muốn đặt giá phải bấm "+ Nạp tiền"
+-- trong app để tự nạp — đúng workflow của tính năng ví.
 -- ========================================================================
-INSERT INTO users (id, username, password, role) VALUES
-                                                     ('u-admin-001',  'admin',   'admin123', 'ADMIN'),
-                                                     ('u-seller-001', 'seller1', 'pwd_demo', 'SELLER'),
-                                                     ('u-bidder-001', 'bidder1', 'pwd_demo', 'BIDDER'),
-                                                     ('u-bidder-002', 'bidder2', 'pwd_demo', 'BIDDER');
+INSERT INTO users (id, username, password, role, balance) VALUES
+                                                     ('u-admin-001',  'admin',   'admin123', 'ADMIN',  0),
+                                                     ('u-seller-001', 'seller1', 'pwd_demo', 'SELLER', 0),
+                                                     ('u-bidder-001', 'bidder1', 'pwd_demo', 'BIDDER', 0),
+                                                     ('u-bidder-002', 'bidder2', 'pwd_demo', 'BIDDER', 0);
 
 -- ========================================================================
 -- ITEMS (3 sản phẩm khác loại)
