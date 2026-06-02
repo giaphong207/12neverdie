@@ -48,9 +48,7 @@ Hệ thống đấu giá trực tuyến theo kiến trúc **Client–Server**: n
 └── auction-app/
     ├── pom.xml                          # Cấu hình Maven & dependencies
     ├── sql/
-    │   ├── schema.sql                   # Tạo 5 bảng: users, items, auctions, bids, auto_bid_configs
-    │   ├── migration_001_balance.sql    # Thêm cột balance (chỉ cần cho DB tạo từ schema cũ)
-    │   └── seed.sql                      # KHÔNG chạy thủ công — server tự seed dữ liệu demo
+    │   └── schema.sql                   # Tạo 5 bảng: users, items, auctions, bids, auto_bid_configs
     └── src/
         ├── main/
         │   ├── java/com/auction/
@@ -89,7 +87,7 @@ FLUSH PRIVILEGES;
 mysql -u auction_user -p auction_db < auction-app/sql/schema.sql
 \`\`\`
 
-> Script tạo 5 bảng. File `migration_001_balance.sql` **chỉ** cần chạy nếu database của bạn được tạo từ bản schema cũ (trước khi có cột `balance`). Máy mới chạy `schema.sql` là đủ.
+> Script tạo 5 bảng cho hệ thống đấu giá. Máy mới chỉ cần chạy `schema.sql` là đủ.
 
 ### Bước 3 — Cấu hình kết nối
 
@@ -99,7 +97,7 @@ cp auction-app/src/main/resources/db.properties.example auction-app/src/main/res
 
 Mở file `db.properties` vừa copy, sửa `db.password=...` thành mật khẩu thật.
 
-> 💡 **Không cần chạy `seed.sql`** — server **tự seed** dữ liệu demo (4 user, 3 sản phẩm, 3 phiên đấu giá) ở lần chạy đầu tiên nếu database đang rỗng.
+> 💡 Server **tự seed** dữ liệu demo (4 user, 3 sản phẩm, 3 phiên đấu giá) ở lần chạy đầu tiên nếu database đang rỗng — không cần nhập tay.
 
 ---
 
