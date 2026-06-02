@@ -6,9 +6,8 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +27,7 @@ import com.auction.server.service.WalletService;
 import com.auction.shared.exception.AppExceptions.AppException;
 import com.auction.shared.exception.AppExceptions.AuctionNotFoundException;
 import com.auction.shared.exception.AppExceptions.AuthenticationException;
+import com.auction.shared.factory.ItemFactory;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.Admin;
@@ -35,10 +35,47 @@ import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
-import com.auction.shared.factory.ItemFactory;
 import com.auction.shared.networkMessage.AuctionEvents.*;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionExtendedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionUpdatedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.BidPlacedEvent;
 import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Requests.AddItemRequest;
+import com.auction.shared.networkMessage.Requests.AdminDeleteItemRequest;
+import com.auction.shared.networkMessage.Requests.BidRequest;
+import com.auction.shared.networkMessage.Requests.CancelAuctionRequest;
+import com.auction.shared.networkMessage.Requests.DepositRequest;
+import com.auction.shared.networkMessage.Requests.DisableAutoBidRequest;
+import com.auction.shared.networkMessage.Requests.GetAdminStatsRequest;
+import com.auction.shared.networkMessage.Requests.GetAllItemsRequest;
+import com.auction.shared.networkMessage.Requests.GetAllUsersRequest;
+import com.auction.shared.networkMessage.Requests.GetBalanceRequest;
+import com.auction.shared.networkMessage.Requests.GetSellerItemsRequest;
+import com.auction.shared.networkMessage.Requests.LoginRequest;
+import com.auction.shared.networkMessage.Requests.RegisterRequest;
+import com.auction.shared.networkMessage.Requests.SetAutoBidRequest;
+import com.auction.shared.networkMessage.Requests.SubscribeAuctionListRequest;
+import com.auction.shared.networkMessage.Requests.SubscribeAuctionRequest;
+import com.auction.shared.networkMessage.Requests.UpdateItemRequest;
 import com.auction.shared.networkMessage.Results.*;
+import com.auction.shared.networkMessage.Results.AddItemResult;
+import com.auction.shared.networkMessage.Results.AdminDeleteItemResult;
+import com.auction.shared.networkMessage.Results.AdminStats;
+import com.auction.shared.networkMessage.Results.BidResult;
+import com.auction.shared.networkMessage.Results.CancelAuctionResult;
+import com.auction.shared.networkMessage.Results.DepositResult;
+import com.auction.shared.networkMessage.Results.ErrorMessage;
+import com.auction.shared.networkMessage.Results.GetAdminStatsResult;
+import com.auction.shared.networkMessage.Results.GetAllItemsResult;
+import com.auction.shared.networkMessage.Results.GetAllUsersResult;
+import com.auction.shared.networkMessage.Results.GetBalanceResult;
+import com.auction.shared.networkMessage.Results.GetSellerItemsResult;
+import com.auction.shared.networkMessage.Results.ItemRow;
+import com.auction.shared.networkMessage.Results.LoginResult;
+import com.auction.shared.networkMessage.Results.RegisterResult;
+import com.auction.shared.networkMessage.Results.SetAutoBidResponse;
+import com.auction.shared.networkMessage.Results.UpdateItemResult;
+import com.auction.shared.networkMessage.Results.UserRow;
 public class ClientHandler implements Runnable, EventReceiver {
     private final Socket socket;
     private final BidService bidService;
@@ -99,7 +136,6 @@ public class ClientHandler implements Runnable, EventReceiver {
                     case BidRequest req                 -> handleBidRequest(req);
                     case AddItemRequest req             -> handleAddItemRequest(req);
                     case UpdateItemRequest req          -> handleUpdateItemRequest(req);
-                    case DeleteItemRequest req          -> handleDeleteItemRequest(req);
                     case GetSellerItemsRequest req      -> handleGetSellerItemsRequest(req);
                     case GetAllUsersRequest _            -> handleGetAllUsersRequest();
                     case GetAllItemsRequest _           -> handleGetAllItemsRequest();
@@ -254,24 +290,6 @@ public class ClientHandler implements Runnable, EventReceiver {
         } catch (Exception e) {
             log.error("Lỗi cập nhật item", e);
             send(new UpdateItemResult.Failure("Lỗi server: " + e.getMessage()));
-        }
-    }
-
-    private void handleDeleteItemRequest(DeleteItemRequest req) {
-        try {
-            itemService.deleteItem(req.itemId(), req.sellerId());
-            send(new DeleteItemResult.Success());
-
-        } catch (AppException e) {
-            send(new DeleteItemResult.Failure(e.getMessage()));
-        } catch (Exception e) {
-            String msg = e.getMessage();
-            if (msg != null && msg.contains("foreign key")) {
-                send(new DeleteItemResult.Failure("Không xoá được: sản phẩm đang có trong phiên đấu giá"));
-            } else {
-                log.error("Lỗi xóa item", e);
-                send(new DeleteItemResult.Failure("Lỗi server: " + msg));
-            }
         }
     }
 

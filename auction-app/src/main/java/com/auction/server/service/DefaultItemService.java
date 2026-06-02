@@ -9,9 +9,9 @@ import com.auction.shared.exception.AppExceptions.InvalidItemException;
 import com.auction.shared.exception.AppExceptions.ItemNotFoundException;
 import com.auction.shared.factory.ItemFactory;
 import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.item.ItemType;
-import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.user.Role;
 public class DefaultItemService implements ItemService {
     private final ItemDao itemDao;
@@ -73,21 +73,6 @@ public class DefaultItemService implements ItemService {
         Item updated = ItemFactory.createItem(type, itemId, sellerId, name, description, startPrice);
         itemDao.save(updated);
         return updated;
-    }
-
-    @Override
-    public void deleteItem(String itemId, String sellerId) {
-        requireNonBlank(itemId, "itemId");
-        requireNonBlank(sellerId, "sellerId");
-
-        Item existing = itemDao.findById(itemId)
-                .orElseThrow(() -> new ItemNotFoundException(itemId));
-
-        if (!existing.getSellerId().equals(sellerId)) {
-            throw new InvalidItemException("Bạn không có quyền xóa sản phẩm này");
-        }
-
-        itemDao.deleteById(itemId);
     }
 
     @Override
