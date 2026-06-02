@@ -1,6 +1,7 @@
 package com.auction.integration;
 
 import com.auction.server.service.BidOutcome;
+import com.auction.shared.exception.AppExceptions.InvalidBidException;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.bid.BidSource;
@@ -17,6 +18,8 @@ import org.mindrot.jbcrypt.BCrypt;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -135,7 +138,7 @@ class AuctionSimulationTest {
             try { Thread.sleep(60); } catch (InterruptedException ignored) {}
         }
 
-        assertTrue(extensionCount >= 1, "Phải có ít nhất 1 bid fire anti-sniping");
+        assertTrue(extensionCount >= 1);
 
         Duration totalExtended = Duration.between(originalEnd, auction.getEndTime());
         assertTrue(totalExtended.toMillis() >= extensionCount * 100L);
@@ -185,5 +188,108 @@ class AuctionSimulationTest {
                 .count();
         assertEquals(1, manualBidCount);
         assertTrue(autoBidCount >= 1);
+    }
+
+    @Test
+    @DisplayName("MÔ PHỎNG: 20 bidder đua bid → không lost update, currentPrice = bid hợp lệ cao nhất")
+    void simulation_20_bidder_race() throws Exception {
+        String auctionId = "auction-sim-race";
+
+        Auction auction = new Auction(
+                auctionId, "item-sim", SELLER_ID,
+                5_000_000L, 100_000L,
+                AuctionStatus.RUNNING,
+                LocalDateTime.now().minusMinutes(5),
+                LocalDateTime.now().plusMinutes(30)
+        );
+        server.auctionDao.save(auction);
+
+        int bidderCount = 20;
+        for (int i = 0; i < bidderCount; i++) {
+            server.userDao.save(new Bidder("race-" + i, "racer" + i, "pwd", 1_000_000_000L));
+        }
+
+        ExecutorService pool = Executors.newFixedThreadPool(bidderCount);
+        CountDownLatch startGate = new CountDownLatch(1);
+        CountDownLatch doneGate = new CountDownLatch(bidderCount);
+        AtomicInteger successCount = new AtomicInteger();
+        AtomicInteger rejectedCount = new AtomicInteger();
+
+        for (int i = 0; i < bidderCount; i++) {
+            final int idx = i;
+            pool.submit(() -> {
+                try {
+                    startGate.await();
+                    long amount = 5_100_000L + (long) idx * 100_000L;
+                    server.bidService.placeBid(auctionId, "race-" + idx, amount);
+                    successCount.incrementAndGet();
+                } catch (InvalidBidException e) {
+                    rejectedCount.incrementAndGet();
+                } catch (Exception e) {
+                    rejectedCount.incrementAndGet();
+                } finally {
+                    doneGate.countDown();
+                }
+            });
+        }
+
+        startGate.countDown();
+        assertTrue(doneGate.await(15, TimeUnit.SECONDS));
+        pool.shutdown();
+
+        assertEquals(bidderCount, successCount.get() + rejectedCount.get());
+
+        Auction finalAuction = server.auctionDao.findById(auctionId).orElseThrow();
+        assertEquals(successCount.get(), finalAuction.getBidHistory().size());
+
+        long lastBidAmount = finalAuction.getBidHistory()
+                .get(finalAuction.getBidHistory().size() - 1).getAmount();
+        assertEquals(lastBidAmount, finalAuction.getCurrentPrice());
+
+        for (int i = 1; i < finalAuction.getBidHistory().size(); i++) {
+            assertTrue(
+                    finalAuction.getBidHistory().get(i).getAmount()
+                            > finalAuction.getBidHistory().get(i - 1).getAmount());
+        }
+    }
+
+    @Test
+    @DisplayName("MÔ PHỎNG: 3 phiên liên tiếp settle → tổng tiền hệ thống bảo toàn")
+    void simulation_money_conservation_across_auctions() throws Exception {
+        long startingBalance = 10_000_000L;
+        for (int i = 0; i < 3; i++) {
+            server.userDao.save(new Bidder("mc-bidder-" + i, "mcb" + i, "pwd", startingBalance));
+        }
+        server.userDao.updateBalance(SELLER_ID, startingBalance);
+
+        long totalBefore = startingBalance * 4;
+
+        for (int p = 0; p < 3; p++) {
+            String auctionId = "mc-auction-" + p;
+            Auction a = new Auction(
+                    auctionId, "item-mc-" + p, SELLER_ID,
+                    1_000_000L, 100_000L,
+                    AuctionStatus.RUNNING,
+                    LocalDateTime.now().minusMinutes(5),
+                    LocalDateTime.now().plus(Duration.ofMillis(500))
+            );
+            server.auctionDao.save(a);
+
+            server.bidService.placeBid(auctionId, "mc-bidder-" + p, 2_000_000L);
+            server.lifecycleService.scheduleClose(a);
+        }
+
+        Thread.sleep(1500);
+
+        long totalAfter = 0;
+        for (int i = 0; i < 3; i++) {
+            totalAfter += server.walletService.getBalance("mc-bidder-" + i);
+        }
+        totalAfter += server.walletService.getBalance(SELLER_ID);
+
+        assertEquals(totalBefore, totalAfter);
+
+        assertEquals(startingBalance + 6_000_000L,
+                server.walletService.getBalance(SELLER_ID));
     }
 }
