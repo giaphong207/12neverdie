@@ -1,150 +1,183 @@
-# Hệ Thống Đấu Giá Trực Tuyến (Online Auction System)
-Bài tập lớn môn Lập trình nâng cao - Nhóm 12
+# 🏆 Hệ Thống Đấu Giá Trực Tuyến (Online Auction System)
 
-## Yêu cầu hệ thống
-* **Java Version:** JDK 25 (Bắt buộc để đồng bộ với CI/CD)
-* **Build Tool:** Maven 3.9.14
-* **IDE:** - VS Code: Cài bộ "Extension Pack for Java" của Microsoft/Red Hat.
-        ** - IntelliJ: Nhớ vào *Project Structure* chỉnh SDK về Java 25.
-* **Giao tiếp:** Java Socket (TCP)
-* **Kiến trúc:** Model-View-Controller (MVC) & DAO Pattern
-* **CI/CD:** GitHub Actions (Tự động build & test)
+> Bài tập lớn môn **Lập trình nâng cao** — Học kỳ II, 2025–2026 — **Nhóm 12**
 
-## Setup máy mới
+---
 
-1. Cài JDK 25, IntelliJ, MySQL 8.4
-2. Tạo DB và user:
-```sql
-   CREATE DATABASE auction_db CHARACTER SET utf8mb4;
-   CREATE USER 'auction_user'@'localhost' IDENTIFIED BY 'password';
-   GRANT ALL PRIVILEGES ON auction_db.* TO 'auction_user'@'localhost';
-   FLUSH PRIVILEGES;
-```
-3. Tạo bảng:
-```bash
-   mysql -u auction_user -p auction_db < sql/schema.sql
-```
-4. (Optional) Seed data demo:
-```bash
-   mysql -u auction_user -p auction_db < sql/seed.sql
-```
-5. Copy `db.properties.example` thành `db.properties`, sửa password
-6. Mở project trong IntelliJ → Maven auto-import → chạy `ServerApp`
+## 1. Giới thiệu & Phạm vi
 
-## Tính năng chính
+Hệ thống đấu giá trực tuyến theo kiến trúc **Client–Server**: nhiều người dùng (Bidder / Seller / Admin) kết nối tới một server trung tâm để đăng sản phẩm, mở phiên đấu giá và đặt giá theo thời gian thực. Khi có người đặt giá mới, **mọi client đang theo dõi phiên được cập nhật ngay lập tức** qua socket.
 
-### Chức năng bắt buộc (Core)
-- [x] **Quản lý thực thể:** User (Admin/Seller/Bidder), Item, Auction, Bid.
-- [x] **Xác thực:** Đăng nhập, đăng ký và phân quyền người dùng.
-- [x] **Đấu giá cơ bản:** Đặt giá, kiểm tra giá hợp lệ (giá mới > giá cũ + bước giá).
-- [ ] **Lưu trữ:** Persistence dữ liệu qua File I/O (`.dat`).
+**Phạm vi hệ thống:**
+- Quản lý người dùng & phân quyền (Admin / Seller / Bidder).
+- Quản lý sản phẩm và phiên đấu giá (tạo, sửa, hủy phiên).
+- Đặt giá theo thời gian thực, kiểm tra hợp lệ, ví tiền (nạp tiền & thanh toán).
+- Tự động đóng phiên đúng giờ & xác định người thắng.
+- Tính năng nâng cao: đấu giá tự động, chống "cướp giá" phút chót, biểu đồ giá realtime.
 
-### Chức năng nâng cao (Advanced)
-- [ ] **Auto-Bidding (TV4):** Hệ thống tự động đặt giá thay người dùng dựa trên mức giá trần.
-- [ ] **Anti-Sniping (TV3):** Tự động gia hạn thời gian phiên đấu giá nếu có người bid ở những giây cuối.
-- [ ] **Real-time Price Curve (TV2):** Biểu đồ biến động giá trực quan bằng LineChart.
-- [x] **Socket Real-time:** Cập nhật thông tin phiên đấu giá cho toàn bộ Client ngay lập tức khi có giá mới.
+> 💾 **Lưu trữ:** Dữ liệu được lưu trong **MySQL** (nhóm nâng cấp từ yêu cầu lưu File I/O ban đầu lên CSDL thật). Các đối tượng vẫn `Serializable` để truyền qua socket.
 
-## Cách chạy ứng dụng
-1. Di chuyển vào thư mục dự án:
-   ```bash
-   cd online-auction-system/auction-app
-   
-## Tài khoản mặc định
-| Tài khoản | Mật khẩu | Role   |
-|-----------|----------|--------|
-| admin     | admin123 | Admin  |
-| seller1   | 123456   | Seller |
-| bidder1   | 123456   | Bidder |
-| bidder2   | 123456   | Bidder |
-| bidder3   | 123456   | Bidder |
+---
 
-## Reset data trước khi demo anti-sniping
-Xóa file `data/database.dat` rồi restart server.
+## 2. Công nghệ & Yêu cầu môi trường
 
+| Hạng mục | Công nghệ |
+|---|---|
+| Ngôn ngữ | Java — **JDK 25** |
+| Build tool | Maven 3.9+ |
+| Giao diện | JavaFX 21.0.4 (FXML) |
+| Giao tiếp | Java Socket (TCP) — cổng **9999** |
+| Cơ sở dữ liệu | MySQL 8.x + HikariCP (connection pool) |
+| Bảo mật | BCrypt (hash mật khẩu) |
+| Logging | SLF4J (slf4j-simple) |
+| Kiến trúc | MVC + DAO Pattern, 3 tầng (client / server / shared) |
+| Kiểm thử & CI | JUnit 5 + GitHub Actions |
 
-## Thành viên 3 thêm vào đoạn này, xem và mix nhé:
-# Hệ thống Đấu giá Trực tuyến
+**Cần cài trước khi chạy:**
+- **JDK 25** (bắt buộc, để đồng bộ với CI/CD)
+- **Maven 3.9+** (hoặc dùng Maven tích hợp sẵn trong IntelliJ)
+- **MySQL Server 8.x**
 
-Bài tập lớn môn LTNC 2026 — Online Auction System.
+---
 
-## Kiến trúc
+## 3. Cấu trúc thư mục
 
-- **Client:** JavaFX desktop app
-- **Server:** Java TCP Socket (port 9999)
-- **Database:** MySQL 8.4 + HikariCP connection pool
+\`\`\`
+12neverdie/
+├── README.md
+└── auction-app/
+    ├── pom.xml                          # Cấu hình Maven & dependencies
+    ├── sql/
+    │   ├── schema.sql                   # Tạo 5 bảng: users, items, auctions, bids, auto_bid_configs
+    │   ├── migration_001_balance.sql    # Thêm cột balance (chỉ cần cho DB tạo từ schema cũ)
+    │   └── seed.sql                      # KHÔNG chạy thủ công — server tự seed dữ liệu demo
+    └── src/
+        ├── main/
+        │   ├── java/com/auction/
+        │   │   ├── client/   # Giao diện JavaFX: controller, network, realtime, chart, context, util, main
+        │   │   ├── server/   # Logic server: dao, service, handler, realtime, concurrency, seed, main
+        │   │   └── shared/   # Dùng chung: model (user/item/auction/bid), factory, exception, networkMessage
+        │   └── resources/    # fxml/, css/, images/, db.properties(.example), simplelogger.properties
+        └── test/java/com/auction/        # Unit test & integration test (JUnit 5)
+\`\`\`
 
-## Yêu cầu môi trường
+**Ba module chính:**
+- **`client`** — Giao diện JavaFX và kết nối socket tới server. Hiển thị danh sách phiên, màn hình đấu giá realtime, biểu đồ giá.
+- **`server`** — Xử lý nghiệp vụ, truy cập MySQL, điều phối request từ client và broadcast sự kiện realtime.
+- **`shared`** — Code dùng chung giữa client & server: các model (User, Item, Auction, Bid), các `record` request/response, factory, exception, config.
 
-- JDK 25
-- Maven 3.6+
-- MySQL Server 8.4
-- IntelliJ IDEA (khuyến nghị)
+---
 
-## Setup máy mới (1 lần)
+## 4. Cài đặt (làm 1 lần cho máy mới)
 
-### Bước 1: Cài đặt MySQL
+### Bước 1 — Tạo database & user MySQL
 
-Tải MySQL Server 8.4 từ https://dev.mysql.com/downloads/installer/
+Mở MySQL Workbench (login bằng `root`) và chạy:
 
-Sau khi cài xong, mở MySQL Workbench, login bằng root.
-
-### Bước 2: Tạo database và user
-
-Trong Workbench, chạy SQL sau (đổi `<password>` thành mật khẩu của bạn):
-
-```sql
+\`\`\`sql
 CREATE DATABASE auction_db CHARACTER SET utf8mb4;
-CREATE USER 'auction_user'@'localhost' IDENTIFIED BY '<password>';
+CREATE USER 'auction_user'@'localhost' IDENTIFIED BY '<mật_khẩu_của_bạn>';
 GRANT ALL PRIVILEGES ON auction_db.* TO 'auction_user'@'localhost';
 FLUSH PRIVILEGES;
-```
+\`\`\`
 
-> ⚠️ Password phải thống nhất với cả nhóm. Hỏi trưởng nhóm để biết.
+> ⚠️ Mật khẩu phải **thống nhất trong cả nhóm** — hỏi trưởng nhóm.
 
-### Bước 3: Tạo bảng
+### Bước 2 — Tạo bảng
 
-Tải code về:
-```bash
-git clone <repo-url>
+\`\`\`bash
+mysql -u auction_user -p auction_db < auction-app/sql/schema.sql
+\`\`\`
+
+> Script tạo 5 bảng. File `migration_001_balance.sql` **chỉ** cần chạy nếu database của bạn được tạo từ bản schema cũ (trước khi có cột `balance`). Máy mới chạy `schema.sql` là đủ.
+
+### Bước 3 — Cấu hình kết nối
+
+\`\`\`bash
+cp auction-app/src/main/resources/db.properties.example auction-app/src/main/resources/db.properties
+\`\`\`
+
+Mở file `db.properties` vừa copy, sửa `db.password=...` thành mật khẩu thật.
+
+> 💡 **Không cần chạy `seed.sql`** — server **tự seed** dữ liệu demo (4 user, 3 sản phẩm, 3 phiên đấu giá) ở lần chạy đầu tiên nếu database đang rỗng.
+
+---
+
+## 5. Chạy chương trình
+
+> **Thứ tự bắt buộc:** MySQL → **Server** → **Client**. Có thể mở **nhiều Client cùng lúc** để demo cập nhật realtime.
+
+### Cách A — Dòng lệnh (Windows / macOS / Linux)
+
+Maven chạy giống nhau trên mọi hệ điều hành. Mở terminal tại thư mục `auction-app`:
+
+\`\`\`bash
 cd auction-app
-```
 
-Chạy script schema:
-```bash
-mysql -u auction_user -p auction_db < sql/schema.sql
-```
+# (1) Build toàn bộ + chạy test (lệnh CI dùng)
+mvn -B clean verify
 
-(Hoặc mở `sql/schema.sql` trong Workbench → bôi đen tất cả → Ctrl+Shift+Enter)
+# (2) Chạy SERVER — ở terminal thứ 1, để cửa sổ này chạy
+mvn exec:java -Dexec.mainClass="com.auction.server.main.ServerApp"
 
-### Bước 4: Cấu hình kết nối
+# (3) Chạy CLIENT — ở terminal thứ 2 (mở thêm terminal nữa = thêm client)
+mvn javafx:run
+\`\`\`
 
-Copy file template:
-```bash
-cp src/main/resources/db.properties.example src/main/resources/db.properties
-```
+> Nếu lệnh chạy server báo không tìm thấy plugin `exec`, hãy chạy `ServerApp` từ IntelliJ (Cách B), hoặc thêm `exec-maven-plugin` vào `pom.xml`.
 
-Mở file `db.properties` vừa copy, sửa `db.password=...` thành password thật.
+### Cách B — IntelliJ IDEA
 
-### Bước 5: Mở project trong IntelliJ
+1. `File → Open` → chọn thư mục **`auction-app`**, đợi Maven tải dependencies (1–3 phút lần đầu).
+2. Đảm bảo SDK là **Java 25** (`File → Project Structure → Project SDK`).
+3. Chạy **`ServerApp`** (`server/main/ServerApp.java`) — đợi console báo server đã sẵn sàng (cổng 9999).
+4. Chạy **`ClientLauncher`** (`client/main/ClientLauncher.java`) — cửa sổ đăng nhập JavaFX mở ra.
 
-1. File → Open → chọn folder `auction-app`
-2. Đợi Maven tự tải dependencies (1-3 phút lần đầu)
-3. Build → Build Project (Ctrl+F9)
+> Kiểm tra server đã chạy (Windows): `netstat -ano | findstr 9999` — thấy dòng `LISTENING` là OK.
 
-### Bước 6: Chạy
+### Tài khoản demo (server tự tạo sẵn)
 
-1. **Run ServerApp** (`src/main/java/com/auction/server/main/ServerApp.java`)
-    - Đợi log `Server đang lắng nghe tại port: 9999`
-    - Server tự seed 4 user demo: admin, seller1, bidder1, bidder2
+| Tài khoản | Mật khẩu   | Vai trò |
+|-----------|------------|---------|
+| `admin`   | `admin123` | Admin   |
+| `seller1` | `seller123`| Seller  |
+| `bidder1` | `bid123`   | Bidder  |
+| `bidder2` | `bid123`   | Bidder  |
 
-2. **Run ClientLauncher** (`src/main/java/com/auction/client/main/ClientLauncher.java`)
-    - Cửa sổ JavaFX Login mở
+---
 
-3. **Tài khoản demo:**
-    - `admin` / `admin123`
-    - `seller1` / `seller123`
-    - `bidder1` / `bid123`
-    - `bidder2` / `bid123`
+## 6. Chức năng đã hoàn thành
 
-## Cấu trúc project
+### Bắt buộc (Core)
+- [x] Quản lý người dùng Admin / Seller / Bidder + đăng nhập / đăng ký + phân quyền.
+- [x] Quản lý sản phẩm: Seller thêm / sửa sản phẩm (kèm tạo phiên đấu giá); Admin gỡ sản phẩm vi phạm.
+- [x] Quản lý phiên đấu giá + hủy phiên (Seller hủy phiên của mình, Admin hủy mọi phiên).
+- [x] Đặt giá + kiểm tra hợp lệ (giá mới ≥ giá hiện tại + bước giá) + kiểm tra số dư ví.
+- [x] Tự động đóng phiên đúng giờ & xác định người thắng (`OPEN → RUNNING → FINISHED → PAID/CANCELED`).
+- [x] Xử lý lỗi & ngoại lệ (hệ thống custom exception riêng).
+- [x] Giao diện JavaFX (FXML) theo mô hình MVC.
+- [x] Thiết kế OOP: kế thừa, đa hình, trừu tượng, đóng gói (dùng `sealed class`).
+- [x] Design Patterns: **Singleton** (Database), **Factory** (User/Item), **Observer** (EventBus/broadcast), **DAO**.
+- [x] Kiến trúc Client–Server (TCP Socket, cổng 9999).
+- [x] Cập nhật realtime cho mọi client qua socket khi có giá mới.
+- [x] Xử lý đấu giá đồng thời (`ReentrantLock` theo từng phiên + transaction chống lost-update).
+- [x] Quản lý dependencies & build bằng Maven.
+- [x] Unit Test (JUnit 5).
+- [x] CI/CD (GitHub Actions — tự động build & test khi push/PR).
+- [x] Lưu trữ dữ liệu bằng **MySQL** (nâng cấp từ File I/O; object vẫn `Serializable` cho socket).
+
+### Nâng cao (Optional)
+- [x] **Auto-Bidding** — hệ thống tự đặt giá thay người dùng theo mức trần & bước giá.
+- [x] **Anti-Sniping** — tự gia hạn phiên khi có người đặt giá vào những giây cuối.
+- [x] **Bid History Visualization** — biểu đồ biến động giá theo thời gian thực (LineChart).
+
+### Tính năng thêm
+- [x] Ví tiền: nạp tiền (deposit), tự trừ/cộng số dư khi phiên thanh toán.
+
+---
+
+## 7. Báo cáo & Demo
+
+- 📄 **Báo cáo PDF:** _(cập nhật link tại đây)_
+- 🎥 **Video demo:** _(cập nhật link tại đây)_
+- 💻 **Mã nguồn:** https://github.com/giaphong207/12neverdie
