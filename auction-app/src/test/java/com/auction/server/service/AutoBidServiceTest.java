@@ -2,7 +2,11 @@ package com.auction.server.service;
 
 import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.server.dao.AutoBidDao;
+import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.AutoBidConfig;
+import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
+import com.auction.support.TestDataFactory;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,7 +18,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DisplayName("AutoBidService - lưu/load + cascade")
+@DisplayName("AutoBidService - lưu config + cascade resolveAutoBids")
 class AutoBidServiceTest {
 
     private FakeAutoBidDao autoBidDao;
@@ -138,6 +142,80 @@ class AutoBidServiceTest {
         @DisplayName("disableConfig: không có config → trả false")
         void disable_non_existing_returns_false() {
             assertFalse(service.disableConfig("ghost-auction", "ghost-bidder"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Phase 3: resolveAutoBids cascade — basic cases")
+    class CascadeBasic {
+
+        @Test
+        @DisplayName("Không có config nào → trả false, không tạo bid")
+        void no_config_returns_false() {
+            Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+            int sizeBefore = auction.getBidHistory().size();
+
+            boolean result = service.resolveAutoBids(auction);
+
+            assertFalse(result);
+            assertEquals(sizeBefore, auction.getBidHistory().size());
+        }
+
+        @Test
+        @DisplayName("Config bị disabled → không cascade")
+        void disabled_config_does_not_cascade() {
+            Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+            AutoBidConfig cfg = TestDataFactory.autoBidConfig(
+                    auction.getId(), "bidder-A", 7_000_000L, 100_000L);
+            cfg.disable();
+            autoBidDao.save(cfg);
+
+            boolean result = service.resolveAutoBids(auction);
+
+            assertFalse(result);
+            assertEquals(0, auction.getBidHistory().size());
+        }
+
+        @Test
+        @DisplayName("1 auto-bidder: tạo 1 bid AUTO vừa đủ vượt minIncrement")
+        void single_autobidder_places_one_bid() {
+            Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+            autoBidDao.save(TestDataFactory.autoBidConfig(
+                    auction.getId(), "bidder-A", 7_000_000L, 100_000L));
+
+            boolean result = service.resolveAutoBids(auction);
+
+            assertTrue(result);
+            assertEquals(1, auction.getBidHistory().size());
+            Bid b = auction.getBidHistory().get(0);
+            assertEquals(BidSource.AUTO, b.getSource());
+            assertEquals("bidder-A", b.getBidderId());
+            assertEquals(5_100_000L, b.getAmount());
+        }
+
+        @Test
+        @DisplayName("Config có max chưa vượt nổi giá hiện tại → bỏ qua")
+        void config_below_current_price_skipped() {
+            Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+            autoBidDao.save(TestDataFactory.autoBidConfig(
+                    auction.getId(), "bidder-too-low", 5_000_000L, 100_000L));
+
+            boolean result = service.resolveAutoBids(auction);
+
+            assertFalse(result);
+            assertEquals(0, auction.getBidHistory().size());
+        }
+
+        @Test
+        @DisplayName("Cascade tạo bid AUTO source — không phải MANUAL")
+        void cascade_bids_are_auto_source() {
+            Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+            autoBidDao.save(TestDataFactory.autoBidConfig(
+                    auction.getId(), "bidder-A", 7_000_000L, 100_000L));
+
+            service.resolveAutoBids(auction);
+
+            assertEquals(BidSource.AUTO, auction.getBidHistory().get(0).getSource());
         }
     }
 
