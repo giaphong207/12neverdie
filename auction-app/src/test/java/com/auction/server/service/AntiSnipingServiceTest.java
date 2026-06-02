@@ -1,6 +1,7 @@
 package com.auction.server.service;
 
 import com.auction.shared.model.auction.Auction;
+import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.support.TestDataFactory;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -88,5 +89,67 @@ class AntiSnipingServiceTest {
         Auction auction = TestDataFactory.finishedAuction();
         LocalDateTime now = LocalDateTime.now();
         assertFalse(service.shouldExtend(auction, now));
+    }
+
+    @Test
+    @DisplayName("applyExtension trả về đúng số giây cấu hình")
+    void apply_extension_returns_configured_seconds() {
+        Auction auction = TestDataFactory.auctionAboutToEnd();
+        long extended = service.applyExtension(auction);
+        assertEquals(60L, extended);
+    }
+
+    @Test
+    @DisplayName("applyExtension thực sự kéo dài endTime của auction")
+    void apply_extension_extends_end_time() {
+        Auction auction = TestDataFactory.auctionAboutToEnd();
+        LocalDateTime before = auction.getEndTime();
+        service.applyExtension(auction);
+        Duration delta = Duration.between(before, auction.getEndTime());
+        assertEquals(60L, delta.toSeconds());
+    }
+
+    @Test
+    @DisplayName("applyExtension liên tiếp → tích lũy thêm thời gian")
+    void apply_extension_accumulates() {
+        Auction auction = TestDataFactory.auctionAboutToEnd();
+        LocalDateTime before = auction.getEndTime();
+        service.applyExtension(auction);
+        service.applyExtension(auction);
+        service.applyExtension(auction);
+        Duration delta = Duration.between(before, auction.getEndTime());
+        assertEquals(180L, delta.toSeconds());
+    }
+
+    @Test
+    @DisplayName("applyExtension trên auction không RUNNING → IllegalStateException")
+    void apply_extension_rejects_non_running() {
+        Auction auction = TestDataFactory.finishedAuction();
+        assertThrows(IllegalStateException.class,
+                () -> service.applyExtension(auction));
+    }
+
+    @Test
+    @DisplayName("Getters trả đúng cấu hình constructor")
+    void getters_return_configured_values() {
+        DefaultAntiSnipingService s = new DefaultAntiSnipingService(
+                Duration.ofSeconds(30), Duration.ofSeconds(90));
+        assertEquals(Duration.ofSeconds(30), s.getTriggerWindow());
+        assertEquals(Duration.ofSeconds(90), s.getExtensionDuration());
+    }
+
+    @Test
+    @DisplayName("Tích hợp: bid trong cửa sổ → trigger → apply → endTime tăng")
+    void integration_trigger_then_apply() {
+        Auction auction = TestDataFactory.auctionAboutToEnd();
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endBefore = auction.getEndTime();
+
+        assertTrue(service.shouldExtend(auction, now));
+        long extendedSeconds = service.applyExtension(auction);
+
+        assertEquals(60L, extendedSeconds);
+        assertTrue(auction.getEndTime().isAfter(endBefore));
+        assertEquals(AuctionStatus.RUNNING, auction.getStatus());
     }
 }
