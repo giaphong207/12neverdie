@@ -5,6 +5,7 @@ import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.BidDao;
 import com.auction.server.dao.Database;
 import com.auction.server.dao.UserDao;
+import com.auction.shared.exception.AppExceptions.AuctionClosedException;
 import com.auction.shared.exception.AppExceptions.InvalidBidException;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
@@ -112,6 +113,94 @@ class BidServiceTest {
         void negative_amount_throws() {
             assertThrows(InvalidBidException.class,
                     () -> bidService.placeBid(AUCTION_ID, BIDDER_ID, -1000L));
+        }
+    }
+
+    @Nested
+    @DisplayName("Auction state")
+    class AuctionStateChecks {
+
+        @Test
+        @DisplayName("Auction FINISHED → AuctionClosedException")
+        void finished_auction_rejects_bid() {
+            auction.finish();
+            auctionDao.save(auction);
+
+            assertThrows(AuctionClosedException.class,
+                    () -> bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_100_000L));
+        }
+
+        @Test
+        @DisplayName("Auction CANCELED → AuctionClosedException")
+        void canceled_auction_rejects_bid() {
+            auction.cancel();
+            auctionDao.save(auction);
+
+            assertThrows(AuctionClosedException.class,
+                    () -> bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_100_000L));
+        }
+    }
+
+    @Nested
+    @DisplayName("Amount validation")
+    class AmountValidation {
+
+        @Test
+        @DisplayName("Bid bằng currentPrice → InvalidBidException")
+        void bid_equal_current_price_throws() {
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_000_000L));
+        }
+
+        @Test
+        @DisplayName("Bid < currentPrice + minIncrement → InvalidBidException")
+        void bid_below_min_increment_throws() {
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_050_000L));
+        }
+
+        @Test
+        @DisplayName("Bid = currentPrice + minIncrement → CHẤP NHẬN")
+        void bid_exactly_min_increment_accepted() {
+            BidOutcome outcome = bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_100_000L);
+            assertNotNull(outcome);
+            assertEquals(5_100_000L, outcome.bid().getAmount());
+        }
+    }
+
+    @Nested
+    @DisplayName("Business rules")
+    class BusinessRules {
+
+        @Test
+        @DisplayName("Seller tự bid auction mình → InvalidBidException")
+        void seller_self_bid_throws() {
+            userDao.save(new Bidder(SELLER_ID, "seller-as-bidder", "pwd", 100_000_000L));
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid(AUCTION_ID, SELLER_ID, 5_100_000L));
+        }
+
+        @Test
+        @DisplayName("Bidder đang là leader → InvalidBidException")
+        void leader_cannot_re_bid_throws() {
+            bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_100_000L);
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_300_000L));
+        }
+
+        @Test
+        @DisplayName("Ví không đủ tiền → InvalidBidException")
+        void insufficient_balance_throws() {
+            userDao.save(new Bidder("broke-bidder", "broke", "pwd", 1_000L));
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid(AUCTION_ID, "broke-bidder", 5_100_000L));
+        }
+
+        @Test
+        @DisplayName("Bidder không tồn tại trong DB → InvalidBidException")
+        void unknown_bidder_throws() {
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid(AUCTION_ID, "ghost-bidder", 5_100_000L));
         }
     }
 
