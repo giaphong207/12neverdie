@@ -83,10 +83,10 @@ public class Results {
         record Failure(String reason) implements GetAllUsersResult {}
     }
     public sealed interface GetAllItemsResult extends Serializable
-        permits GetAllItemsResult.Success, GetAllItemsResult.Failure {
+            permits GetAllItemsResult.Success, GetAllItemsResult.Failure {
 
-    record Success(List<ItemRow> items) implements GetAllItemsResult {}
-    record Failure(String reason) implements GetAllItemsResult {}
+        record Success(List<ItemRow> items) implements GetAllItemsResult {}
+        record Failure(String reason) implements GetAllItemsResult {}
     }
 
     public static record AdminStats(
@@ -98,9 +98,10 @@ public class Results {
     ) implements Serializable {}
 
     public sealed interface GetAdminStatsResult extends Serializable
-        permits GetAdminStatsResult.Success, GetAdminStatsResult.Failure {
-    record Success(AdminStats stats) implements GetAdminStatsResult {}
-    record Failure(String reason) implements GetAdminStatsResult {}
+            permits GetAdminStatsResult.Success, GetAdminStatsResult.Failure {
+
+        record Success(AdminStats stats) implements GetAdminStatsResult {}
+        record Failure(String reason) implements GetAdminStatsResult {}
     }
     
     public static record ErrorMessage(String message) implements Serializable {}
@@ -115,5 +116,5 @@ public class Results {
         permits AdminDeleteItemResult.Success, AdminDeleteItemResult.Failure {
     record Success(String itemId) implements AdminDeleteItemResult {}
     record Failure(String reason) implements AdminDeleteItemResult {}
-}
+    }
 }

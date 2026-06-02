@@ -7,6 +7,8 @@ import java.net.Socket;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,15 +35,10 @@ import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
+import com.auction.shared.factory.ItemFactory;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
-import com.auction.shared.networkMessage.Results.ItemRow;
-import com.auction.shared.networkMessage.Results.LoginResult;
-import com.auction.shared.networkMessage.Results.RegisterResult;
-import com.auction.shared.networkMessage.Results.SetAutoBidResponse;
-import com.auction.shared.networkMessage.Results.UpdateItemResult;
-import com.auction.shared.networkMessage.Results.UserRow;
 public class ClientHandler implements Runnable, EventReceiver {
     private final Socket socket;
     private final BidService bidService;
@@ -313,7 +310,7 @@ public class ClientHandler implements Runnable, EventReceiver {
             }
 
             // Bảng tra id -> username (để hiện tên seller thay vì id)
-            java.util.Map<String, String> idToName = new java.util.HashMap<>();
+            Map<String, String> idToName = new java.util.HashMap<>();
             for (User u : authService.getAllUsers()) {
                 idToName.put(u.getId(), u.getUsername());
             }
@@ -323,7 +320,7 @@ public class ClientHandler implements Runnable, EventReceiver {
                             it.getId(),
                             it.getName(),
                             idToName.getOrDefault(it.getSellerId(), it.getSellerId()), // không thấy thì hiện id
-                            com.auction.shared.factory.ItemFactory.toItemType(it).name()))
+                            ItemFactory.toItemType(it).name()))
                     .toList();
 
             send(new GetAllItemsResult.Success(rows));

@@ -26,6 +26,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class SellerDashboardController implements AuctionEventObserver, Disposable {
 
     @FXML private StackPane topbarContainer;
@@ -38,6 +41,8 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
 
     private final List<Auction> allAuctions = new ArrayList<>();
     private int sellerItemCount = 0;
+
+    private static final Logger log = LoggerFactory.getLogger(SellerDashboardController.class);
 
     @FXML
     public void initialize() {
@@ -93,7 +98,7 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
         }
 
         // Render placeholder
-        renderStats(0, 0, 0, 0);
+        renderStats(0, 0, 0, 0,0);
 
         // Load data thật
         loadSellerItemCount();
@@ -120,11 +125,11 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
                                 recompute();
                             }
                             case GetSellerItemsResult.Failure f ->
-                                    System.err.println("Không load được items: " + f.reason());
+                                    log.warn("Không load được items: {}", f.reason());
                         }
                     }
                 },
-                error -> System.err.println("Không tải được số lượng sản phẩm: " + error)
+                error -> log.warn("Không tải được số lượng sản phẩm: {}", error)
         );
     }
 
@@ -154,6 +159,7 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
         long running = 0;
         long finished = 0;
         long totalBids = 0;
+        long revenue = 0;
 
         List<Auction> myAuctions = new ArrayList<>();
 
@@ -164,12 +170,16 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
             totalBids += a.getBidHistory() == null ? 0 : a.getBidHistory().size();
             switch (a.getStatus()) {
                 case RUNNING -> running++;
-                case FINISHED, PAID -> finished++;
+                case FINISHED -> finished++;
+                case PAID -> {                  // ← tách riêng: vừa tính "đã chốt", vừa cộng tiền
+                    finished++;
+                    revenue += a.getCurrentPrice();
+                }
                 default -> {}
             }
         }
 
-        renderStats(sellerItemCount, running, totalBids, finished);
+        renderStats(sellerItemCount, running, totalBids, finished, revenue);
 
         // Sắp xếp theo thời gian kết thúc gần nhất
         myAuctions.sort(Comparator.comparing(
@@ -181,7 +191,7 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
         }
     }
 
-    private void renderStats(long itemCount, long running, long totalBids, long finished) {
+    private void renderStats(long itemCount, long running, long totalBids, long finished, long revenue) {
         if (statCardsContainer == null) return;
         statCardsContainer.getChildren().clear();
 
@@ -189,13 +199,15 @@ public class SellerDashboardController implements AuctionEventObserver, Disposab
         var c2 = StatCardBuilder.build("Phiên đang chạy", String.valueOf(running));
         var c3 = StatCardBuilder.build("Tổng lượt đặt giá", String.valueOf(totalBids));
         var c4 = StatCardBuilder.build("Đã chốt", String.valueOf(finished));
+        var c5 = StatCardBuilder.build("Doanh thu", MoneyFormatter.formatVnd(revenue));  // ← thẻ mới
 
         HBox.setHgrow(c1, Priority.ALWAYS);
         HBox.setHgrow(c2, Priority.ALWAYS);
         HBox.setHgrow(c3, Priority.ALWAYS);
         HBox.setHgrow(c4, Priority.ALWAYS);
+        HBox.setHgrow(c5, Priority.ALWAYS);                                              // ← thêm
 
-        statCardsContainer.getChildren().addAll(c1, c2, c3, c4);
+        statCardsContainer.getChildren().addAll(c1, c2, c3, c4, c5);                     // ← thêm c5
     }
 
     private void handleNavClick(NavKey key) {

@@ -5,6 +5,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Quản lý kết nối socket duy nhất đến server.
  * Áp dụng Singleton pattern với Double-Checked Locking để tối ưu hiệu năng.
@@ -18,6 +20,7 @@ public final class ServerConnection {
     private ObjectOutputStream out;
     private ObjectInputStream in;
 
+    private static final Logger log = LoggerFactory.getLogger(ServerConnection.class);
     private ServerConnection() {}
 
     //Lấy singleton instance an toàn và tối ưu
@@ -39,20 +42,15 @@ public final class ServerConnection {
      * @throws IOException Nếu kết nối thất bại
      */
     public void connect(String host, int port) throws IOException {
-        try {
-            socket = new Socket(host, port);
-            
-            //Tạo output stream TRƯỚC input stream để tránh deadlock
-            out = new ObjectOutputStream(socket.getOutputStream());
-            out.flush();  //Flush để đẩy header sang cho server nhận diện
-            
-            in = new ObjectInputStream(socket.getInputStream());
-            
-            System.out.println("Kết nối server thành công: " + host + ":" + port);
-        } catch (IOException e) {
-            System.err.println("Lỗi kết nối server: " + e.getMessage());
-            throw e;
-        }
+        socket = new Socket(host, port);
+
+        //Tạo output stream TRƯỚC input stream để tránh deadlock
+        out = new ObjectOutputStream(socket.getOutputStream());
+        out.flush();  //Flush để đẩy header sang cho server nhận diện
+
+        in = new ObjectInputStream(socket.getInputStream());
+
+        log.info("Kết nối server thành công: {}:{}", host, port);
     }
 
     /**
@@ -68,9 +66,9 @@ public final class ServerConnection {
         try {
             out.writeObject(message);
             out.flush();
-            System.out.println("Đã gửi: " + message.getClass().getSimpleName());
+            log.debug("Đã gửi: {}", message.getClass().getSimpleName());
         } catch (IOException e) {
-            System.err.println("Lỗi khi gửi dữ liệu: " + e.getMessage());
+            log.error("Lỗi khi gửi dữ liệu", e);
             throw e;
         }
     }
@@ -94,9 +92,9 @@ public final class ServerConnection {
             if (in != null) in.close();
             if (out != null) out.close();
             if (socket != null && !socket.isClosed()) socket.close();
-            System.out.println("Đã đóng kết nối với server an toàn.");
+            log.info("Đã đóng kết nối với server an toàn.");
         } catch (IOException e) {
-            System.err.println("Lỗi khi đóng kết nối: " + e.getMessage());
+            log.error("Lỗi khi đóng kết nối", e);
         }
     }
 }

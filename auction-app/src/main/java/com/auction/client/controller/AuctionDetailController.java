@@ -32,9 +32,6 @@ import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
-import com.auction.shared.networkMessage.Results.BidResult;
-import com.auction.shared.networkMessage.Results.CancelAuctionResult;
-import com.auction.shared.networkMessage.Results.SetAutoBidResponse;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -56,6 +53,9 @@ import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import javafx.scene.Node;
 import javafx.scene.control.Tooltip;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 public class AuctionDetailController implements AuctionEventObserver, Disposable {
 
     @FXML private Label itemNameLabel;
@@ -80,6 +80,8 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     private Timeline countdownTimeline;
     private boolean expiredHandled = false;
     private String currentAuctionId;
+
+    private static final Logger log = LoggerFactory.getLogger(AuctionDetailController.class);
 
     @FXML private LineChart<String, Number> bidHistoryChart;
     @FXML private CategoryAxis bidTimeAxis;
@@ -580,9 +582,8 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
 
         // Wrap trong Platform.runLater để đảm bảo update UI trên FX Thread
         javafx.application.Platform.runLater(() -> {
-            System.out.println("[Detail] Nhận update auction: " + updated.getId()
-                    + " | endTime: " + updated.getEndTime()
-                    + " | giá: " + updated.getCurrentPrice());
+            log.debug("[Detail] Nhận update auction: {} | endTime: {} | giá: {}",
+                    updated.getId(), updated.getEndTime(), updated.getCurrentPrice());
 
             // Cập nhật object auction trong bộ nhớ
             currentAuction = updated;

@@ -10,26 +10,13 @@ import com.auction.client.context.ClientSession;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
 import com.auction.shared.model.user.User;
-import com.auction.shared.networkMessage.AuctionEvents.AuctionEvent;
-import com.auction.shared.networkMessage.AuctionEvents.WalletUpdatedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Results.*;
-import com.auction.shared.networkMessage.Results.AddItemResult;
-import com.auction.shared.networkMessage.Results.AdminDeleteItemResult;
-import com.auction.shared.networkMessage.Results.BidResult;
-import com.auction.shared.networkMessage.Results.DeleteItemResult;
-import com.auction.shared.networkMessage.Results.DepositResult;
-import com.auction.shared.networkMessage.Results.ErrorMessage;
-import com.auction.shared.networkMessage.Results.GetAdminStatsResult;
-import com.auction.shared.networkMessage.Results.GetAllItemsResult;
-import com.auction.shared.networkMessage.Results.GetAllUsersResult;
-import com.auction.shared.networkMessage.Results.GetBalanceResult;
-import com.auction.shared.networkMessage.Results.GetSellerItemsResult;
-import com.auction.shared.networkMessage.Results.LoginResult;
-import com.auction.shared.networkMessage.Results.RegisterResult;
-import com.auction.shared.networkMessage.Results.SetAutoBidResponse;
-import com.auction.shared.networkMessage.Results.UpdateItemResult;
 
 import javafx.application.Platform;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Background thread lắng nghe event từ server.
@@ -50,6 +37,7 @@ public class ServerMessageListener implements Runnable {
     /** Hàng đợi response trả về cho các controller (Login/Register/Bid/Item). */
     private final BlockingQueue<Object> responseQueue = new LinkedBlockingQueue<>();
 
+    private static final Logger log = LoggerFactory.getLogger(ServerMessageListener.class);
     public ServerMessageListener(ObjectInputStream inputStream, AuctionEventBus eventBus) {
         this.inputStream = inputStream;
         this.eventBus = eventBus;
@@ -73,93 +61,71 @@ public class ServerMessageListener implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("RealtimeListener khoi dong, cho event tu server.");
+        log.info("RealtimeListener khởi động, chờ event từ server.");
 
         while (running) {
             try {
                 Object incoming = inputStream.readObject();
 
                 if (incoming instanceof WalletUpdatedEvent walletEvent) {
-                    System.out.println("Nhan WalletUpdatedEvent -> cap nhat so du");
+                    log.debug("Nhận WalletUpdatedEvent → cập nhật số dư");
                     applyWalletUpdate(walletEvent);
 
                 } else if (incoming instanceof AuctionEvent event) {
-                    System.out.println("Nhan AuctionUpdateEvent: " + event.getAuction().getId());
+                    log.debug("Nhận AuctionEvent: {}", event.getAuction().getId());
                     eventBus.publish(event);
 
                 } else if (incoming instanceof LoginResult) {
-                    System.out.println("Nhan LoginResponse -> day vao queue");
-                    responseQueue.offer(incoming);
-
+                    responseQueue(incoming);
                 } else if (incoming instanceof RegisterResult) {
-                    System.out.println("Nhan RegisterResponse -> day vao queue");
-                    responseQueue.offer(incoming);
-
+                    responseQueue(incoming);
                 } else if (incoming instanceof BidResult) {
-                    System.out.println("Nhan BidResult -> day vao queue");
-                    responseQueue.offer(incoming);
-
+                    responseQueue(incoming);
                 } else if (incoming instanceof AddItemResult) {
-                    System.out.println("Nhan AddItemResponse -> day vao queue");
-                    responseQueue.offer(incoming);
-
+                    responseQueue(incoming);
                 } else if (incoming instanceof UpdateItemResult) {
-                    System.out.println("Nhan UpdateItemResponse -> day vao queue");
-                    responseQueue.offer(incoming);
-
+                    responseQueue(incoming);
                 } else if (incoming instanceof DeleteItemResult) {
-                    System.out.println("Nhan DeleteItemResponse -> day vao queue");
-                    responseQueue.offer(incoming);
-
+                    responseQueue(incoming);
                 } else if (incoming instanceof GetSellerItemsResult) {
-                    System.out.println("Nhan GetSellerItemsResponse -> day vao queue");
-                    responseQueue.offer(incoming);
-
+                    responseQueue(incoming);
                 } else if (incoming instanceof GetBalanceResult) {
-                    System.out.println("Nhan GetBalanceResult -> day vao queue");
-                    responseQueue.offer(incoming);
-
+                    responseQueue(incoming);
                 } else if (incoming instanceof DepositResult) {
-                    System.out.println("Nhan DepositResult -> day vao queue");
-                    responseQueue.offer(incoming);
+                    responseQueue(incoming);
                 } else if (incoming instanceof SetAutoBidResponse) {
-                    System.out.println("Nhan SetAutoBidResponse -> day vao queue");
-                    responseQueue.offer(incoming);
+                    responseQueue(incoming);
                 } else if (incoming instanceof GetAllUsersResult) {
-                    System.out.println("Nhan GetAllUsersResult -> day vao queue");
-                    responseQueue.offer(incoming);
-                } else if (incoming instanceof GetAllItemsResult) {            // ← THÊM
-                    System.out.println("Nhan GetAllItemsResult -> day vao queue");
-                    responseQueue.offer(incoming);
+                    responseQueue(incoming);
+                } else if (incoming instanceof GetAllItemsResult) {
+                    responseQueue(incoming);
                 } else if (incoming instanceof GetAdminStatsResult) {
-                    System.out.println("Nhan GetAdminStatsResult -> day vao queue");
-                    responseQueue.offer(incoming);
-                } else if (incoming instanceof AdminDeleteItemResult) {        // ← THÊM
-                    System.out.println("Nhan AdminDeleteItemResult -> day vao queue");
-                    responseQueue.offer(incoming);
+                    responseQueue(incoming);
+                } else if (incoming instanceof AdminDeleteItemResult) {
+                    responseQueue(incoming);
+
                 } else if (incoming instanceof ErrorMessage error) {
-                    System.err.println("Nhan loi tu server: " + error.message());
+                    log.warn("Nhận lỗi từ server: {}", error.message());
                     Platform.runLater(() ->
                             AlertUtils.showError("Lỗi từ Server", error.message()));
 
                 } else {
-                    System.out.println("Nhan object khong xac dinh: " +
-                            (incoming != null ? incoming.getClass().getSimpleName() : "null"));
+                    log.warn("Nhận object không xác định: {}",
+                            incoming != null ? incoming.getClass().getSimpleName() : "null");
                 }
 
             } catch (java.io.EOFException e) {
-                System.out.println("Server da dong ket noi.");
+                log.info("Server đã đóng kết nối.");
                 running = false;
                 Platform.runLater(() ->
                         AlertUtils.showError("Mất kết nối", "Server đã đóng kết nối."));
 
             } catch (ClassNotFoundException e) {
-                System.err.println("Loi deserialize object: " + e.getMessage());
-                e.printStackTrace();
+                log.error("Lỗi deserialize object", e);
 
             } catch (java.io.IOException e) {
                 if (running) {
-                    System.err.println("Loi doc stream: " + e.getMessage());
+                    log.error("Lỗi đọc stream", e);
                     running = false;
                     Platform.runLater(() ->
                             AlertUtils.showError("Lỗi kết nối", "Mất kết nối đột ngột với server."));
@@ -167,9 +133,13 @@ public class ServerMessageListener implements Runnable {
             }
         }
 
-        System.out.println("RealtimeListener da dung hoat dong.");
+        log.info("RealtimeListener đã dừng hoạt động.");
     }
-
+    /** Log ở mức debug rồi đẩy response vào hàng đợi cho controller poll. */
+    private void responseQueue(Object response) {
+        log.debug("Nhận {} → đẩy vào queue", response.getClass().getSimpleName());
+        responseQueue.offer(response);
+    }
     public void stop() {
         running = false;
     }
@@ -195,4 +165,5 @@ public class ServerMessageListener implements Runnable {
         }
         Platform.runLater(() -> ClientSession.setBalance(newBalance));
     }
+
 }

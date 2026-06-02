@@ -8,11 +8,15 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.URL;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public final class SceneNavigator {
 
     private static Stage stage;
     private static Object currentController;   // ← THÊM: nhớ controller hiện tại
 
+    private static final Logger log = LoggerFactory.getLogger(SceneNavigator.class);
     private SceneNavigator() {
     }
 
@@ -58,8 +62,8 @@ public final class SceneNavigator {
             try {
                 d.dispose();
             } catch (Exception e) {
-                System.err.println("Error disposing controller "
-                        + currentController.getClass().getSimpleName() + ": " + e.getMessage());
+                log.error("Lỗi dispose controller {}",
+                        currentController.getClass().getSimpleName(), e);
             }
         }
         currentController = null;

@@ -13,10 +13,13 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ClientApp extends Application {
 
     private static ServerMessageListener listener;
-
+    private static final Logger log = LoggerFactory.getLogger(ClientApp.class);
     public static ServerMessageListener getListener() {
         return listener;
     }
@@ -40,8 +43,7 @@ public class ClientApp extends Application {
             initNetwork();
 
             stage.setOnCloseRequest(event -> {
-                System.out.println("Dang dong ung dung...");
-                if (listener != null) {
+                log.info("Đang đóng ứng dụng...");                if (listener != null) {
                     listener.stop();
                 }
                 ServerConnection.getInstance().close();
@@ -49,8 +51,7 @@ public class ClientApp extends Application {
             stage.show();
 
         } catch (Exception e) {
-            System.err.println("Lỗi khởi động ứng dụng: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi khởi động ứng dụng", e);            e.printStackTrace();
         }
     }
 
@@ -65,7 +66,7 @@ public class ClientApp extends Application {
             listenerThread.start();
 
         } catch (Exception e) {
-            System.err.println("Khong the ket noi den Server luc khoi dong: " + e.getMessage());
+            log.error("Không thể kết nối Server lúc khởi động", e);
             AlertUtils.showError("Lỗi Máy Chủ", "Không thể kết nối đến máy chủ. Hãy kiểm tra Server đã chạy chưa.");
         }
     }
