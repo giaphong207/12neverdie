@@ -1,5 +1,6 @@
 package com.auction.server.service;
 
+import com.auction.server.concurrency.AuctionLockManager;
 import com.auction.server.dao.AutoBidDao;
 import com.auction.shared.model.bid.AutoBidConfig;
 
@@ -13,14 +14,18 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DisplayName("AutoBidService - lưu/load config autobid")
+@DisplayName("AutoBidService - lưu/load + cascade")
 class AutoBidServiceTest {
 
     private FakeAutoBidDao autoBidDao;
+    private AuctionLockManager lockManager;
+    private DefaultAutoBidService service;
 
     @BeforeEach
     void setUp() {
         autoBidDao = new FakeAutoBidDao();
+        lockManager = new AuctionLockManager();
+        service = new DefaultAutoBidService(autoBidDao, lockManager);
     }
 
     @Nested
@@ -87,14 +92,60 @@ class AutoBidServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("Phase 2: upsertConfig + disableConfig qua service")
+    class ServiceCrud {
+
+        @Test
+        @DisplayName("upsertConfig: tạo mới khi chưa có")
+        void upsert_creates_new() {
+            service.upsertConfig("a-1", "b-1", 10_000L, 500L);
+
+            Optional<AutoBidConfig> found = autoBidDao.findByAuctionIdAndBidderId("a-1", "b-1");
+            assertTrue(found.isPresent());
+            assertEquals(10_000L, found.get().getMaxAmount());
+            assertEquals(500L, found.get().getIncrement());
+            assertTrue(found.get().isEnabled());
+        }
+
+        @Test
+        @DisplayName("upsertConfig: cập nhật + enable lại nếu đã có")
+        void upsert_updates_existing() {
+            service.upsertConfig("a-1", "b-1", 10_000L, 500L);
+            service.disableConfig("a-1", "b-1");
+
+            service.upsertConfig("a-1", "b-1", 20_000L, 1000L);
+
+            Optional<AutoBidConfig> found = autoBidDao.findByAuctionIdAndBidderId("a-1", "b-1");
+            assertTrue(found.isPresent());
+            assertEquals(20_000L, found.get().getMaxAmount());
+            assertEquals(1000L, found.get().getIncrement());
+            assertTrue(found.get().isEnabled());
+        }
+
+        @Test
+        @DisplayName("disableConfig: tắt config đang có")
+        void disable_existing_config() {
+            service.upsertConfig("a-1", "b-1", 10_000L, 500L);
+
+            boolean disabled = service.disableConfig("a-1", "b-1");
+
+            assertTrue(disabled);
+            assertFalse(autoBidDao.findByAuctionIdAndBidderId("a-1", "b-1").get().isEnabled());
+        }
+
+        @Test
+        @DisplayName("disableConfig: không có config → trả false")
+        void disable_non_existing_returns_false() {
+            assertFalse(service.disableConfig("ghost-auction", "ghost-bidder"));
+        }
+    }
+
     // ===== FAKE DAO =====
     static class FakeAutoBidDao implements AutoBidDao {
         private final Map<String, AutoBidConfig> configs = new HashMap<>();
 
-        @Override
-        public void save(AutoBidConfig cfg) {
-            configs.put(cfg.getId(), cfg);
-        }
+        @Override public void save(AutoBidConfig cfg) { configs.put(cfg.getId(), cfg); }
 
         @Override
         public Optional<AutoBidConfig> findByAuctionIdAndBidderId(String auctionId, String bidderId) {
@@ -111,14 +162,8 @@ class AutoBidServiceTest {
                     .collect(Collectors.toList());
         }
 
-        @Override
-        public void deleteById(String configId) {
-            configs.remove(configId);
-        }
+        @Override public void deleteById(String configId) { configs.remove(configId); }
 
-        @Override
-        public List<AutoBidConfig> findAll() {
-            return new ArrayList<>(configs.values());
-        }
+        @Override public List<AutoBidConfig> findAll() { return new ArrayList<>(configs.values()); }
     }
 }
