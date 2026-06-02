@@ -104,8 +104,7 @@ public class ServerApp {
                 new DefaultAuctionLifecycleService(auctionDao, broadcaster, lockManager, walletService);
         AuctionService auctionService =
                 new DefaultAuctionService(auctionDao, lifecycleService, broadcaster);
-        ItemService itemService = new DefaultItemService(itemDao, auctionDao);
-        // AntiSniping cần Duration
+        ItemService itemService = new DefaultItemService(itemDao, auctionDao, lifecycleService);        // AntiSniping cần Duration
         AntiSnipingService antiSniping = new DefaultAntiSnipingService(
                 Duration.ofSeconds(AppConfig.ANTI_SNIPING_TRIGGER_SECONDS),
                 Duration.ofSeconds(AppConfig.ANTI_SNIPING_EXTENSION_SECONDS)

@@ -11,20 +11,26 @@ import com.auction.shared.factory.ItemFactory;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.item.ItemType;
-
+import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.user.Role;
 public class DefaultItemService implements ItemService {
     private final ItemDao itemDao;
     private final AuctionDao auctionDao;
+    private final AuctionLifecycleService lifecycleService;
 
-    public DefaultItemService(ItemDao itemDao, AuctionDao auctionDao) {
+    public DefaultItemService(ItemDao itemDao, AuctionDao auctionDao, AuctionLifecycleService lifecycleService) {
         if (itemDao == null) {
             throw new InvalidItemException("ItemDao không được null");
         }
         if (auctionDao == null) {
             throw new InvalidItemException("AuctionDao không được null");
         }
+        if (lifecycleService == null) {
+            throw new InvalidItemException("AuctionLifecycleService không được null");
+        }
         this.itemDao = itemDao;
         this.auctionDao = auctionDao;
+        this.lifecycleService = lifecycleService;
     }
 
     @Override
@@ -88,15 +94,41 @@ public class DefaultItemService implements ItemService {
     public void deleteItemAsAdmin(String itemId) {
         requireNonBlank(itemId, "itemId");
 
-        itemDao.findById(itemId) //item phải tổn tại (ko ktra chủ sở hữu)
+        // 1) Item phải tồn tại (quyền admin nên không kiểm tra chủ sở hữu)
+        itemDao.findById(itemId)
                 .orElseThrow(() -> new ItemNotFoundException(itemId));
 
-        for (Auction a : auctionDao.findAll()) {
-            if (itemId.equals(a.getItemId())) {
-                auctionDao.deleteById(a.getId());
+        // 2) Gom các phiên của sản phẩm này
+        List<Auction> auctionsOfItem = auctionDao.findAll().stream()
+                .filter(a -> itemId.equals(a.getItemId()))
+                .toList();
+
+        // 3) Bảo toàn lịch sử: KHÔNG cho gỡ nếu đã có phiên kết thúc/đã thanh toán
+        boolean hasSettledHistory = auctionsOfItem.stream()
+                .anyMatch(a -> a.getStatus() == AuctionStatus.FINISHED
+                        || a.getStatus() == AuctionStatus.PAID);
+        if (hasSettledHistory) {
+            throw new InvalidItemException(
+                    "Không thể gỡ: sản phẩm đã có phiên kết thúc hoặc đã thanh toán "
+                            + "(giữ lại để bảo toàn lịch sử giao dịch).");
+        }
+
+        // 4) Hủy đúng quy trình các phiên đang mở/đang chạy.
+        //    cancelAuction() broadcast AuctionCancelledEvent (báo client đang xem)
+        //    và dọn task đã hẹn (scheduleStart/scheduleClose).
+        for (Auction a : auctionsOfItem) {
+            if (a.getStatus() == AuctionStatus.OPEN || a.getStatus() == AuctionStatus.RUNNING) {
+                lifecycleService.cancelAuction(a.getId(), Role.ADMIN);
             }
         }
 
+        // 5) Xóa các phiên (giờ đều CANCELED) để thỏa FK item_id ON DELETE RESTRICT.
+        //    deleteById đã cascade xóa bids + auto_bid_configs.
+        for (Auction a : auctionsOfItem) {
+            auctionDao.deleteById(a.getId());
+        }
+
+        // 6) Cuối cùng mới xóa sản phẩm
         itemDao.deleteById(itemId);
     }
 

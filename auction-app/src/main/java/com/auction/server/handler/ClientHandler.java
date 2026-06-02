@@ -319,15 +319,22 @@ public class ClientHandler implements Runnable, EventReceiver {
     }
     private void handleGetAllUsersRequest() {
         try {
+            requireLogin();
+            if (roleOf(currentUser) != Role.ADMIN) {
+                throw new AuthenticationException("Chỉ quản trị viên mới được xem danh sách người dùng");
+            }
             List<UserRow> rows = authService.getAllUsers().stream()
                     .map(u -> new UserRow(u.getUsername(), roleOf(u)))
                     .toList();
             send(new GetAllUsersResult.Success(rows));
+        } catch (AppException e) {
+            send(new GetAllUsersResult.Failure(e.getMessage()));
         } catch (Exception e) {
             log.error("Lỗi lấy danh sách user", e);
             send(new GetAllUsersResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
+
     private void handleGetAllItemsRequest() {
         try {
             requireLogin();
