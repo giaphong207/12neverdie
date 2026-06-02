@@ -192,8 +192,9 @@ public final class TopbarBuilder {
 
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Nạp tiền vào ví");
-        dialog.setHeaderText("Số dư hiện tại: " + MoneyFormatter.formatVnd(ClientSession.getBalance()));
+        dialog.setHeaderText("Nạp tiền vào ví\nSố dư hiện tại: " + MoneyFormatter.formatVnd(ClientSession.getBalance()));
         dialog.setContentText("Số tiền nạp (VND):");
+        SceneStyler.styleDialog(dialog);
 
         Optional<String> result = dialog.showAndWait();
         if (result.isEmpty()) return;

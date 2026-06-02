@@ -4,7 +4,10 @@ import java.net.URL;
 
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
+import javafx.scene.paint.Color;
+import javafx.stage.StageStyle;
 
 /**
  * Utility áp dụng theme CSS chung cho mọi Scene / DialogPane trong ứng dụng.
@@ -35,6 +38,30 @@ public final class SceneStyler {
             return;
         }
         addTheme(pane.getStylesheets());
+    }
+
+    /**
+     * Khoác theme cho một Dialog có ô nhập (TextInputDialog, Dialog tự dựng...).
+     *  (1) bỏ thanh tiêu đề Windows, (2) bỏ icon mặc định,
+     *  (3) gắn .app-dialog + nạp app.css, (4) nền Scene trong suốt để bo góc/đổ bóng.
+     * LƯU Ý: gọi TRƯỚC dialog.showAndWait().
+     */
+    public static void styleDialog(Dialog<?> dialog) {
+        if (dialog == null) {
+            return;
+        }
+        dialog.initStyle(StageStyle.TRANSPARENT);
+        dialog.setGraphic(null);
+
+        DialogPane pane = dialog.getDialogPane();
+        pane.getStyleClass().add("app-dialog");
+        applyTo(pane);
+
+        pane.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.setFill(Color.TRANSPARENT);
+            }
+        });
     }
  
     /**

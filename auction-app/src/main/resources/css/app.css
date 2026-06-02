@@ -1269,11 +1269,13 @@
     -app-bg-main:        #FFFFFF;
     -app-text-primary:   #2A2218;
     -app-text-secondary: #6B5D44;
+    -app-text-muted:     #9C8E76;
     -app-accent:         #B8860B;
     -app-accent-soft:    #F3E8CE;
     -app-accent-border:  #CBB069;
     -app-success:        #5B8C5A;
     -app-danger:         #8B2F2F;
+    -app-border:         #E7E2D8;
  
     -fx-background-color: -app-bg-main;
     -fx-background-radius: 10;
