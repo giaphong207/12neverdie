@@ -2,38 +2,87 @@ package com.auction.client.util;
 
 import java.net.URL;
 
+import javafx.collections.ObservableList;
 import javafx.scene.Scene;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
+import javafx.scene.paint.Color;
+import javafx.stage.StageStyle;
 
 /**
- * Utility áp dụng theme CSS chung cho mọi Scene trong ứng dụng.
- * Mỗi khi tạo Scene mới (Login, Register, navigateByRole...), phải gọi
- * SceneStyler.apply(scene) ngay sau đó để giữ thiết kế đồng nhất.
+ * Utility áp dụng theme CSS chung cho mọi Scene / DialogPane trong ứng dụng.
+ * Mỗi khi tạo Scene mới (Login, Register, navigateByRole...), gọi
+ * SceneStyler.apply(scene). Với Alert/hộp thoại thì gọi SceneStyler.applyTo(pane).
  */
 public final class SceneStyler {
-
+ 
     private static final String THEME_CSS = "/css/app.css";
-
+ 
     private SceneStyler() {}
-
-    /**
-     * Áp dụng theme app.css cho Scene.
-     * Theme đơn giản, trung tính, phù hợp dự án sinh viên.
-     * Nếu Scene đã có stylesheet này thì bỏ qua (không thêm trùng).
-     */
+ 
+    /** Áp dụng theme app.css cho Scene của màn hình chính. */
     public static void apply(Scene scene) {
         if (scene == null) {
             return;
         }
+        addTheme(scene.getStylesheets());
+    }
+ 
+    /**
+     * Áp dụng theme app.css cho DialogPane (Alert, hộp thoại...).
+     * Alert có Scene RIÊNG nên app.css phải nạp THẲNG vào DialogPane thì
+     * các style-class (.app-dialog, .dialog-icon...) mới có hiệu lực.
+     */
+    public static void applyTo(DialogPane pane) {
+        if (pane == null) {
+            return;
+        }
+        addTheme(pane.getStylesheets());
+    }
 
+    /**
+     * Khoác theme cho một Dialog có ô nhập (TextInputDialog, Dialog tự dựng...).
+     *  (1) bỏ thanh tiêu đề Windows, (2) bỏ icon mặc định,
+     *  (3) gắn .app-dialog + nạp app.css, (4) nền Scene trong suốt để bo góc/đổ bóng.
+     * LƯU Ý: gọi TRƯỚC dialog.showAndWait().
+     */
+    public static void styleDialog(Dialog<?> dialog) {
+        if (dialog == null) {
+            return;
+        }
+        dialog.initStyle(StageStyle.TRANSPARENT);
+        dialog.setGraphic(null);
+
+        DialogPane pane = dialog.getDialogPane();
+        pane.getStyleClass().add("app-dialog");
+        applyTo(pane);
+
+        pane.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.setFill(Color.TRANSPARENT);
+            }
+        });
+    }
+ 
+    /**
+     * Nơi DUY NHẤT chứa logic nạp theme: tìm file app.css rồi thêm vào danh sách
+     * stylesheet (nếu chưa có). Cả Scene lẫn DialogPane đều trả về cùng kiểu
+     * ObservableList&lt;String&gt; nên dùng chung được — tránh lặp code (DRY).
+     */
+    private static void addTheme(ObservableList<String> stylesheets) {
+        if (stylesheets == null) {
+            return;
+        }
+ 
         URL cssUrl = SceneStyler.class.getResource(THEME_CSS);
         if (cssUrl == null) {
             System.err.println("[SceneStyler] KHÔNG tìm thấy file CSS: " + THEME_CSS);
             return;
         }
-
+ 
         String cssPath = cssUrl.toExternalForm();
-        if (!scene.getStylesheets().contains(cssPath)) {
-            scene.getStylesheets().add(cssPath);
+        if (!stylesheets.contains(cssPath)) {
+            stylesheets.add(cssPath);
         }
     }
 }

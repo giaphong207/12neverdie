@@ -1257,3 +1257,113 @@
 .countdown-normal-text {
     -fx-text-fill: -app-text-secondary;
 }
+
+/* =====================================================
+   DIALOG / ALERT — khoác theme vàng-kem cho mọi popup
+   (báo lỗi / thông báo / cảnh báo / xác nhận)
+   ===================================================== */
+ 
+/* DialogPane KHÔNG mang class .root nên các biến -app-* ở trên không
+   tự lan tới đây — phải khai báo lại các token cần dùng ngay trên .app-dialog. */
+.app-dialog {
+    -app-bg-main:        #FFFFFF;
+    -app-text-primary:   #2A2218;
+    -app-text-secondary: #6B5D44;
+    -app-text-muted:     #9C8E76;
+    -app-accent:         #B8860B;
+    -app-accent-soft:    #F3E8CE;
+    -app-accent-border:  #CBB069;
+    -app-success:        #5B8C5A;
+    -app-danger:         #8B2F2F;
+    -app-border:         #E7E2D8;
+ 
+    -fx-background-color: -app-bg-main;
+    -fx-background-radius: 10;
+    -fx-background-insets: 12;          /* chừa 12px trong suốt cho bóng đổ */
+ 
+    /* viền: champagne 3 cạnh, cạnh TRÊN dày 3px màu nhấn (mặc định: gold) */
+    -fx-border-color: -app-accent -app-accent-border -app-accent-border -app-accent-border;
+    -fx-border-width: 3 1 1 1;
+    -fx-border-radius: 10;
+    -fx-border-insets: 12;
+ 
+    -fx-padding: 22 24 16 24;           /* = 12 insets + ~10 lề trong, gọn như popup cũ */
+    -fx-effect: dropshadow(gaussian, rgba(42, 34, 24, 0.28), 12, 0, 0, 4);
+}
+ 
+/* Màu cạnh trên theo loại popup */
+.app-dialog.app-dialog-error {
+    -fx-border-color: -app-danger -app-accent-border -app-accent-border -app-accent-border;
+}
+/* Thành công → cạnh trên XANH LÁ */
+.app-dialog.app-dialog-info {
+    -fx-border-color: -app-success -app-accent-border -app-accent-border -app-accent-border;
+}
+ 
+/* Tiêu đề (serif) bên trong card */
+.app-dialog > .header-panel {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 2 0;
+}
+.app-dialog > .header-panel .label {
+    -fx-font-family: "Cambria", "Georgia", serif;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-text-primary;
+}
+ 
+/* Nội dung */
+.app-dialog > .content.label,
+.app-dialog .content {
+    -fx-font-size: 13px;
+    -fx-text-fill: -app-text-secondary;
+    -fx-padding: 4 0 0 0;
+    -fx-wrap-text: true;
+}
+ 
+/* Icon tròn tự vẽ (Label glyph ✓ ✕ ! ?) — nhỏ gọn 34px */
+.app-dialog .dialog-icon {
+    -fx-min-width: 34px;  -fx-pref-width: 34px;  -fx-max-width: 34px;
+    -fx-min-height: 34px; -fx-pref-height: 34px; -fx-max-height: 34px;
+    -fx-background-radius: 17px;
+    -fx-alignment: center;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    /* mặc định (info/warning/confirm): nền vàng nhạt, chữ gold */
+    -fx-background-color: -app-accent-soft;
+    -fx-text-fill: -app-accent;
+}
+.app-dialog.app-dialog-error .dialog-icon {
+    -fx-background-color: derive(-app-danger, 78%);
+    -fx-text-fill: -app-danger;
+}
+/* icon ✓ Thành công → nền xanh nhạt, chữ xanh */
+.app-dialog.app-dialog-info .dialog-icon {
+    -fx-background-color: derive(-app-success, 72%);
+    -fx-text-fill: -app-success;
+}
+ 
+/* Nút — đồng bộ với .button của app, gọn lại một chút */
+.app-dialog > .button-bar {
+    -fx-background-color: transparent;
+    -fx-padding: 12 0 0 0;
+}
+.app-dialog .button {
+    -fx-background-color: -app-accent-soft;
+    -fx-text-fill: -app-text-primary;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 7 24;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: -app-accent-border;
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+}
+.app-dialog .button:hover {
+    -fx-background-color: derive(-app-accent-soft, -8%);
+    -fx-border-color: -app-accent;
+}
+.app-dialog .button:focused {
+    -fx-border-color: -app-accent;
+}
