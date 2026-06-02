@@ -45,6 +45,44 @@ class WalletServiceTest {
                 () -> walletService.getBalance("ghost-user"));
     }
 
+    @Test
+    @DisplayName("Deposit số tiền dương → cộng vào ví, trả về số dư mới")
+    void deposit_valid_amount_increases_balance() {
+        long newBalance = walletService.deposit(BIDDER_ID, 500_000L);
+        assertEquals(1_500_000L, newBalance);
+        assertEquals(1_500_000L, walletService.getBalance(BIDDER_ID));
+    }
+
+    @Test
+    @DisplayName("Deposit nhiều lần → cộng tích lũy")
+    void deposit_multiple_times_accumulates() {
+        walletService.deposit(BIDDER_ID, 100_000L);
+        walletService.deposit(BIDDER_ID, 200_000L);
+        walletService.deposit(BIDDER_ID, 300_000L);
+        assertEquals(1_600_000L, walletService.getBalance(BIDDER_ID));
+    }
+
+    @Test
+    @DisplayName("Deposit số tiền âm → IllegalArgumentException")
+    void deposit_negative_amount_throws() {
+        assertThrows(IllegalArgumentException.class,
+                () -> walletService.deposit(BIDDER_ID, -1000L));
+    }
+
+    @Test
+    @DisplayName("Deposit số tiền 0 → IllegalArgumentException")
+    void deposit_zero_amount_throws() {
+        assertThrows(IllegalArgumentException.class,
+                () -> walletService.deposit(BIDDER_ID, 0L));
+    }
+
+    @Test
+    @DisplayName("Deposit cho user không tồn tại → ném exception từ DAO")
+    void deposit_unknown_user_throws() {
+        assertThrows(IllegalStateException.class,
+                () -> walletService.deposit("ghost-user", 100_000L));
+    }
+
     // ===== FAKE DAO =====
     static class FakeUserDao implements UserDao {
         private final Map<String, User> usersById = new HashMap<>();
