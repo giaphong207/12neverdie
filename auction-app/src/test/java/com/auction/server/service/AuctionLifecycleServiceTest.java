@@ -196,7 +196,7 @@ class AuctionLifecycleServiceTest {
     }
 
     // ════════════════════════════════════════════════════════════
-    // scheduleStart / scheduleClose — scheduler fire với delay = 0
+    // scheduleStart / scheduleClose / rescheduleClose
     // ════════════════════════════════════════════════════════════
 
     @Test
@@ -213,6 +213,37 @@ class AuctionLifecycleServiceTest {
     }
 
     @Test
+    @DisplayName("scheduleClose với endTime đã qua + có winner đủ ví → PAID (auto-settle)")
+    void schedule_close_with_paying_winner() throws InterruptedException {
+        Auction auction = runningAuctionExpiredWithWinner("winner-rich", 10_000_000L);
+        auctionDao.save(auction);
+        walletService.setBalance("winner-rich", 10_000_000L);
+
+        lifecycleService.scheduleClose(auction);
+        Thread.sleep(300);
+
+        Auction updated = auctionDao.findById(auction.getId()).orElseThrow();
+        assertEquals(AuctionStatus.PAID, updated.getStatus());
+        assertTrue(broadcaster.countOf(AuctionEndedEvent.class) >= 1);
+        assertTrue(broadcaster.countOf(AuctionPaidEvent.class) >= 1);
+    }
+
+    @Test
+    @DisplayName("scheduleClose với winner THIẾU ví → giữ FINISHED, schedule payment timeout")
+    void schedule_close_with_broke_winner() throws InterruptedException {
+        Auction auction = runningAuctionExpiredWithWinner("winner-broke", 10_000_000L);
+        auctionDao.save(auction);
+        walletService.setBalance("winner-broke", 1_000L);
+
+        lifecycleService.scheduleClose(auction);
+        Thread.sleep(300);
+
+        Auction updated = auctionDao.findById(auction.getId()).orElseThrow();
+        assertEquals(AuctionStatus.FINISHED, updated.getStatus());
+        assertEquals(0, broadcaster.countOf(AuctionPaidEvent.class));
+    }
+
+    @Test
     @DisplayName("scheduleClose phiên không có người bid → giữ FINISHED, không settle")
     void schedule_close_no_winner() throws InterruptedException {
         Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 0);
@@ -225,6 +256,24 @@ class AuctionLifecycleServiceTest {
         assertEquals(AuctionStatus.FINISHED, updated.getStatus());
         assertNull(updated.getWinnerBidderId());
         assertEquals(0, broadcaster.countOf(AuctionPaidEvent.class));
+    }
+
+    @Test
+    @DisplayName("rescheduleClose: cancel future cũ và schedule lại với endTime mới")
+    void reschedule_close_uses_new_end_time() throws InterruptedException {
+        Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 5);
+        auctionDao.save(auction);
+        lifecycleService.scheduleClose(auction);
+
+        // Trước khi fire, gia hạn endTime thêm 60s
+        auction.extendEndTime(60);
+        lifecycleService.rescheduleClose(auction);
+
+        Thread.sleep(500);
+
+        Auction updated = auctionDao.findById(auction.getId()).orElseThrow();
+        assertEquals(AuctionStatus.RUNNING, updated.getStatus(),
+                "Sau reschedule, task cũ bị hủy → auction vẫn RUNNING");
     }
 
     @Test
@@ -268,6 +317,20 @@ class AuctionLifecycleServiceTest {
                 past.minusHours(1),
                 past
         );
+    }
+
+    private Auction runningAuctionExpiredWithWinner(String winnerId, long winningAmount) {
+        LocalDateTime now = LocalDateTime.now();
+        Auction a = new Auction(
+                UUID.randomUUID().toString(), "item-1", "seller-x",
+                5_000_000L, 100_000L,
+                AuctionStatus.RUNNING,
+                now.minusHours(1),
+                now.plus(Duration.ofMillis(100))
+        );
+        Bid b = Bid.createNew(a.getId(), winnerId, winningAmount, BidSource.MANUAL);
+        a.addBid(b);
+        return a;
     }
 
     // ════════════════════════════════════════════════════════════
