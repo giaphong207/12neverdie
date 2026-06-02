@@ -1,13 +1,13 @@
 package com.auction.client.util;
 
+import java.util.Optional;
+
 import javafx.geometry.Insets;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
-
-import java.util.Optional;
 
 /**
  * Dialog cấu hình Auto-Bid. Tách thành factory để tránh đụng layout
@@ -42,8 +42,7 @@ public final class AutoBidDialogFactory {
     public static Optional<AutoBidFormResult> showDialog() {
         Dialog<AutoBidFormResult> dialog = new Dialog<>();
         dialog.setTitle("Cấu hình Auto-Bid");
-        dialog.setHeaderText("Hệ thống sẽ tự bid thay bạn đến giá trần.");
-
+        dialog.setHeaderText("Cấu hình Auto-Bid");
         ButtonType saveBtn = new ButtonType("Lưu", ButtonType.OK.getButtonData());
         dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
 
@@ -52,18 +51,24 @@ public final class AutoBidDialogFactory {
         grid.setVgap(10);
         grid.setPadding(new Insets(20, 20, 10, 20));
 
+        Label note = new Label("Hệ thống sẽ tự bid thay bạn đến giá trần.");
+        note.getStyleClass().add("text-secondary");
+        note.setWrapText(true);
+
         TextField maxAmountField = new TextField();
         maxAmountField.setPromptText("VD: 1000000");
 
         TextField incrementField = new TextField();
         incrementField.setPromptText("VD: 10000");
 
-        grid.add(new Label("Giá trần (max):"), 0, 0);
-        grid.add(maxAmountField, 1, 0);
-        grid.add(new Label("Bước giá (increment):"), 0, 1);
-        grid.add(incrementField, 1, 1);
+        grid.add(note, 0, 0, 2, 1);
+        grid.add(new Label("Giá trần (max):"), 0, 1);
+        grid.add(maxAmountField, 1, 1);
+        grid.add(new Label("Bước giá (increment):"), 0, 2);
+        grid.add(incrementField, 1, 2);
 
         dialog.getDialogPane().setContent(grid);
+        SceneStyler.styleDialog(dialog);
 
         dialog.setResultConverter(buttonType -> {
             if (buttonType == saveBtn) {
