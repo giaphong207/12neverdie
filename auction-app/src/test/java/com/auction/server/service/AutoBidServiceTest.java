@@ -5,6 +5,7 @@ import com.auction.shared.model.bid.AutoBidConfig;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -22,67 +23,68 @@ class AutoBidServiceTest {
         autoBidDao = new FakeAutoBidDao();
     }
 
-    @Test
-    @DisplayName("Save autoBidConfig và lấy lại được")
-    void save_and_retrieve_autobid_config() {
-        String cfgId = UUID.randomUUID().toString();
-        AutoBidConfig cfg = new AutoBidConfig(
-                cfgId,
-                "auction-1",
-                "bidder-1",
-                5000L, 200L);
-        autoBidDao.save(cfg);
+    @Nested
+    @DisplayName("Phase 1: CRUD AutoBidConfig")
+    class DaoCrud {
 
-        Optional<AutoBidConfig> found = autoBidDao.findByAuctionIdAndBidderId("auction-1", "bidder-1");
-        assertTrue(found.isPresent());
-        assertEquals(5000L, found.get().getMaxAmount());
-        assertEquals(200L, found.get().getIncrement());
-    }
+        @Test
+        @DisplayName("Save autoBidConfig và lấy lại được")
+        void save_and_retrieve_autobid_config() {
+            String cfgId = UUID.randomUUID().toString();
+            AutoBidConfig cfg = new AutoBidConfig(
+                    cfgId, "auction-1", "bidder-1", 5000L, 200L);
+            autoBidDao.save(cfg);
 
-    @Test
-    @DisplayName("findByAuctionId() — lấy tất cả config của 1 auction")
-    void find_by_auction_id() {
-        autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
-                "auction-1", "bidder-1", 5000L, 100L));
-        autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
-                "auction-1", "bidder-2", 6000L, 100L));
-        autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
-                "auction-2", "bidder-3", 7000L, 100L));
+            Optional<AutoBidConfig> found = autoBidDao.findByAuctionIdAndBidderId(
+                    "auction-1", "bidder-1");
+            assertTrue(found.isPresent());
+            assertEquals(5000L, found.get().getMaxAmount());
+            assertEquals(200L, found.get().getIncrement());
+        }
 
-        assertEquals(2, autoBidDao.findByAuctionId("auction-1").size());
-        assertEquals(1, autoBidDao.findByAuctionId("auction-2").size());
-    }
+        @Test
+        @DisplayName("findByAuctionId() lọc đúng config theo auction")
+        void find_by_auction_id() {
+            autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
+                    "auction-1", "bidder-1", 5000L, 100L));
+            autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
+                    "auction-1", "bidder-2", 6000L, 100L));
+            autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
+                    "auction-2", "bidder-3", 7000L, 100L));
 
-    @Test
-    @DisplayName("findByAuctionIdAndBidderId() — không tồn tại trả empty")
-    void find_not_exist_returns_empty() {
-        Optional<AutoBidConfig> result = autoBidDao.findByAuctionIdAndBidderId(
-                "ghost-auction", "ghost-bidder");
-        assertTrue(result.isEmpty());
-    }
+            assertEquals(2, autoBidDao.findByAuctionId("auction-1").size());
+            assertEquals(1, autoBidDao.findByAuctionId("auction-2").size());
+        }
 
-    @Test
-    @DisplayName("findAll() — trả về tất cả config")
-    void find_all() {
-        assertEquals(0, autoBidDao.findAll().size());
+        @Test
+        @DisplayName("findByAuctionIdAndBidderId() trả empty nếu không tồn tại")
+        void find_not_exist_returns_empty() {
+            Optional<AutoBidConfig> result = autoBidDao.findByAuctionIdAndBidderId(
+                    "ghost-auction", "ghost-bidder");
+            assertTrue(result.isEmpty());
+        }
 
-        autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
-                "a-1", "b-1", 5000L, 100L));
-        autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
-                "a-2", "b-2", 6000L, 100L));
+        @Test
+        @DisplayName("findAll() trả về toàn bộ config")
+        void find_all() {
+            assertEquals(0, autoBidDao.findAll().size());
+            autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
+                    "a-1", "b-1", 5000L, 100L));
+            autoBidDao.save(new AutoBidConfig(UUID.randomUUID().toString(),
+                    "a-2", "b-2", 6000L, 100L));
+            assertEquals(2, autoBidDao.findAll().size());
+        }
 
-        assertEquals(2, autoBidDao.findAll().size());
-    }
+        @Test
+        @DisplayName("deleteById() xóa config khỏi DAO")
+        void delete_by_id() {
+            String cfgId = UUID.randomUUID().toString();
+            autoBidDao.save(new AutoBidConfig(cfgId, "a-1", "b-1", 5000L, 100L));
+            assertEquals(1, autoBidDao.findAll().size());
 
-    @Test
-    @DisplayName("deleteById() — xóa config theo id")
-    void delete_by_id() {
-        String cfgId = UUID.randomUUID().toString();
-        autoBidDao.save(new AutoBidConfig(cfgId, "a-1", "b-1", 5000L, 100L));
-        assertEquals(1, autoBidDao.findAll().size());
-
-        autoBidDao.deleteById(cfgId);
-        assertEquals(0, autoBidDao.findAll().size());
+            autoBidDao.deleteById(cfgId);
+            assertEquals(0, autoBidDao.findAll().size());
+        }
     }
 
     // ===== FAKE DAO =====
