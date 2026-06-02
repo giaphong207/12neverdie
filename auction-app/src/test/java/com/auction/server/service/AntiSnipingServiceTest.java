@@ -73,4 +73,20 @@ class AntiSnipingServiceTest {
         LocalDateTime now = LocalDateTime.now();
         assertFalse(service.shouldExtend(auction, now));
     }
+
+    @Test
+    @DisplayName("Auction đã hết hạn → shouldExtend = false")
+    void should_not_extend_when_already_expired() {
+        Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 30);
+        LocalDateTime futureNow = auction.getEndTime().plusSeconds(5);
+        assertFalse(service.shouldExtend(auction, futureNow));
+    }
+
+    @Test
+    @DisplayName("Auction không RUNNING (FINISHED) → shouldExtend = false")
+    void should_not_extend_when_not_running() {
+        Auction auction = TestDataFactory.finishedAuction();
+        LocalDateTime now = LocalDateTime.now();
+        assertFalse(service.shouldExtend(auction, now));
+    }
 }
