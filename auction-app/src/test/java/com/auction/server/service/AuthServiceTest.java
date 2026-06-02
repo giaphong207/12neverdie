@@ -128,5 +128,23 @@ class AuthServiceTest {
             u.setBalance(newBalance);
             return newBalance;
         }
+        @Override
+        public long addBalance(String userId, long delta) {
+            User u = usersById.get(userId);
+            if (u == null) throw new IllegalStateException("user not found: " + userId);
+            u.setBalance(u.getBalance() + delta);
+            return u.getBalance();
+        }
+
+        @Override
+        public boolean transfer(String fromId, String toId, long amount) {
+            User from = usersById.get(fromId);
+            User to   = usersById.get(toId);
+            if (from == null || to == null) throw new IllegalStateException("user not found");
+            if (from.getBalance() < amount) return false;
+            from.setBalance(from.getBalance() - amount);
+            to.setBalance(to.getBalance() + amount);
+            return true;
+        }
     }
 }

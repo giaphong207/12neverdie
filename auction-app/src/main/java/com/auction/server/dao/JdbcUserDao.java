@@ -171,4 +171,72 @@ public class JdbcUserDao implements UserDao {
                 rs.getLong("balance")
         );
     }
+    @Override
+    public long addBalance(String userId, long delta) {
+        String sql = "UPDATE users SET balance = balance + ? WHERE id = ?";
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, delta);
+            ps.setString(2, userId);
+            if (ps.executeUpdate() == 0) {
+                throw new DataAccessException("Không tìm thấy user id=" + userId);
+            }
+            return getBalanceInternal(conn, userId);
+        } catch (SQLException e) {
+            throw new DataAccessException("addBalance(" + userId + ") failed", e);
+        }
+    }
+
+    @Override
+    public boolean transfer(String fromId, String toId, long amount) {
+        if (amount <= 0) throw new IllegalArgumentException("amount phải dương");
+        String debit  = "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?";
+        String credit = "UPDATE users SET balance = balance + ? WHERE id = ?";
+        Connection conn = null;
+        try {
+            conn = db.getConnection();
+            conn.setAutoCommit(false);                       // mở transaction
+
+            try (PreparedStatement d = conn.prepareStatement(debit)) {
+                d.setLong(1, amount);
+                d.setString(2, fromId);
+                d.setLong(3, amount);                        // guard: chỉ trừ nếu balance >= amount
+                if (d.executeUpdate() == 0) {
+                    conn.rollback();
+                    return false;                            // thiếu tiền hoặc from không tồn tại
+                }
+            }
+            try (PreparedStatement c = conn.prepareStatement(credit)) {
+                c.setLong(1, amount);
+                c.setString(2, toId);
+                if (c.executeUpdate() == 0) {
+                    conn.rollback();
+                    throw new DataAccessException("Không tìm thấy seller id=" + toId);
+                }
+            }
+            conn.commit();                                   // cả 2 cùng thành công
+            return true;
+        } catch (SQLException e) {
+            rollbackQuietly(conn);
+            throw new DataAccessException("transfer(" + fromId + "→" + toId + ") failed", e);
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException ignore) {}  // reset trước khi trả pool
+                try { conn.close(); } catch (SQLException ignore) {}
+            }
+        }
+    }
+
+    private long getBalanceInternal(Connection conn, String userId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT balance FROM users WHERE id = ?")) {
+            ps.setString(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong("balance") : 0L;
+            }
+        }
+    }
+
+    private void rollbackQuietly(Connection conn) {
+        if (conn != null) try { conn.rollback(); } catch (SQLException ignore) {}
+    }
 }

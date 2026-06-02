@@ -25,34 +25,13 @@ public class DefaultWalletService implements WalletService {
 
     @Override
     public long deposit(String userId, long amount) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("Số tiền nạp phải dương");
-        }
-        Optional<User> userOpt = userDao.findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new DataAccessException("Không tìm thấy user id=" + userId);
-        }
-        long current = userOpt.get().getBalance();
-        long updated = current + amount;
-        userDao.updateBalance(userId, updated);
-        return updated;
+        if (amount <= 0) throw new IllegalArgumentException("Số tiền nạp phải dương");
+        return userDao.addBalance(userId, amount);   // atomic, hết lost update
     }
 
     @Override
     public boolean settlePayment(String winnerId, String sellerId, long amount) {
-        if (amount <= 0) {
-            return true; // không có gì để chuyển
-        }
-        User winner = userDao.findById(winnerId)
-                .orElseThrow(() -> new DataAccessException("Không tìm thấy winner id=" + winnerId));
-        if (winner.getBalance() < amount) {
-            return false; // winner không đủ tiền → không trừ/cộng gì
-        }
-        User seller = userDao.findById(sellerId)
-                .orElseThrow(() -> new DataAccessException("Không tìm thấy seller id=" + sellerId));
-
-        userDao.updateBalance(winnerId, winner.getBalance() - amount);
-        userDao.updateBalance(sellerId, seller.getBalance() + amount);
-        return true;
+        if (amount <= 0) return true;                // không có gì để chuyển
+        return userDao.transfer(winnerId, sellerId, amount);  // 1 transaction
     }
 }
