@@ -111,9 +111,13 @@
                 <HBox spacing="12">
                     <Button text="+ Thêm"
                             styleClass="btn-outline"
+                            maxWidth="Infinity"
+                            HBox.hgrow="ALWAYS"
                             onAction="#onAddClicked"/>
                     <Button text="Cập nhật" 
-                            styleClass="btn-primary" 
+                            styleClass="btn-primary"
+                            maxWidth="Infinity"
+                            HBox.hgrow="ALWAYS" 
                             onAction="#onUpdateClicked"/>
                 </HBox>
 
