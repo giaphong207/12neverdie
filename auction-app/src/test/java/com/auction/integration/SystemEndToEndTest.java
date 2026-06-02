@@ -6,9 +6,11 @@ import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
+import com.auction.shared.networkMessage.AuctionEvents.BidPlacedEvent;
 import com.auction.shared.networkMessage.Requests.BidRequest;
 import com.auction.shared.networkMessage.Requests.LoginRequest;
 import com.auction.shared.networkMessage.Requests.RegisterRequest;
+import com.auction.shared.networkMessage.Requests.SubscribeAuctionRequest;
 import com.auction.shared.networkMessage.Results.BidResult;
 import com.auction.shared.networkMessage.Results.LoginResult;
 import com.auction.shared.networkMessage.Results.RegisterResult;
@@ -157,6 +159,56 @@ class SystemEndToEndTest {
             assertInstanceOf(BidResult.Failure.class, response);
             assertEquals(priceBefore,
                     server.auctionDao.findById(AUCTION_ID).orElseThrow().getCurrentPrice());
+        }
+    }
+
+    @Test
+    @DisplayName("E2E: 2 client — A bid → B (đã subscribe) nhận BidPlacedEvent qua socket")
+    void e2e_two_clients_subscriber_receives_event() throws Exception {
+        try (TestClient bidderA = TestClient.connect(server.getPort());
+             TestClient bidderB = TestClient.connect(server.getPort())) {
+
+            bidderA.send(new LoginRequest("bidder_e2e", "pwd"));
+            bidderA.receive(2000);
+
+            String userB = "watcher_b_" + UUID.randomUUID().toString().substring(0, 6);
+            server.userDao.save(new Bidder("u-" + userB, userB,
+                    BCrypt.hashpw("pwd", BCrypt.gensalt(4)), 100_000_000L));
+            bidderB.send(new LoginRequest(userB, "pwd"));
+            bidderB.receive(2000);
+
+            bidderB.send(new SubscribeAuctionRequest(AUCTION_ID));
+            Object snapshot = bidderB.receive(2000);
+            assertNotNull(snapshot, "B phải nhận snapshot ngay khi subscribe");
+
+            bidderA.send(new BidRequest(AUCTION_ID, BIDDER_ID, 5_500_000L));
+            bidderA.receive(2000);
+
+            Object pushed = bidderB.receiveAnyEvent(BidPlacedEvent.class, 3000);
+            assertNotNull(pushed, "B phải nhận BidPlacedEvent qua push");
+            BidPlacedEvent event = (BidPlacedEvent) pushed;
+            assertEquals(AUCTION_ID, event.getAuction().getId());
+            assertEquals(5_500_000L, event.getBid().getAmount());
+        }
+    }
+
+    @Test
+    @DisplayName("E2E: Bid auction không tồn tại → nhận failure, server không crash")
+    void e2e_bid_non_existent_auction_no_crash() throws Exception {
+        try (TestClient client = TestClient.connect(server.getPort())) {
+            client.send(new LoginRequest("bidder_e2e", "pwd"));
+            client.receive(2000);
+
+            client.send(new BidRequest("non-existent-auction", BIDDER_ID, 1_000_000L));
+            Object response = client.receive(2000);
+
+            assertNotNull(response, "Server phải trả response, không bị treo");
+        }
+
+        try (TestClient anotherClient = TestClient.connect(server.getPort())) {
+            anotherClient.send(new LoginRequest("bidder_e2e", "pwd"));
+            Object response = anotherClient.receive(2000);
+            assertInstanceOf(LoginResult.Success.class, response);
         }
     }
 
