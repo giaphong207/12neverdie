@@ -159,6 +159,11 @@
                                     onAction="#onConfigureAutoBidClicked"
                                     maxWidth="Infinity"/>
 
+                            <Button text="Tắt đấu giá tự động"
+                                    styleClass="btn-outline"
+                                    onAction="#onDisableAutoBidClicked"
+                                    maxWidth="Infinity"/>
+
                             <Button fx:id="cancelAuctionButton"
                                     text="Hủy phiên"
                                     styleClass="btn-danger"

@@ -33,40 +33,9 @@ import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
-import com.auction.shared.networkMessage.AuctionEvents.AuctionExtendedEvent;
-import com.auction.shared.networkMessage.AuctionEvents.AuctionUpdatedEvent;
-import com.auction.shared.networkMessage.AuctionEvents.BidPlacedEvent;
-import com.auction.shared.networkMessage.Requests.AddItemRequest;
-import com.auction.shared.networkMessage.Requests.AdminDeleteItemRequest;
-import com.auction.shared.networkMessage.Requests.BidRequest;
-import com.auction.shared.networkMessage.Requests.CancelAuctionRequest;
-import com.auction.shared.networkMessage.Requests.DeleteItemRequest;
-import com.auction.shared.networkMessage.Requests.DepositRequest;
-import com.auction.shared.networkMessage.Requests.GetAdminStatsRequest;
-import com.auction.shared.networkMessage.Requests.GetAllItemsRequest;
-import com.auction.shared.networkMessage.Requests.GetAllUsersRequest;
-import com.auction.shared.networkMessage.Requests.GetBalanceRequest;
-import com.auction.shared.networkMessage.Requests.GetSellerItemsRequest;
-import com.auction.shared.networkMessage.Requests.LoginRequest;
-import com.auction.shared.networkMessage.Requests.RegisterRequest;
-import com.auction.shared.networkMessage.Requests.SetAutoBidRequest;
-import com.auction.shared.networkMessage.Requests.SubscribeAuctionListRequest;
-import com.auction.shared.networkMessage.Requests.SubscribeAuctionRequest;
-import com.auction.shared.networkMessage.Requests.UpdateItemRequest;
+import com.auction.shared.networkMessage.AuctionEvents.*;
+import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Results.*;
-import com.auction.shared.networkMessage.Results.AddItemResult;
-import com.auction.shared.networkMessage.Results.AdminDeleteItemResult;
-import com.auction.shared.networkMessage.Results.AdminStats;
-import com.auction.shared.networkMessage.Results.BidResult;
-import com.auction.shared.networkMessage.Results.CancelAuctionResult;
-import com.auction.shared.networkMessage.Results.DeleteItemResult;
-import com.auction.shared.networkMessage.Results.DepositResult;
-import com.auction.shared.networkMessage.Results.ErrorMessage;
-import com.auction.shared.networkMessage.Results.GetAdminStatsResult;
-import com.auction.shared.networkMessage.Results.GetAllItemsResult;
-import com.auction.shared.networkMessage.Results.GetAllUsersResult;
-import com.auction.shared.networkMessage.Results.GetBalanceResult;
-import com.auction.shared.networkMessage.Results.GetSellerItemsResult;
 import com.auction.shared.networkMessage.Results.ItemRow;
 import com.auction.shared.networkMessage.Results.LoginResult;
 import com.auction.shared.networkMessage.Results.RegisterResult;
@@ -141,6 +110,7 @@ public class ClientHandler implements Runnable, EventReceiver {
                     case GetBalanceRequest req          -> handleGetBalanceRequest(req);
                     case DepositRequest req             -> handleDepositRequest(req);
                     case SetAutoBidRequest req          -> handleSetAutoBidRequest(req);
+                    case DisableAutoBidRequest req      -> handleDisableAutoBidRequest(req);
                     case CancelAuctionRequest req       -> handleCancelAuctionRequest(req);
                     case AdminDeleteItemRequest req     -> handleAdminDeleteItemRequest(req);
                     case null    -> log.warn("Nhận message null từ client");
@@ -521,6 +491,20 @@ public class ClientHandler implements Runnable, EventReceiver {
         } catch (Exception e) {
             log.error("Lỗi setAutoBid", e);
             send(new SetAutoBidResponse(false, "Không thể thiết lập: " + e.getMessage()));
+        }
+    }
+    private void handleDisableAutoBidRequest(DisableAutoBidRequest req) {
+        try {
+            requireLogin();
+            boolean off = autoBidService.disableConfig(req.auctionId(), req.bidderId());
+            send(new SetAutoBidResponse(off,
+                    off ? "Đã tắt đấu giá tự động"
+                            : "Bạn chưa bật đấu giá tự động cho phiên này"));
+        } catch (AppException e) {
+            send(new SetAutoBidResponse(false, e.getMessage()));
+        } catch (Exception e) {
+            log.error("Lỗi tắt auto-bid", e);
+            send(new SetAutoBidResponse(false, "Lỗi server: " + e.getMessage()));
         }
     }
     @Override

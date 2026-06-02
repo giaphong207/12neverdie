@@ -29,16 +29,8 @@ import com.auction.shared.model.bid.Bid;
 import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
-import com.auction.shared.networkMessage.AuctionEvents.AuctionCancelledEvent;
-import com.auction.shared.networkMessage.AuctionEvents.AuctionEndedEvent;
-import com.auction.shared.networkMessage.AuctionEvents.AuctionEvent;
-import com.auction.shared.networkMessage.AuctionEvents.AuctionExtendedEvent;
-import com.auction.shared.networkMessage.AuctionEvents.AuctionPaidEvent;
+import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
-import com.auction.shared.networkMessage.Requests.BidRequest;
-import com.auction.shared.networkMessage.Requests.CancelAuctionRequest;
-import com.auction.shared.networkMessage.Requests.SetAutoBidRequest;
-import com.auction.shared.networkMessage.Requests.SubscribeAuctionRequest;
 import com.auction.shared.networkMessage.Results.*;
 import com.auction.shared.networkMessage.Results.BidResult;
 import com.auction.shared.networkMessage.Results.CancelAuctionResult;
@@ -488,7 +480,43 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             messageLabel.setText("");
         }
     }
+    public void onDisableAutoBidClicked() {
+        if (currentAuction == null) {
+            AlertUtils.showWarning("Thông báo", "Không có phiên.");
+            return;
+        }
+        User currentUser = ClientSession.getCurrentUser();
+        if (currentUser == null) {
+            AlertUtils.showWarning("Chưa đăng nhập", "Vui lòng đăng nhập.");
+            return;
+        }
+        if (UserFactory.toRole(currentUser) != Role.BIDDER) {
+            AlertUtils.showError("Lỗi Quyền", "Chỉ tài khoản BIDDER mới dùng đấu giá tự động!");
+            return;
+        }
 
+        RequestExecutor.send(
+                new DisableAutoBidRequest(currentAuction.getId(), currentUser.getId()),
+                this::handleDisableAutoBidResponse,
+                error -> {
+                    AlertUtils.showError("Tắt đấu giá tự động thất bại", error);
+                    messageLabel.setText("");
+                }
+        );
+        messageLabel.setText("Đang tắt đấu giá tự động...");
+    }
+
+    private void handleDisableAutoBidResponse(Object response) {
+        if (response instanceof SetAutoBidResponse r) {
+            // success=true: đã tắt; success=false: không có config (vẫn báo nhẹ nhàng)
+            AlertUtils.showInfo(r.success() ? "Thành công" : "Thông báo", r.message());
+            messageLabel.setText(r.success() ? "Đã tắt đấu giá tự động." : "");
+        } else {
+            AlertUtils.showError("Lỗi",
+                    "Phản hồi không hợp lệ: " + response.getClass().getSimpleName());
+            messageLabel.setText("");
+        }
+    }
     public void onCancelAuctionClicked() {
         if (currentAuction == null) {
             AlertUtils.showWarning("Thông báo", "Không có phiên để hủy.");

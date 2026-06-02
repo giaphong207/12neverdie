@@ -131,6 +131,16 @@ public class Requests {
             }
         }
     }
+    public static record DisableAutoBidRequest(String auctionId, String bidderId) implements Serializable {
+        public DisableAutoBidRequest {
+            if (auctionId == null || auctionId.isBlank()) {
+                throw new InvalidBidException("auctionId không được rỗng");
+            }
+            if (bidderId == null || bidderId.isBlank()) {
+                throw new InvalidBidException("bidderId không được rỗng");
+            }
+        }
+    }
     public static record SubscribeAuctionListRequest() implements Serializable {}
     public static record GetAllUsersRequest() implements Serializable {}
     public static record GetAllItemsRequest() implements Serializable {}
