@@ -10,11 +10,15 @@ import com.auction.server.realtime.EventBroadcaster;
 import com.auction.shared.exception.AppExceptions.AuctionNotFoundException;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionCancelledEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionEndedEvent;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionPaidEvent;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionUpdatedEvent;
 import com.auction.support.TestDataFactory;
 
@@ -24,6 +28,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -56,7 +61,7 @@ class AuctionLifecycleServiceTest {
     }
 
     // ════════════════════════════════════════════════════════════
-    // syncByTime — chuyển trạng thái theo thời gian
+    // syncByTime
     // ════════════════════════════════════════════════════════════
 
     @Test
@@ -188,6 +193,38 @@ class AuctionLifecycleServiceTest {
     void cancel_non_existent_throws() {
         assertThrows(AuctionNotFoundException.class,
                 () -> lifecycleService.cancelAuction("ghost", Role.ADMIN));
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // scheduleStart / scheduleClose — scheduler fire với delay = 0
+    // ════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("scheduleStart với startTime đã qua → fire ngay, OPEN→RUNNING")
+    void schedule_start_fires_for_past_start_time() throws InterruptedException {
+        Auction auction = openAuctionStartedAlready();
+        auctionDao.save(auction);
+
+        lifecycleService.scheduleStart(auction);
+        Thread.sleep(200);
+
+        Auction updated = auctionDao.findById(auction.getId()).orElseThrow();
+        assertEquals(AuctionStatus.RUNNING, updated.getStatus());
+    }
+
+    @Test
+    @DisplayName("scheduleClose phiên không có người bid → giữ FINISHED, không settle")
+    void schedule_close_no_winner() throws InterruptedException {
+        Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 0);
+        auctionDao.save(auction);
+
+        lifecycleService.scheduleClose(auction);
+        Thread.sleep(300);
+
+        Auction updated = auctionDao.findById(auction.getId()).orElseThrow();
+        assertEquals(AuctionStatus.FINISHED, updated.getStatus());
+        assertNull(updated.getWinnerBidderId());
+        assertEquals(0, broadcaster.countOf(AuctionPaidEvent.class));
     }
 
     @Test
