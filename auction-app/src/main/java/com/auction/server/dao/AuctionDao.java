@@ -24,6 +24,4 @@ public interface AuctionDao {
 
     void deleteById(String id);
 
-    /** Lấy auction đang OPEN hoặc RUNNING. */
-    List<Auction> findActiveAuctions();
 }

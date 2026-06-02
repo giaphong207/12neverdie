@@ -225,23 +225,6 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
     }
 
     @Override
-    public Auction finishAuction(String auctionId) {
-        ReentrantLock lock = lockManager.getLock(auctionId);
-        lock.lock();
-        try {
-            Auction a = auctionDao.findById(auctionId)
-                    .orElseThrow(() -> new AuctionNotFoundException(auctionId));
-            a.finish();
-            auctionDao.save(a);
-            broadcaster.broadcast(new AuctionEndedEvent(a));
-            settleOrSchedule(a);
-            return a;
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    @Override
     public Auction cancelAuction(String auctionId, Role cancelledByRole) {
         ReentrantLock lock = lockManager.getLock(auctionId);
         lock.lock();
@@ -255,25 +238,6 @@ public class DefaultAuctionLifecycleService implements AuctionLifecycleService {
             // Cleanup task chưa fire
             cancelScheduledTask(startTasks, auctionId);
             cancelScheduledTask(closeTasks, auctionId);
-            cancelScheduledTask(paymentTimeoutTasks, auctionId);
-            return a;
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    @Override
-    public Auction markAuctionPaid(String auctionId) {
-        ReentrantLock lock = lockManager.getLock(auctionId);
-        lock.lock();
-        try {
-            Auction a = auctionDao.findById(auctionId)
-                    .orElseThrow(() -> new AuctionNotFoundException(auctionId));
-            a.markPaid();
-            auctionDao.save(a);
-            broadcaster.broadcast(new AuctionPaidEvent(a));
-
-            // Đã PAID → cancel payment timeout (nếu vẫn pending)
             cancelScheduledTask(paymentTimeoutTasks, auctionId);
             return a;
         } finally {

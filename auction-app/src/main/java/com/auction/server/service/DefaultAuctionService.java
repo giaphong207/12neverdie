@@ -25,11 +25,6 @@ public class DefaultAuctionService implements AuctionService {
     }
 
     @Override
-    public List<Auction> getActiveAuctions() {
-        return auctionDao.findActiveAuctions();
-    }
-
-    @Override
     public List<Auction> getAllAuctions() {
         return auctionDao.findAll();
     }

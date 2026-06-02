@@ -19,17 +19,9 @@ public interface AuctionLifecycleService {
     Auction syncByTime(String auctionId);
 
     /**
-     * Finish thủ công (vd: admin can thiệp). Service sẽ validate auction
-     * đang RUNNING và broadcast event sau khi finish.
-     */
-    Auction finishAuction(String auctionId);
-
-    /**
      * Cancel theo vai trò.
      */
     Auction cancelAuction(String auctionId, Role cancelledByRole);
-    Auction markAuctionPaid(String auctionId);
-
 
     // ── Eager scheduling (THÊM MỚI) ───────────────────────
     /**

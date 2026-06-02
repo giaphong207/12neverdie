@@ -47,13 +47,6 @@ public class JdbcAuctionDao implements AuctionDao {
     }
 
     @Override
-    public List<Auction> findActiveAuctions() {
-        return queryList(
-                "SELECT " + COLUMNS + " FROM auctions "
-                        + "WHERE status IN ('OPEN','RUNNING') ORDER BY end_time");
-    }
-
-    @Override
     public Optional<Auction> findById(String id) {
         if (id == null || id.isBlank()) {
             return Optional.empty();
