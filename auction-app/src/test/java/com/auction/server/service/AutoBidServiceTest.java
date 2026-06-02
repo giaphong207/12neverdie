@@ -6,6 +6,9 @@ import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.AutoBidConfig;
 import com.auction.shared.model.bid.Bid;
 import com.auction.shared.model.bid.BidSource;
+import com.auction.support.AdvancedFeatureScenarioFactory;
+import com.auction.support.AdvancedFeatureScenarioFactory.ScenarioB;
+import com.auction.support.AdvancedFeatureScenarioFactory.ScenarioC;
 import com.auction.support.TestDataFactory;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -146,8 +149,8 @@ class AutoBidServiceTest {
     }
 
     @Nested
-    @DisplayName("Phase 3: resolveAutoBids cascade — basic cases")
-    class CascadeBasic {
+    @DisplayName("Phase 3: resolveAutoBids cascade")
+    class Cascade {
 
         @Test
         @DisplayName("Không có config nào → trả false, không tạo bid")
@@ -191,6 +194,80 @@ class AutoBidServiceTest {
             assertEquals(BidSource.AUTO, b.getSource());
             assertEquals("bidder-A", b.getBidderId());
             assertEquals(5_100_000L, b.getAmount());
+        }
+
+        @Test
+        @DisplayName("2 auto-bidder: người max cao thắng cuộc cascade")
+        void two_autobidders_higher_max_wins() {
+            ScenarioB s = AdvancedFeatureScenarioFactory.createScenarioB();
+
+            Bid manualBid = TestDataFactory.bid(
+                    s.auction.getId(), s.manualBidderId, s.manualBidAmount);
+            s.auction.addBid(manualBid);
+
+            autoBidDao.save(s.configA);
+            autoBidDao.save(s.configB);
+
+            boolean result = service.resolveAutoBids(s.auction);
+
+            assertTrue(result);
+            assertEquals(s.expectedWinner, s.auction.getHighestBidderId());
+            assertEquals(s.expectedFinalPrice, s.auction.getCurrentPrice());
+            assertTrue(AdvancedFeatureScenarioFactory.countAutoBids(
+                    s.auction.getBidHistory()) >= 1);
+        }
+
+        @Test
+        @DisplayName("Tie-break: 2 auto-bidder cùng max → config tạo sớm thắng")
+        void tie_break_by_created_at() {
+            ScenarioC s = AdvancedFeatureScenarioFactory.createScenarioC();
+
+            s.auction.addBid(TestDataFactory.bid(
+                    s.auction.getId(), "external-bidder", 5_100_000L));
+
+            autoBidDao.save(s.configEarly);
+            autoBidDao.save(s.configLate);
+
+            boolean result = service.resolveAutoBids(s.auction);
+
+            assertTrue(result);
+            assertEquals(s.expectedWinner, s.auction.getHighestBidderId());
+        }
+
+        @Test
+        @DisplayName("Cascade dừng đúng lúc khi không ai còn outbid được")
+        void cascade_terminates_correctly() {
+            Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+
+            autoBidDao.save(TestDataFactory.autoBidConfig(
+                    auction.getId(), "bidder-low", 5_300_000L, 100_000L));
+            autoBidDao.save(TestDataFactory.autoBidConfig(
+                    auction.getId(), "bidder-mid", 5_700_000L, 100_000L));
+            autoBidDao.save(TestDataFactory.autoBidConfig(
+                    auction.getId(), "bidder-high", 6_500_000L, 100_000L));
+
+            boolean result = service.resolveAutoBids(auction);
+
+            assertTrue(result);
+            assertEquals("bidder-high", auction.getHighestBidderId());
+            assertEquals(5_800_000L, auction.getCurrentPrice());
+        }
+
+        @Test
+        @DisplayName("Leader hiện tại không được tự cascade ngược lại chính mình")
+        void leader_does_not_cascade_against_self() {
+            Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+            auction.addBid(TestDataFactory.bid(
+                    auction.getId(), "bidder-A", 5_100_000L));
+
+            autoBidDao.save(TestDataFactory.autoBidConfig(
+                    auction.getId(), "bidder-A", 7_000_000L, 100_000L));
+
+            int sizeBefore = auction.getBidHistory().size();
+            service.resolveAutoBids(auction);
+
+            assertEquals(sizeBefore, auction.getBidHistory().size());
+            assertEquals("bidder-A", auction.getHighestBidderId());
         }
 
         @Test
