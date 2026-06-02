@@ -1,10 +1,14 @@
 package com.auction.server.service;
 
+import com.auction.shared.model.auction.Auction;
+import com.auction.support.TestDataFactory;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -36,5 +40,21 @@ class AntiSnipingServiceTest {
                 () -> new DefaultAntiSnipingService(WINDOW, Duration.ZERO));
         assertThrows(IllegalArgumentException.class,
                 () -> new DefaultAntiSnipingService(WINDOW, Duration.ofSeconds(-1)));
+    }
+
+    @Test
+    @DisplayName("Bid trong 20s cuối → shouldExtend = true")
+    void should_extend_when_bid_in_last_seconds() {
+        Auction auction = TestDataFactory.auctionAboutToEnd();
+        LocalDateTime now = LocalDateTime.now();
+        assertTrue(service.shouldExtend(auction, now));
+    }
+
+    @Test
+    @DisplayName("Bid khi còn 300s → shouldExtend = false")
+    void should_not_extend_when_plenty_of_time() {
+        Auction auction = TestDataFactory.auctionWithPlentyOfTime();
+        LocalDateTime now = LocalDateTime.now();
+        assertFalse(service.shouldExtend(auction, now));
     }
 }
