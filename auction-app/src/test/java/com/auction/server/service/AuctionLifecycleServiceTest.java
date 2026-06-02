@@ -7,13 +7,14 @@ import com.auction.server.dao.UserDao;
 import com.auction.server.realtime.AuctionEnricher;
 import com.auction.server.realtime.AuctionSubscriptionManager;
 import com.auction.server.realtime.EventBroadcaster;
+import com.auction.shared.exception.AppExceptions.AuctionNotFoundException;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
-import com.auction.shared.model.bid.Bid;
-import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionUpdatedEvent;
+import com.auction.support.TestDataFactory;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +22,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -53,19 +53,143 @@ class AuctionLifecycleServiceTest {
         lifecycleService.shutdown();
     }
 
+    // ════════════════════════════════════════════════════════════
+    // syncByTime — chuyển trạng thái theo thời gian
+    // ════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("syncByTime: OPEN + đã đến startTime → RUNNING + broadcast")
+    void sync_open_past_start_transitions_to_running() {
+        Auction auction = openAuctionStartedAlready();
+        auctionDao.save(auction);
+
+        Auction result = lifecycleService.syncByTime(auction.getId());
+
+        assertEquals(AuctionStatus.RUNNING, result.getStatus());
+        assertEquals(1, broadcaster.countOf(AuctionUpdatedEvent.class));
+    }
+
+    @Test
+    @DisplayName("syncByTime: OPEN + chưa đến startTime → vẫn OPEN, không broadcast")
+    void sync_open_before_start_stays_open() {
+        Auction auction = openAuctionInFuture();
+        auctionDao.save(auction);
+
+        Auction result = lifecycleService.syncByTime(auction.getId());
+
+        assertEquals(AuctionStatus.OPEN, result.getStatus());
+        assertEquals(0, broadcaster.totalCount());
+    }
+
+    @Test
+    @DisplayName("syncByTime: RUNNING + quá endTime → FINISHED + broadcast")
+    void sync_running_past_end_transitions_to_finished() {
+        Auction auction = runningAuctionExpired();
+        auctionDao.save(auction);
+
+        Auction result = lifecycleService.syncByTime(auction.getId());
+
+        assertEquals(AuctionStatus.FINISHED, result.getStatus());
+        assertTrue(broadcaster.countOf(AuctionUpdatedEvent.class) >= 1);
+    }
+
+    @Test
+    @DisplayName("syncByTime: RUNNING + còn thời gian → vẫn RUNNING")
+    void sync_running_with_time_stays_running() {
+        Auction auction = TestDataFactory.auctionWithPlentyOfTime();
+        auctionDao.save(auction);
+
+        Auction result = lifecycleService.syncByTime(auction.getId());
+
+        assertEquals(AuctionStatus.RUNNING, result.getStatus());
+        assertEquals(0, broadcaster.totalCount());
+    }
+
+    @Test
+    @DisplayName("syncByTime: chain OPEN→RUNNING→FINISHED nếu cả startTime và endTime đều quá")
+    void sync_open_past_both_times_chains_to_finished() {
+        LocalDateTime past = LocalDateTime.now().minusHours(2);
+        Auction auction = new Auction(
+                UUID.randomUUID().toString(),
+                "item-x", "seller-x",
+                5_000_000L, 100_000L,
+                AuctionStatus.OPEN,
+                past,
+                past.plusMinutes(30)
+        );
+        auctionDao.save(auction);
+
+        Auction result = lifecycleService.syncByTime(auction.getId());
+
+        assertEquals(AuctionStatus.FINISHED, result.getStatus());
+    }
+
+    @Test
+    @DisplayName("syncByTime: auction không tồn tại → AuctionNotFoundException")
+    void sync_non_existent_throws() {
+        assertThrows(AuctionNotFoundException.class,
+                () -> lifecycleService.syncByTime("ghost-auction-id"));
+    }
+
+    @Test
+    @DisplayName("syncByTime: terminal status (FINISHED/PAID/CANCELED) — idempotent")
+    void sync_terminal_state_does_nothing() {
+        Auction auction = TestDataFactory.finishedAuction();
+        auctionDao.save(auction);
+
+        Auction result = lifecycleService.syncByTime(auction.getId());
+
+        assertEquals(AuctionStatus.FINISHED, result.getStatus());
+        assertEquals(0, broadcaster.totalCount());
+    }
+
     @Test
     @DisplayName("shutdown không ném exception, scheduler ngưng nhận task")
     void shutdown_does_not_throw() {
         assertDoesNotThrow(() -> lifecycleService.shutdown());
-        // Gọi shutdown 2 lần cũng OK
         assertDoesNotThrow(() -> lifecycleService.shutdown());
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // HELPERS — build các loại auction
+    // ════════════════════════════════════════════════════════════
+
+    private Auction openAuctionInFuture() {
+        LocalDateTime future = LocalDateTime.now().plusHours(1);
+        return new Auction(
+                UUID.randomUUID().toString(), "item-1", "seller-1",
+                5_000_000L, 100_000L,
+                AuctionStatus.OPEN,
+                future, future.plusMinutes(30)
+        );
+    }
+
+    private Auction openAuctionStartedAlready() {
+        LocalDateTime now = LocalDateTime.now();
+        return new Auction(
+                UUID.randomUUID().toString(), "item-1", "seller-1",
+                5_000_000L, 100_000L,
+                AuctionStatus.OPEN,
+                now.minusMinutes(1),
+                now.plusHours(1)
+        );
+    }
+
+    private Auction runningAuctionExpired() {
+        LocalDateTime past = LocalDateTime.now().minusMinutes(5);
+        return new Auction(
+                UUID.randomUUID().toString(), "item-1", "seller-1",
+                5_000_000L, 100_000L,
+                AuctionStatus.RUNNING,
+                past.minusHours(1),
+                past
+        );
     }
 
     // ════════════════════════════════════════════════════════════
     // FAKES
     // ════════════════════════════════════════════════════════════
 
-    /** AuctionDao in-memory. */
     static class FakeAuctionDao implements AuctionDao {
         private final Map<String, Auction> store = new HashMap<>();
 
@@ -78,7 +202,6 @@ class AuctionLifecycleServiceTest {
         @Override public void deleteById(String id) { store.remove(id); }
     }
 
-    /** WalletService fake — set balance per-user, transfer manually. */
     static class FakeWalletService implements WalletService {
         private final Map<String, Long> balances = new HashMap<>();
 
@@ -101,7 +224,6 @@ class AuctionLifecycleServiceTest {
         }
     }
 
-    /** Broadcaster đếm event theo loại — dùng AuctionSubscriptionManager rỗng. */
     static class FakeBroadcaster extends EventBroadcaster {
         private final List<AuctionEvent> events = new CopyOnWriteArrayList<>();
 
@@ -112,7 +234,6 @@ class AuctionLifecycleServiceTest {
 
         @Override
         public void broadcast(AuctionEvent event) {
-            // Bỏ qua enrich + subscribers — chỉ đếm
             events.add(event);
         }
 
@@ -123,7 +244,6 @@ class AuctionLifecycleServiceTest {
         int totalCount() { return events.size(); }
     }
 
-    /** Stubs cho AuctionEnricher constructor (không dùng) */
     static class NoOpItemDao implements ItemDao {
         @Override public List<Item> findAll() { return List.of(); }
         @Override public List<Item> findBySellerId(String sellerId) { return List.of(); }
