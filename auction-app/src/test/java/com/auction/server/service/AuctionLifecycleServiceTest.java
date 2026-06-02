@@ -11,7 +11,9 @@ import com.auction.shared.exception.AppExceptions.AuctionNotFoundException;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.item.Item;
+import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionCancelledEvent;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionEvent;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionUpdatedEvent;
 import com.auction.support.TestDataFactory;
@@ -143,6 +145,51 @@ class AuctionLifecycleServiceTest {
         assertEquals(0, broadcaster.totalCount());
     }
 
+    // ════════════════════════════════════════════════════════════
+    // cancelAuction
+    // ════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("cancelAuction: OPEN → CANCELED + broadcast")
+    void cancel_open_auction() {
+        Auction auction = openAuctionInFuture();
+        auctionDao.save(auction);
+
+        Auction result = lifecycleService.cancelAuction(auction.getId(), Role.SELLER);
+
+        assertEquals(AuctionStatus.CANCELED, result.getStatus());
+        assertEquals(1, broadcaster.countOf(AuctionCancelledEvent.class));
+    }
+
+    @Test
+    @DisplayName("cancelAuction: RUNNING → CANCELED + broadcast (Admin override)")
+    void cancel_running_auction() {
+        Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+        auctionDao.save(auction);
+
+        Auction result = lifecycleService.cancelAuction(auction.getId(), Role.ADMIN);
+
+        assertEquals(AuctionStatus.CANCELED, result.getStatus());
+        assertEquals(1, broadcaster.countOf(AuctionCancelledEvent.class));
+    }
+
+    @Test
+    @DisplayName("cancelAuction: FINISHED → IllegalStateException (không cho cancel)")
+    void cancel_finished_auction_throws() {
+        Auction auction = TestDataFactory.finishedAuction();
+        auctionDao.save(auction);
+
+        assertThrows(IllegalStateException.class,
+                () -> lifecycleService.cancelAuction(auction.getId(), Role.ADMIN));
+    }
+
+    @Test
+    @DisplayName("cancelAuction: không tồn tại → AuctionNotFoundException")
+    void cancel_non_existent_throws() {
+        assertThrows(AuctionNotFoundException.class,
+                () -> lifecycleService.cancelAuction("ghost", Role.ADMIN));
+    }
+
     @Test
     @DisplayName("shutdown không ném exception, scheduler ngưng nhận task")
     void shutdown_does_not_throw() {
@@ -151,7 +198,7 @@ class AuctionLifecycleServiceTest {
     }
 
     // ════════════════════════════════════════════════════════════
-    // HELPERS — build các loại auction
+    // HELPERS
     // ════════════════════════════════════════════════════════════
 
     private Auction openAuctionInFuture() {
