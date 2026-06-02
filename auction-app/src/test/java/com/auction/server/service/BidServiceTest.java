@@ -23,7 +23,7 @@ import java.sql.Connection;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -290,6 +290,95 @@ class BidServiceTest {
 
             assertEquals(3, bidDao.savedCount());
             assertEquals(0, bidDao.rollbackCount());
+        }
+    }
+
+    @Nested
+    @DisplayName("Concurrency — lock đảm bảo không lost update")
+    class Concurrency {
+
+        @Test
+        @DisplayName("10 thread cùng bid → tổng bid history = số bid thành công, không lost update")
+        void concurrent_bids_no_lost_update() throws Exception {
+            int threadCount = 10;
+            ExecutorService pool = Executors.newFixedThreadPool(threadCount);
+            CountDownLatch readyLatch = new CountDownLatch(threadCount);
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+            AtomicInteger successCount = new AtomicInteger(0);
+            AtomicInteger rejectedCount = new AtomicInteger(0);
+
+            for (int i = 0; i < threadCount; i++) {
+                userDao.save(new Bidder("b-" + i, "bidder" + i, "pwd", 100_000_000L));
+            }
+
+            for (int i = 0; i < threadCount; i++) {
+                final int idx = i;
+                pool.submit(() -> {
+                    try {
+                        readyLatch.countDown();
+                        startLatch.await();
+                        long amount = 5_100_000L + (long) idx * 100_000L;
+                        bidService.placeBid(AUCTION_ID, "b-" + idx, amount);
+                        successCount.incrementAndGet();
+                    } catch (Exception e) {
+                        rejectedCount.incrementAndGet();
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+
+            readyLatch.await();
+            startLatch.countDown();
+            assertTrue(doneLatch.await(10, TimeUnit.SECONDS));
+            pool.shutdown();
+
+            assertEquals(threadCount, successCount.get() + rejectedCount.get());
+            assertEquals(successCount.get(), auction.getBidHistory().size());
+
+            assertEquals(
+                    auction.getBidHistory().get(auction.getBidHistory().size() - 1).getAmount(),
+                    auction.getCurrentPrice());
+
+            assertEquals(successCount.get(), bidDao.savedCount());
+            assertEquals(0, bidDao.rollbackCount());
+        }
+
+        @Test
+        @DisplayName("Concurrency: thứ tự bid trong history luôn tăng dần (không đảo)")
+        void concurrent_bids_history_monotonically_increasing() throws Exception {
+            int threadCount = 8;
+            ExecutorService pool = Executors.newFixedThreadPool(threadCount);
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+            for (int i = 0; i < threadCount; i++) {
+                userDao.save(new Bidder("c-" + i, "bidderc" + i, "pwd", 100_000_000L));
+                final int idx = i;
+                pool.submit(() -> {
+                    try {
+                        startLatch.await();
+                        bidService.placeBid(AUCTION_ID, "c-" + idx,
+                                5_100_000L + (long) idx * 200_000L);
+                    } catch (Exception ignored) {
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+
+            startLatch.countDown();
+            assertTrue(doneLatch.await(10, TimeUnit.SECONDS));
+            pool.shutdown();
+
+            List<Bid> history = auction.getBidHistory();
+            for (int i = 1; i < history.size(); i++) {
+                assertTrue(
+                        history.get(i).getAmount() > history.get(i - 1).getAmount(),
+                        "Bid history phải tăng dần — không được đảo thứ tự");
+            }
         }
     }
 
