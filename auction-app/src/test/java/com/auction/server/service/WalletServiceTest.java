@@ -83,6 +83,74 @@ class WalletServiceTest {
                 () -> walletService.deposit("ghost-user", 100_000L));
     }
 
+    @Test
+    @DisplayName("Settle khi winner đủ tiền → trừ winner, cộng seller, trả true")
+    void settle_with_sufficient_balance_transfers_money() {
+        long sellerBefore = walletService.getBalance(SELLER_ID);
+        long bidderBefore = walletService.getBalance(BIDDER_ID);
+
+        boolean result = walletService.settlePayment(BIDDER_ID, SELLER_ID, 300_000L);
+
+        assertTrue(result);
+        assertEquals(bidderBefore - 300_000L, walletService.getBalance(BIDDER_ID));
+        assertEquals(sellerBefore + 300_000L, walletService.getBalance(SELLER_ID));
+    }
+
+    @Test
+    @DisplayName("Settle khi winner KHÔNG đủ tiền → trả false, không trừ/cộng")
+    void settle_with_insufficient_balance_returns_false() {
+        long bidderBefore = walletService.getBalance(BIDDER_ID);
+        long sellerBefore = walletService.getBalance(SELLER_ID);
+
+        boolean result = walletService.settlePayment(BIDDER_ID, SELLER_ID, 5_000_000L);
+
+        assertFalse(result);
+        assertEquals(bidderBefore, walletService.getBalance(BIDDER_ID));
+        assertEquals(sellerBefore, walletService.getBalance(SELLER_ID));
+    }
+
+    @Test
+    @DisplayName("Settle với amount = 0 → trả true (không có gì để chuyển)")
+    void settle_zero_amount_returns_true() {
+        long bidderBefore = walletService.getBalance(BIDDER_ID);
+        long sellerBefore = walletService.getBalance(SELLER_ID);
+
+        boolean result = walletService.settlePayment(BIDDER_ID, SELLER_ID, 0L);
+
+        assertTrue(result);
+        assertEquals(bidderBefore, walletService.getBalance(BIDDER_ID));
+        assertEquals(sellerBefore, walletService.getBalance(SELLER_ID));
+    }
+
+    @Test
+    @DisplayName("Settle với amount âm → coi như 0, trả true")
+    void settle_negative_amount_returns_true() {
+        boolean result = walletService.settlePayment(BIDDER_ID, SELLER_ID, -100L);
+        assertTrue(result);
+    }
+
+    @Test
+    @DisplayName("Settle đúng tổng tiền: tiền winner mất = tiền seller nhận")
+    void settle_conserves_money() {
+        long totalBefore = walletService.getBalance(BIDDER_ID) + walletService.getBalance(SELLER_ID);
+        walletService.settlePayment(BIDDER_ID, SELLER_ID, 250_000L);
+        long totalAfter = walletService.getBalance(BIDDER_ID) + walletService.getBalance(SELLER_ID);
+        assertEquals(totalBefore, totalAfter);
+    }
+
+    @Test
+    @DisplayName("Settle nhiều lần liên tiếp — đúng trạng thái cuối")
+    void settle_multiple_times_correct_final_state() {
+        walletService.deposit(BIDDER_ID, 9_000_000L);
+        assertEquals(10_000_000L, walletService.getBalance(BIDDER_ID));
+
+        walletService.settlePayment(BIDDER_ID, SELLER_ID, 3_000_000L);
+        walletService.settlePayment(BIDDER_ID, SELLER_ID, 2_000_000L);
+
+        assertEquals(5_000_000L, walletService.getBalance(BIDDER_ID));
+        assertEquals(5_000_000L, walletService.getBalance(SELLER_ID));
+    }
+
     // ===== FAKE DAO =====
     static class FakeUserDao implements UserDao {
         private final Map<String, User> usersById = new HashMap<>();
