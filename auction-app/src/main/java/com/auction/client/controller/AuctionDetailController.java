@@ -262,10 +262,11 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     private void updateCancelButtonVisibility(Auction auction) {
         if (cancelAuctionButton == null) return;
         User user = ClientSession.getCurrentUser();
-        boolean isAdmin = user != null && UserFactory.toRole(user) == Role.ADMIN;
+        // canManage: admin -> mọi phiên; seller -> phiên của chính mình; bidder -> false
+        boolean canManage = user != null && user.canManage(auction);
         boolean cancelable = auction.getStatus() == AuctionStatus.OPEN
                 || auction.getStatus() == AuctionStatus.RUNNING;
-        boolean show = isAdmin && cancelable;
+        boolean show = canManage && cancelable;
         cancelAuctionButton.setVisible(show);
         cancelAuctionButton.setManaged(show);
     }
@@ -523,8 +524,8 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             return;
         }
         User user = ClientSession.getCurrentUser();
-        if (user == null || UserFactory.toRole(user) != Role.ADMIN) {
-            AlertUtils.showError("Lỗi Quyền", "Chỉ quản trị viên mới được hủy phiên!");
+        if (user == null || !user.canManage(currentAuction)) {
+            AlertUtils.showError("Lỗi Quyền", "Bạn không có quyền hủy phiên này!");
             return;
         }
 
