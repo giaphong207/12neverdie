@@ -1,20 +1,35 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
-import com.auction.client.util.*;
+import com.auction.client.util.AlertUtils;
+import com.auction.client.util.EnumFormatter;
+import com.auction.client.util.MoneyFormatter;
+import com.auction.client.util.NavRouter;
+import com.auction.client.util.RequestExecutor;
+import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.SidebarBuilder.NavKey;
+import com.auction.client.util.TopbarBuilder;
 import com.auction.shared.factory.ItemFactory;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.item.ItemType;
 import com.auction.shared.model.user.User;
-
 import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Requests.AddItemRequest;
+import com.auction.shared.networkMessage.Requests.GetSellerItemsRequest;
+import com.auction.shared.networkMessage.Requests.UpdateItemRequest;
 import com.auction.shared.networkMessage.Results.*;
+import com.auction.shared.networkMessage.Results.AddItemResult;
+import com.auction.shared.networkMessage.Results.GetSellerItemsResult;
+import com.auction.shared.networkMessage.Results.UpdateItemResult;
 
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
-
-import com.auction.client.util.SidebarBuilder.NavKey;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 
@@ -269,37 +284,6 @@ public class ProductManagementController {
                     loadSellerProducts();
                 }
                 case UpdateItemResult.Failure f -> {
-                    AlertUtils.showError("Lỗi", f.reason());
-                }
-            }
-        }
-    }
-
-    @FXML
-    public void onDeleteClicked() {
-        if (selectedItem == null) {
-            AlertUtils.showWarning("Chưa chọn sản phẩm", "Chọn sản phẩm để xoá");
-            return;
-        }
-
-        String itemId = selectedItem.getId();
-
-        RequestExecutor.send(
-                new DeleteItemRequest(itemId, selectedItem.getSellerId()),
-                this::handleDeleteItemResult,
-                error -> AlertUtils.showError("Lỗi mạng", error)
-        );
-    }
-
-    private void handleDeleteItemResult(Object response) {
-        if (response instanceof DeleteItemResult result) {
-            switch (result) {
-                case DeleteItemResult.Success s -> {
-                    AlertUtils.showInfo("Thành công", "Đã xoá sản phẩm");
-                    clearForm();
-                    loadSellerProducts();
-                }
-                case DeleteItemResult.Failure f -> {
                     AlertUtils.showError("Lỗi", f.reason());
                 }
             }

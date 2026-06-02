@@ -37,13 +37,6 @@ public class Results {
         record Failure(String reason) implements UpdateItemResult {}
     }
 
-    public sealed interface DeleteItemResult extends Serializable
-            permits DeleteItemResult.Success, DeleteItemResult.Failure {
-
-        record Success() implements DeleteItemResult {}
-        record Failure(String reason) implements DeleteItemResult {}
-    }
-
     public sealed interface GetSellerItemsResult extends Serializable
             permits GetSellerItemsResult.Success, GetSellerItemsResult.Failure {
 

@@ -14,7 +14,6 @@ public interface ItemService {
     Item updateItem(String itemId, String sellerId, String name,
                     String description, long startPrice, ItemType type);
 
-    void deleteItem(String itemId, String sellerId);
     void deleteItemAsAdmin(String itemId); //admin xoá mọi phiên vi phạm, huỷ phiên của sản phẩm rồi xoá sản phẩm, bỏ qua kiểm tra chủ sở hữu
     
     List<Item> getAllItems(); //admin xem toàn bộ sản phẩm 

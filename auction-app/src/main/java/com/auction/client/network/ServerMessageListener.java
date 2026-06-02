@@ -6,17 +6,31 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.auction.client.context.ClientSession;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
 import com.auction.shared.model.user.User;
-import com.auction.shared.networkMessage.AuctionEvents.*;
-import com.auction.shared.networkMessage.Results.*;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionEvent;
+import com.auction.shared.networkMessage.AuctionEvents.WalletUpdatedEvent;
+import com.auction.shared.networkMessage.Results.AddItemResult;
+import com.auction.shared.networkMessage.Results.AdminDeleteItemResult;
+import com.auction.shared.networkMessage.Results.BidResult;
+import com.auction.shared.networkMessage.Results.DepositResult;
+import com.auction.shared.networkMessage.Results.ErrorMessage;
+import com.auction.shared.networkMessage.Results.GetAdminStatsResult;
+import com.auction.shared.networkMessage.Results.GetAllItemsResult;
+import com.auction.shared.networkMessage.Results.GetAllUsersResult;
+import com.auction.shared.networkMessage.Results.GetBalanceResult;
+import com.auction.shared.networkMessage.Results.GetSellerItemsResult;
+import com.auction.shared.networkMessage.Results.LoginResult;
+import com.auction.shared.networkMessage.Results.RegisterResult;
+import com.auction.shared.networkMessage.Results.SetAutoBidResponse;
+import com.auction.shared.networkMessage.Results.UpdateItemResult;
 
 import javafx.application.Platform;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Background thread lắng nghe event từ server.
@@ -24,7 +38,7 @@ import org.slf4j.LoggerFactory;
  *  - AuctionUpdateEvent: publish lên EventBus (broadcast cho UI)
  *  - LoginResult / RegisterResult / BidResult: đẩy vào response queue
  *    (LoginController/RegisterController sẽ poll queue này để lấy)
- *  - AddItemResponse / UpdateItemResponse / DeleteItemResponse / GetSellerItemsResponse:
+ *  - AddItemResponse / UpdateItemResponse / GetSellerItemsResponse:
  *    đẩy vào queue cho ProductManagementController
  *  - ErrorMessage: hiển thị alert
  */
@@ -84,8 +98,6 @@ public class ServerMessageListener implements Runnable {
                 } else if (incoming instanceof AddItemResult) {
                     responseQueue(incoming);
                 } else if (incoming instanceof UpdateItemResult) {
-                    responseQueue(incoming);
-                } else if (incoming instanceof DeleteItemResult) {
                     responseQueue(incoming);
                 } else if (incoming instanceof GetSellerItemsResult) {
                     responseQueue(incoming);
