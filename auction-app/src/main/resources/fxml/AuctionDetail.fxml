@@ -96,10 +96,10 @@
                                            prefHeight="320"
                                            minHeight="300">
                                     <xAxis>
-                                        <CategoryAxis fx:id="bidTimeAxis" label="Thời gian"/>
+                                        <CategoryAxis fx:id="bidTimeAxis" label="Thời gian" tickLabelRotation="90"/>
                                     </xAxis>
                                     <yAxis>
-                                        <NumberAxis fx:id="bidPriceAxis" label="Giá (VND)"/>
+                                        <NumberAxis fx:id="bidPriceAxis" label="Giá (VND)" forceZeroInRange="false"/>
                                     </yAxis>
                                 </LineChart>
                             </Tab>

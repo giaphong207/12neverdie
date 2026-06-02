@@ -62,6 +62,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
+import javafx.scene.Node;
+import javafx.scene.control.Tooltip;
 public class AuctionDetailController implements AuctionEventObserver, Disposable {
 
     @FXML private Label itemNameLabel;
@@ -90,6 +92,8 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     @FXML private LineChart<String, Number> bidHistoryChart;
     @FXML private CategoryAxis bidTimeAxis;
     @FXML private NumberAxis bidPriceAxis;
+    private static final String MANUAL_COLOR = "#E24B4A"; // đỏ — thủ công
+    private static final String AUTO_COLOR   = "#378ADD"; // xanh — tự động
 
     public void initialize() {
         // Build sidebar theo role
@@ -144,6 +148,7 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
                 }
             });
         }
+
 
         AuctionEventBus.getInstance().addObserver(this);
 
@@ -594,11 +599,11 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         AuctionEventBus.getInstance().removeObserver(this);
         stopCountdown();
     }
+
     private void renderBidHistoryChart(Auction auction) {
         if (bidHistoryChart == null) {
             return;
         }
-
         bidHistoryChart.getData().clear();
 
         if (auction == null || auction.getBidHistory() == null || auction.getBidHistory().isEmpty()) {
@@ -606,7 +611,33 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         }
 
         XYChart.Series<String, Number> series = BidHistorySeriesBuilder.buildSeries(auction.getBidHistory());
-
         bidHistoryChart.getData().add(series);
+
+        for (XYChart.Data<String, Number> data : series.getData()) {
+            if (!(data.getExtraValue() instanceof Bid bid)) {
+                continue;
+            }
+            // Node của symbol có thể chưa được tạo ngay sau khi add -> chờ qua nodeProperty.
+            if (data.getNode() != null) {
+                decoratePoint(data.getNode(), bid);
+            } else {
+                data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                    if (newNode != null) {
+                        decoratePoint(newNode, bid);
+                    }
+                });
+            }
+        }
+    }
+
+    private void decoratePoint(Node node, Bid bid) {
+        boolean isAuto = bid.getSource() == BidSource.AUTO;
+        node.setStyle("-fx-background-color: " + (isAuto ? AUTO_COLOR : MANUAL_COLOR) + ", white;");
+
+        String name = (bid.getBidderName() != null && !bid.getBidderName().isBlank())
+                ? bid.getBidderName() : bid.getBidderId();
+        String kind = isAuto ? "Tự động" : "Thủ công";
+        Tooltip.install(node, new Tooltip(
+                name + "\n" + MoneyFormatter.formatVnd(bid.getAmount()) + "\n" + kind));
     }
 }

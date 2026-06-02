@@ -6,6 +6,7 @@ import javafx.scene.chart.XYChart;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,7 +26,7 @@ class BidHistorySeriesBuilderTest {
         XYChart.Series<String, Number> series =
                 BidHistorySeriesBuilder.buildSeries(bids);
 
-        assertEquals("Bid Price", series.getName());
+        assertEquals("Giá đặt", series.getName());
         assertEquals(2, series.getData().size());
 
         assertEquals("21:15:10", series.getData().get(0).getXValue());
@@ -40,7 +41,7 @@ class BidHistorySeriesBuilderTest {
         XYChart.Series<String, Number> series =
                 BidHistorySeriesBuilder.buildSeries(List.of());
 
-        assertEquals("Bid Price", series.getName());
+        assertEquals("Giá đặt", series.getName());
         assertTrue(series.getData().isEmpty());
     }
 
@@ -49,7 +50,7 @@ class BidHistorySeriesBuilderTest {
         XYChart.Series<String, Number> series =
                 BidHistorySeriesBuilder.buildSeries(null);
 
-        assertEquals("Bid Price", series.getName());
+        assertEquals("Giá đặt", series.getName());
         assertTrue(series.getData().isEmpty());
     }
 
@@ -95,7 +96,7 @@ class BidHistorySeriesBuilderTest {
 
     @Test
     void shouldSkipNullBid() {
-        List<Bid> bids = new java.util.ArrayList<>();
+        List<Bid> bids = new ArrayList<>();
         bids.add(createBid("bid-1", "auction-1", "bidder-1", 100_000,
                 LocalDateTime.of(2026, 5, 8, 21, 15, 10)));
         bids.add(null);
@@ -108,6 +109,39 @@ class BidHistorySeriesBuilderTest {
         assertEquals(2, series.getData().size());
         assertEquals(100_000L, series.getData().get(0).getYValue());
         assertEquals(150_000L, series.getData().get(1).getYValue());
+    }
+
+    @Test
+    void shouldBucketByTimeAndKeepClosingPrice() {
+        LocalDateTime base = LocalDateTime.of(2025, 1, 1, 8, 0, 0);
+        List<Bid> bids = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            bids.add(createBid("b" + i, "a1", "u1",
+                    1_000_000L + i * 10_000L, base.plusSeconds(i)));
+        }
+
+        XYChart.Series<String, Number> series =
+                BidHistorySeriesBuilder.buildSeries(bids);
+
+        assertTrue(series.getData().size() <= 25);          // không vượt số quãng
+        assertEquals(1_990_000L,                            // điểm cuối = giá chốt thật
+                series.getData().get(series.getData().size() - 1).getYValue());
+    }
+
+    @Test
+    void shouldCollapseSameInstantBurst() {
+        LocalDateTime t = LocalDateTime.of(2025, 1, 1, 8, 0, 0);
+        List<Bid> bids = new ArrayList<>();
+        bids.add(createBid("b-early", "a1", "u1", 1_000_000L, t.minusSeconds(60)));
+        for (int i = 0; i < 200; i++) {
+            bids.add(createBid("b" + i, "a1", "u1",
+                    2_000_000L + i * 1_000L, t));           // 200 bid cùng một thời điểm
+        }
+
+        XYChart.Series<String, Number> series =
+                BidHistorySeriesBuilder.buildSeries(bids);
+
+        assertTrue(series.getData().size() <= 25);          // trận war co lại, không nổ điểm
     }
 
     private Bid createBid(
