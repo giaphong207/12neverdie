@@ -20,11 +20,8 @@ public class UserFactory {
         if (password == null|| password.isBlank()){
             throw new IllegalArgumentException("Phải điền mật khẩu");
         }
-        return switch (role){
-            case ADMIN -> new Admin(id, username, password, balance);
-            case SELLER -> new Seller(id, username, password, balance);
-            case BIDDER -> new Bidder(id, username, password, balance);
-        };
+        // Factory Method: uỷ quyền khởi tạo cho chính Role (không còn switch)
+        return role.create(id, username, password, balance);
     }
     public static Role toRole(User user){
         if (user instanceof Admin) return Role.ADMIN;

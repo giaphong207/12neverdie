@@ -24,11 +24,7 @@ public class ItemFactory {
         }if (startPrice <= 0){
             throw new InvalidItemException("Giá khởi điểm không thể âm");
         }
-        return switch (itemType){
-            case ELECTRONICS -> new ElectronicsItem(id,sellerId,name,description,startPrice);
-            case ART -> new ArtItem(id,sellerId,name,description,startPrice);
-            case VEHICLE -> new VehicleItem(id,sellerId,name,description,startPrice);
-        };
+        return itemType.create(id, sellerId, name, description, startPrice);
     }
     public static ItemType toItemType(Item item) {
         if (item instanceof ElectronicsItem) return ItemType.ELECTRONICS;

@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.auction.server.dao.UserDao;
 import com.auction.shared.exception.AppExceptions.*;
+import com.auction.shared.factory.UserFactory;
 import com.auction.shared.model.user.*;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -58,11 +59,7 @@ public class DefaultAuthService implements AuthService {
 
         String hashed = BCrypt.hashpw(password, BCrypt.gensalt(10));
         String newId = UUID.randomUUID().toString();
-        User newUser = switch (role) {
-            case ADMIN  -> new Admin(newId, username, hashed);
-            case BIDDER -> new Bidder(newId, username, hashed);
-            case SELLER -> new Seller(newId, username, hashed);
-        };
+        User newUser = UserFactory.createUser(role, newId, username, hashed);
 
         userDao.save(newUser);
         return newUser;

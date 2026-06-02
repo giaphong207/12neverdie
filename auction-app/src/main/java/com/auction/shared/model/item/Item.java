@@ -10,7 +10,7 @@ public sealed abstract class Item implements Serializable permits ElectronicsIte
     private String name;
     private String description;
     private long startPrice;
-
+    public abstract long suggestedMinIncrement(long currentPrice);
     protected Item(String id, String sellerId, String name, String description, long startPrice) {
         if (id == null || id.isBlank()) {
             throw new InvalidItemException("Phải có ID");

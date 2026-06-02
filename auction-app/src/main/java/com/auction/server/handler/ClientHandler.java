@@ -221,7 +221,7 @@ public class ClientHandler implements Runnable, EventReceiver {
                     req.startPrice(), req.type());
 
             // Auction theo giờ seller chọn (null + endTime>startTime đã được record check)
-            long minIncrement = Math.max(1000L, req.startPrice() / 100);
+            long minIncrement = item.suggestedMinIncrement(req.startPrice());
             Auction auction = auctionService.createAuction(
                     req.sellerId(), item.getId(),
                     req.startPrice(), minIncrement,
