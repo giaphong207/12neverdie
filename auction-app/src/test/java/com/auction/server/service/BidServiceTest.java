@@ -5,6 +5,7 @@ import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.BidDao;
 import com.auction.server.dao.Database;
 import com.auction.server.dao.UserDao;
+import com.auction.shared.exception.AppExceptions.InvalidBidException;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.bid.Bid;
@@ -13,6 +14,7 @@ import com.auction.shared.model.user.User;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -61,7 +63,6 @@ class BidServiceTest {
                 lifecycleService, lockManager,
                 antiSnipingService, autoBidService);
 
-        // Auction RUNNING, currentPrice 5tr, minIncrement 100k, còn 300s
         auction = new Auction(
                 AUCTION_ID, "item-1", SELLER_ID,
                 5_000_000L, 100_000L,
@@ -72,6 +73,46 @@ class BidServiceTest {
         auctionDao.save(auction);
 
         userDao.save(new Bidder(BIDDER_ID, "bidder1", "pwd", 10_000_000L));
+    }
+
+    @Nested
+    @DisplayName("Input validation")
+    class InputValidation {
+
+        @Test
+        @DisplayName("auctionId null → InvalidBidException")
+        void null_auction_id_throws() {
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid(null, BIDDER_ID, 5_100_000L));
+        }
+
+        @Test
+        @DisplayName("auctionId blank → InvalidBidException")
+        void blank_auction_id_throws() {
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid("  ", BIDDER_ID, 5_100_000L));
+        }
+
+        @Test
+        @DisplayName("bidderId null → InvalidBidException")
+        void null_bidder_id_throws() {
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid(AUCTION_ID, null, 5_100_000L));
+        }
+
+        @Test
+        @DisplayName("amount = 0 → InvalidBidException")
+        void zero_amount_throws() {
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid(AUCTION_ID, BIDDER_ID, 0L));
+        }
+
+        @Test
+        @DisplayName("amount âm → InvalidBidException")
+        void negative_amount_throws() {
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.placeBid(AUCTION_ID, BIDDER_ID, -1000L));
+        }
     }
 
     // ════════════════════════════════════════════════════════════
