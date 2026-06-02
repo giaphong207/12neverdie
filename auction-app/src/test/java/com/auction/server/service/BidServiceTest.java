@@ -10,6 +10,7 @@ import com.auction.shared.exception.AppExceptions.InvalidBidException;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.User;
 
@@ -201,6 +202,94 @@ class BidServiceTest {
         void unknown_bidder_throws() {
             assertThrows(InvalidBidException.class,
                     () -> bidService.placeBid(AUCTION_ID, "ghost-bidder", 5_100_000L));
+        }
+    }
+
+    @Nested
+    @DisplayName("Happy path")
+    class HappyPath {
+
+        @Test
+        @DisplayName("Bid hợp lệ: cập nhật currentPrice + highestBidder + persist + return BidOutcome")
+        void valid_bid_updates_state() {
+            BidOutcome outcome = bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_500_000L);
+
+            assertEquals(5_500_000L, auction.getCurrentPrice());
+            assertEquals(BIDDER_ID, auction.getHighestBidderId());
+            assertEquals(1, auction.getBidHistory().size());
+
+            assertNotNull(outcome.bid());
+            assertEquals(BIDDER_ID, outcome.bid().getBidderId());
+            assertEquals(5_500_000L, outcome.bid().getAmount());
+            assertEquals(BidSource.MANUAL, outcome.bid().getSource());
+
+            assertEquals(1, bidDao.savedCount());
+            assertEquals(0, bidDao.rollbackCount());
+        }
+
+        @Test
+        @DisplayName("Bid không trong cửa sổ anti-sniping → extendedSeconds = 0, không reschedule")
+        void valid_bid_no_anti_sniping() {
+            BidOutcome outcome = bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_500_000L);
+
+            assertEquals(0L, outcome.extendedSeconds());
+            assertEquals(0, lifecycleService.rescheduleCount());
+        }
+    }
+
+    @Nested
+    @DisplayName("Anti-sniping integration")
+    class AntiSnipingIntegration {
+
+        @Test
+        @DisplayName("Bid trong 60s cuối → endTime tăng 60s + reschedule + extendedSeconds = 60")
+        void bid_in_last_minute_extends_end_time() {
+            Auction late = new Auction(
+                    "auction-late", "item-2", "other-seller",
+                    5_000_000L, 100_000L,
+                    AuctionStatus.RUNNING,
+                    LocalDateTime.now().minusMinutes(5),
+                    LocalDateTime.now().plusSeconds(20)
+            );
+            auctionDao.save(late);
+            LocalDateTime endBefore = late.getEndTime();
+
+            BidOutcome outcome = bidService.placeBid(
+                    "auction-late", BIDDER_ID, 5_100_000L);
+
+            Duration delta = Duration.between(endBefore, late.getEndTime());
+            assertEquals(60L, delta.toSeconds());
+
+            assertEquals(60L, outcome.extendedSeconds());
+            assertEquals(1, lifecycleService.rescheduleCount());
+        }
+    }
+
+    @Nested
+    @DisplayName("Auto-bid cascade integration")
+    class AutoBidIntegration {
+
+        @Test
+        @DisplayName("Sau khi manual bid → autoBidService.resolveAutoBids được gọi 1 lần")
+        void resolve_auto_bids_called_once() {
+            bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_100_000L);
+
+            assertEquals(1, autoBidService.resolveCount());
+        }
+
+        @Test
+        @DisplayName("AutoBid cascade thêm bid → toàn bộ được persist trong cùng transaction")
+        void cascade_bids_persisted_in_same_transaction() {
+            autoBidService.setCascadeBehavior((a) -> {
+                a.addBid(Bid.createNew(a.getId(), "auto-1", 5_200_000L, BidSource.AUTO));
+                a.addBid(Bid.createNew(a.getId(), "auto-2", 5_400_000L, BidSource.AUTO));
+                return true;
+            });
+
+            bidService.placeBid(AUCTION_ID, BIDDER_ID, 5_100_000L);
+
+            assertEquals(3, bidDao.savedCount());
+            assertEquals(0, bidDao.rollbackCount());
         }
     }
 
