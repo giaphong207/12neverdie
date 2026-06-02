@@ -23,7 +23,7 @@ public final class SidebarBuilder {
         // Bidder
         BIDDER_HOME, BIDDER_LIVE, BIDDER_MINE, BIDDER_WON, BIDDER_SETTINGS,
         // Seller
-        SELLER_OVERVIEW, SELLER_PRODUCTS, SELLER_AUCTIONS, SELLER_REVENUE, SELLER_SETTINGS,
+        SELLER_OVERVIEW, SELLER_PRODUCTS, SELLER_AUCTIONS, SELLER_SOLD, SELLER_SETTINGS,
         // Admin
         ADMIN_OVERVIEW, ADMIN_USERS, ADMIN_PRODUCTS, ADMIN_AUCTIONS, ADMIN_REPORTS, ADMIN_SETTINGS
     }
@@ -122,7 +122,7 @@ public final class SidebarBuilder {
                     new NavItem(NavKey.SELLER_OVERVIEW, "Tổng quan"),
                     new NavItem(NavKey.SELLER_PRODUCTS, "Sản phẩm của tôi"),
                     new NavItem(NavKey.SELLER_AUCTIONS, "Phiên đấu giá"),
-                    new NavItem(NavKey.SELLER_REVENUE, "Doanh thu"),
+                    new NavItem(NavKey.SELLER_SOLD, "Đã bán"),
                     new NavItem(NavKey.SELLER_SETTINGS, "Cài đặt")
             );
             case ADMIN -> java.util.List.of(

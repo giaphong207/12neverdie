@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.SoldAuctionsController"
+            styleClass="root"
+            prefWidth="1280"
+            prefHeight="800">
+
+    <top>
+        <StackPane fx:id="topbarContainer"/>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
+            <VBox spacing="32">
+                <padding>
+                    <Insets top="40" right="40" bottom="40" left="40"/>
+                </padding>
+
+                <VBox spacing="8">
+                    <Label text="Phiên đã bán" styleClass="title-large"/>
+                    <Label fx:id="summaryLabel"
+                           text="Đang tải..."
+                           styleClass="text-secondary"/>
+                </VBox>
+
+                <TableView fx:id="soldTable" prefHeight="500">
+                    <columns>
+                        <TableColumn fx:id="colLot"    text="Mã phiên"   prefWidth="220"/>
+                        <TableColumn fx:id="colPrice"  text="Giá bán"    prefWidth="260"/>
+                        <TableColumn fx:id="colSoldAt" text="Bán lúc"    prefWidth="200"/>
+                        <TableColumn fx:id="colStatus" text="Trạng thái" prefWidth="180"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

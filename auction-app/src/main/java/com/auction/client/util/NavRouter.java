@@ -29,6 +29,7 @@ public final class NavRouter {
             case SELLER_PRODUCTS -> SceneNavigator.switchScene("/fxml/ProductManagement.fxml");
             case SELLER_AUCTIONS -> SceneNavigator.switchScene("/fxml/SellerAuctions.fxml");
             case SELLER_SETTINGS -> SceneNavigator.switchScene("/fxml/Help.fxml");
+            case SELLER_SOLD -> SceneNavigator.switchScene("/fxml/SoldAuctions.fxml");
 
             // ===== Admin =====
             case ADMIN_OVERVIEW -> SceneNavigator.switchScene("/fxml/AdminDashboard.fxml");
