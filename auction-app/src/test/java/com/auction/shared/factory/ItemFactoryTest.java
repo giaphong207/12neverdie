@@ -177,4 +177,15 @@ class ItemFactoryTest {
             );
         });
     }
+    @Test
+    void suggestedMinIncrement_khacNhauTheoLoaiItem() {
+        Item dienTu    = new ElectronicsItem("e1", "s1", "Laptop", "mô tả", 5_000_000L);
+        Item ngheThuat = new ArtItem("a1", "s1", "Tranh", "mô tả", 5_000_000L);
+        Item xe        = new VehicleItem("v1", "s1", "Xe máy", "mô tả", 5_000_000L);
+
+        // cùng currentPrice nhưng ba loại cho ba kết quả khác nhau
+        assertEquals(100_000L,   dienTu.suggestedMinIncrement(10_000_000L));    // hằng số nhỏ
+        assertEquals(500_000L,   ngheThuat.suggestedMinIncrement(10_000_000L)); // 5% = 500k
+        assertEquals(1_000_000L, xe.suggestedMinIncrement(10_000_000L));        // hằng số lớn
+    }
 }
