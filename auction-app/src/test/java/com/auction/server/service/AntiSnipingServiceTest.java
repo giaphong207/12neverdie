@@ -57,4 +57,20 @@ class AntiSnipingServiceTest {
         LocalDateTime now = LocalDateTime.now();
         assertFalse(service.shouldExtend(auction, now));
     }
+
+    @Test
+    @DisplayName("Boundary: bid đúng tại giây thứ 60 cuối → shouldExtend = true")
+    void should_extend_exactly_at_window_boundary() {
+        Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 60);
+        LocalDateTime now = LocalDateTime.now();
+        assertTrue(service.shouldExtend(auction, now));
+    }
+
+    @Test
+    @DisplayName("Boundary: bid khi còn 61s → shouldExtend = false")
+    void should_not_extend_just_outside_window() {
+        Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 61);
+        LocalDateTime now = LocalDateTime.now();
+        assertFalse(service.shouldExtend(auction, now));
+    }
 }
