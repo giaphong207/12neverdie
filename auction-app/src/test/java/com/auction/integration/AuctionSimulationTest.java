@@ -3,6 +3,7 @@ package com.auction.integration;
 import com.auction.server.service.BidOutcome;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
 import com.auction.support.EmbeddedTestServer;
@@ -19,9 +20,6 @@ import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * SIMULATION TEST — mô phỏng các kịch bản đấu giá thực tế phức tạp.
- */
 @DisplayName("SIMULATION TEST - kịch bản đấu giá phức tạp")
 class AuctionSimulationTest {
 
@@ -30,7 +28,6 @@ class AuctionSimulationTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        // Anti-sniping: window 100ms, extension 1s (Duration.toSeconds yêu cầu >= 1)
         server = new EmbeddedTestServer(Duration.ofMillis(100), Duration.ofSeconds(1));
         server.userDao.save(new Seller(SELLER_ID, "seller_sim",
                 BCrypt.hashpw("pwd", BCrypt.gensalt(4))));
@@ -75,7 +72,6 @@ class AuctionSimulationTest {
 
         assertEquals(initialBidderBalance - 6_000_000L, bidderAfter);
         assertEquals(initialSellerBalance + 6_000_000L, sellerAfter);
-
         assertEquals(initialBidderBalance + initialSellerBalance,
                 bidderAfter + sellerAfter);
     }
@@ -97,8 +93,6 @@ class AuctionSimulationTest {
         server.auctionDao.save(auction);
 
         server.bidService.placeBid(auctionId, brokeBidder, 5_500_000L);
-
-        // Mô phỏng: ví bidder bị thanh toán ở giao dịch khác → còn 0đ
         server.userDao.updateBalance(brokeBidder, 0L);
 
         server.lifecycleService.scheduleClose(auction);
@@ -108,5 +102,88 @@ class AuctionSimulationTest {
         assertEquals(AuctionStatus.FINISHED, finalState.getStatus());
         assertEquals(0L, server.walletService.getBalance(brokeBidder));
         assertEquals(0L, server.walletService.getBalance(SELLER_ID));
+    }
+
+    @Test
+    @DisplayName("MÔ PHỎNG: sniping war — 5 bid liên tiếp trong cửa sổ → endTime gia hạn nhiều lần")
+    void simulation_sniping_war_extends_multiple_times() {
+        String auctionId = "auction-sim-sniping";
+        for (int i = 0; i < 5; i++) {
+            server.userDao.save(new Bidder("snip-" + i, "sniper" + i, "pwd", 100_000_000L));
+        }
+
+        Auction auction = new Auction(
+                auctionId, "item-sim", SELLER_ID,
+                5_000_000L, 100_000L,
+                AuctionStatus.RUNNING,
+                LocalDateTime.now().minusMinutes(5),
+                LocalDateTime.now().plus(Duration.ofMillis(50))
+        );
+        server.auctionDao.save(auction);
+
+        LocalDateTime originalEnd = auction.getEndTime();
+
+        long price = 5_100_000L;
+        int extensionCount = 0;
+        for (int i = 0; i < 5; i++) {
+            BidOutcome outcome = server.bidService.placeBid(
+                    auctionId, "snip-" + i, price);
+            if (outcome.extendedSeconds() > 0) {
+                extensionCount++;
+            }
+            price += 100_000L;
+            try { Thread.sleep(60); } catch (InterruptedException ignored) {}
+        }
+
+        assertTrue(extensionCount >= 1, "Phải có ít nhất 1 bid fire anti-sniping");
+
+        Duration totalExtended = Duration.between(originalEnd, auction.getEndTime());
+        assertTrue(totalExtended.toMillis() >= extensionCount * 100L);
+
+        long lastSuccessfulAmount = auction.getBidHistory()
+                .get(auction.getBidHistory().size() - 1).getAmount();
+        assertEquals(lastSuccessfulAmount, auction.getCurrentPrice());
+    }
+
+    @Test
+    @DisplayName("MÔ PHỎNG: 5 auto-bid → winner = người max cao nhất, finalPrice = runnerUp + step")
+    void simulation_autobid_cascade_5_bidders() {
+        String auctionId = "auction-sim-cascade";
+
+        Auction auction = new Auction(
+                auctionId, "item-sim", SELLER_ID,
+                5_000_000L, 100_000L,
+                AuctionStatus.RUNNING,
+                LocalDateTime.now().minusHours(1),
+                LocalDateTime.now().plusMinutes(30)
+        );
+        server.auctionDao.save(auction);
+
+        long[] maxAmounts = {5_500_000L, 6_000_000L, 6_500_000L, 7_000_000L, 8_000_000L};
+        for (int i = 0; i < 5; i++) {
+            String bidderId = "ab-" + i;
+            server.userDao.save(new Bidder(bidderId, "autobidder" + i, "pwd", 100_000_000L));
+            server.autoBidService.upsertConfig(auctionId, bidderId, maxAmounts[i], 100_000L);
+        }
+
+        String triggerBidder = "ab-trigger";
+        server.userDao.save(new Bidder(triggerBidder, "trigger", "pwd", 100_000_000L));
+
+        BidOutcome outcome = server.bidService.placeBid(
+                auctionId, triggerBidder, 5_100_000L);
+
+        Auction finalAuction = outcome.auction();
+
+        assertEquals("ab-4", finalAuction.getHighestBidderId());
+        assertEquals(7_100_000L, finalAuction.getCurrentPrice());
+
+        long autoBidCount = finalAuction.getBidHistory().stream()
+                .filter(b -> b.getSource() == BidSource.AUTO)
+                .count();
+        long manualBidCount = finalAuction.getBidHistory().stream()
+                .filter(b -> b.getSource() == BidSource.MANUAL)
+                .count();
+        assertEquals(1, manualBidCount);
+        assertTrue(autoBidCount >= 1);
     }
 }
