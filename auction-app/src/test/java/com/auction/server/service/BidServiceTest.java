@@ -294,6 +294,131 @@ class BidServiceTest {
     }
 
     @Nested
+    @DisplayName("triggerAutoBids — đặt giá mở màn khi vừa cài auto-bid (PR #54)")
+    class TriggerAutoBidsOpeningBid {
+
+        @Test
+        @DisplayName("auctionId null → Optional.empty, KHÔNG chạy cascade")
+        void null_auction_id_returns_empty() {
+            Optional<BidOutcome> result = bidService.triggerAutoBids(null);
+
+            assertTrue(result.isEmpty());
+            assertEquals(0, autoBidService.resolveCount());
+        }
+
+        @Test
+        @DisplayName("auctionId blank → Optional.empty, KHÔNG chạy cascade")
+        void blank_auction_id_returns_empty() {
+            Optional<BidOutcome> result = bidService.triggerAutoBids("   ");
+
+            assertTrue(result.isEmpty());
+            assertEquals(0, autoBidService.resolveCount());
+        }
+
+        @Test
+        @DisplayName("Phiên RUNNING nhưng cascade không đặt bid nào → empty, không persist")
+        void running_but_no_autobid_returns_empty() {
+            // FakeAutoBidService mặc định không thêm bid (cascadeBehavior trả false)
+            Optional<BidOutcome> result = bidService.triggerAutoBids(AUCTION_ID);
+
+            assertTrue(result.isEmpty());
+            assertEquals(1, autoBidService.resolveCount());   // cascade CÓ được gọi
+            assertEquals(0, auction.getBidHistory().size());  // nhưng không đặt bid nào
+            assertEquals(0, bidDao.savedCount());             // không persist thừa
+        }
+
+        @Test
+        @DisplayName("Phiên RUNNING + cascade đặt 1 bid mở màn → trả outcome + persist + cập nhật state")
+        void running_with_opening_bid_returns_outcome() {
+            autoBidService.setCascadeBehavior(a -> {
+                a.addBid(Bid.createNew(a.getId(), "auto-X", 5_100_000L, BidSource.AUTO));
+                return true;
+            });
+
+            Optional<BidOutcome> result = bidService.triggerAutoBids(AUCTION_ID);
+
+            assertTrue(result.isPresent());
+            BidOutcome outcome = result.get();
+            assertEquals(AUCTION_ID, outcome.auction().getId());
+            assertEquals("auto-X", outcome.bid().getBidderId());
+            assertEquals(5_100_000L, outcome.bid().getAmount());
+            assertEquals(BidSource.AUTO, outcome.bid().getSource());
+            assertEquals(0L, outcome.extendedSeconds());      // giá mở màn không anti-sniping
+
+            assertEquals(5_100_000L, auction.getCurrentPrice());
+            assertEquals("auto-X", auction.getHighestBidderId());
+            assertEquals(1, bidDao.savedCount());
+            assertEquals(0, bidDao.rollbackCount());
+        }
+
+        @Test
+        @DisplayName("Cascade đặt nhiều bid → outcome.bid() là bid CUỐI, tất cả persist cùng transaction")
+        void multiple_cascade_bids_outcome_is_last() {
+            autoBidService.setCascadeBehavior(a -> {
+                a.addBid(Bid.createNew(a.getId(), "auto-1", 5_100_000L, BidSource.AUTO));
+                a.addBid(Bid.createNew(a.getId(), "auto-2", 5_300_000L, BidSource.AUTO));
+                a.addBid(Bid.createNew(a.getId(), "auto-1", 5_500_000L, BidSource.AUTO));
+                return true;
+            });
+
+            Optional<BidOutcome> result = bidService.triggerAutoBids(AUCTION_ID);
+
+            assertTrue(result.isPresent());
+            assertEquals(5_500_000L, result.get().bid().getAmount());   // bid cuối cùng
+            assertEquals("auto-1", result.get().bid().getBidderId());
+            assertEquals(3, bidDao.savedCount());
+            assertEquals(0, bidDao.rollbackCount());
+            assertEquals(5_500_000L, auction.getCurrentPrice());
+        }
+
+        @Test
+        @DisplayName("Phiên FINISHED → empty, chặn TRƯỚC khi gọi cascade, không persist")
+        void finished_auction_returns_empty_without_cascade() {
+            auction.finish();
+            auctionDao.save(auction);
+
+            Optional<BidOutcome> result = bidService.triggerAutoBids(AUCTION_ID);
+
+            assertTrue(result.isEmpty());
+            assertEquals(0, autoBidService.resolveCount());   // không gọi cascade khi đã đóng
+            assertEquals(0, bidDao.savedCount());
+        }
+
+        @Test
+        @DisplayName("Phiên CANCELED → empty, không chạy cascade")
+        void canceled_auction_returns_empty() {
+            auction.cancel();
+            auctionDao.save(auction);
+
+            Optional<BidOutcome> result = bidService.triggerAutoBids(AUCTION_ID);
+
+            assertTrue(result.isEmpty());
+            assertEquals(0, autoBidService.resolveCount());
+        }
+
+        @Test
+        @DisplayName("Gọi 2 lần liên tiếp: lần 2 không đặt thêm bid (lock nhả đúng sau lần 1)")
+        void second_call_does_not_double_bid() {
+            autoBidService.setCascadeBehavior(a -> {
+                // chỉ đặt giá mở màn khi chưa có ai dẫn
+                if (a.getBidHistory().isEmpty()) {
+                    a.addBid(Bid.createNew(a.getId(), "auto-X", 5_100_000L, BidSource.AUTO));
+                    return true;
+                }
+                return false;
+            });
+
+            Optional<BidOutcome> first = bidService.triggerAutoBids(AUCTION_ID);
+            Optional<BidOutcome> second = bidService.triggerAutoBids(AUCTION_ID);
+
+            assertTrue(first.isPresent());
+            assertTrue(second.isEmpty());                     // lần 2 không đặt thêm
+            assertEquals(1, auction.getBidHistory().size());
+            assertEquals(2, autoBidService.resolveCount());   // cascade gọi đủ 2 lần
+        }
+    }
+
+    @Nested
     @DisplayName("Concurrency — lock đảm bảo không lost update")
     class Concurrency {
 
