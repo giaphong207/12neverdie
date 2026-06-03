@@ -673,16 +673,24 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         List<Bid> bids = auction.getBidHistory();
         if (bids == null || bids.isEmpty()) return;
 
-        XYChart.Series<String, Number> manualSeries = BidHistorySeriesBuilder.buildSeries(
-                bids, BidSource.MANUAL);
-        XYChart.Series<String, Number> autoSeries = BidHistorySeriesBuilder.buildSeries(
-                bids, BidSource.AUTO);
+        // BidHistorySeriesBuilder.buildSeries() chỉ nhận List<Bid>.
+        // Filter thủ công để tách manual / auto trước khi build.
+        List<Bid> manualBids = bids.stream()
+                .filter(b -> b.getSource() == BidSource.MANUAL)
+                .toList();
+        List<Bid> autoBids = bids.stream()
+                .filter(b -> b.getSource() == BidSource.AUTO)
+                .toList();
 
-        if (!manualSeries.getData().isEmpty()) {
+        if (!manualBids.isEmpty()) {
+            XYChart.Series<String, Number> manualSeries =
+                    BidHistorySeriesBuilder.buildSeries(manualBids);
             bidHistoryChart.getData().add(manualSeries);
             applySeriesColor(manualSeries, MANUAL_COLOR);
         }
-        if (!autoSeries.getData().isEmpty()) {
+        if (!autoBids.isEmpty()) {
+            XYChart.Series<String, Number> autoSeries =
+                    BidHistorySeriesBuilder.buildSeries(autoBids);
             bidHistoryChart.getData().add(autoSeries);
             applySeriesColor(autoSeries, AUTO_COLOR);
         }
