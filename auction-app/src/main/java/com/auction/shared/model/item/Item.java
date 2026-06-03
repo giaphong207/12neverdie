@@ -1,8 +1,8 @@
 package com.auction.shared.model.item;
 
-import com.auction.shared.exception.AppExceptions.InvalidItemException;
-
 import java.io.Serializable;
+
+import com.auction.shared.exception.AppExceptions.InvalidItemException;
 
 public sealed abstract class Item implements Serializable permits ElectronicsItem, ArtItem, VehicleItem {
     private String id;
@@ -28,8 +28,8 @@ public sealed abstract class Item implements Serializable permits ElectronicsIte
             throw new InvalidItemException("Mô tả sản phẩm không được để trống");
         }
 
-        if (startPrice < 0) {
-            throw new InvalidItemException("Giá khởi điểm không được âm");
+        if (startPrice <= 0) {
+            throw new InvalidItemException("Giá khởi điểm phải lớn hơn 0");
         }
 
         this.id = id;
@@ -68,8 +68,8 @@ public sealed abstract class Item implements Serializable permits ElectronicsIte
             throw new InvalidItemException("Mô tả sản phẩm không được để trống");
         }
 
-        if (startPrice < 0) {
-            throw new InvalidItemException("Giá khởi điểm không được âm");
+        if (startPrice <= 0) {
+            throw new InvalidItemException("Giá khởi điểm phải lớn hơn 0");
         }
 
         this.name = name;

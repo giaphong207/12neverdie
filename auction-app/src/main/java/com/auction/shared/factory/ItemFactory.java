@@ -1,6 +1,10 @@
 package com.auction.shared.factory;
 import com.auction.shared.exception.AppExceptions.InvalidItemException;
-import com.auction.shared.model.item.*;
+import com.auction.shared.model.item.ArtItem;
+import com.auction.shared.model.item.ElectronicsItem;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.model.item.ItemType;
+import com.auction.shared.model.item.VehicleItem;
 
 public class ItemFactory {
     public static Item createItem(
@@ -22,7 +26,7 @@ public class ItemFactory {
         if (description == null || description.isBlank()){
             throw new InvalidItemException("Phải điền mô tả sản phẩm");
         }if (startPrice <= 0){
-            throw new InvalidItemException("Giá khởi điểm không thể âm");
+            throw new InvalidItemException("Giá khởi điểm phải lớn hơn 0");
         }
         return itemType.create(id, sellerId, name, description, startPrice);
     }
