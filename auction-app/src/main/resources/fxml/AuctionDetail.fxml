@@ -154,14 +154,18 @@
                                     onAction="#onPlaceBidClicked"
                                     maxWidth="Infinity"/>
 
-                            <Button text="🤖  Đấu giá tự động"
+                            <Button fx:id="configAutoBidButton"
+                                    text="🤖  Đấu giá tự động"
                                     styleClass="btn-outline"
                                     onAction="#onConfigureAutoBidClicked"
                                     maxWidth="Infinity"/>
 
-                            <Button text="Tắt đấu giá tự động"
+                            <Button fx:id="disableAutoBidButton"
+                                    text="Tắt đấu giá tự động"
                                     styleClass="btn-outline"
                                     onAction="#onDisableAutoBidClicked"
+                                    visible="false"
+                                    managed="false"
                                     maxWidth="Infinity"/>
 
                             <Button fx:id="cancelAuctionButton"

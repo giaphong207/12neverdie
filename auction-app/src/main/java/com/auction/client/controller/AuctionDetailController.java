@@ -69,6 +69,8 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     @FXML private Label messageLabel;
     @FXML private Button placeBidButton;
     @FXML private Button cancelAuctionButton;
+    @FXML private Button configAutoBidButton;
+    @FXML private Button disableAutoBidButton;
 
     @FXML private TextField bidAmountField;
     @FXML private Label minBidLabel;
@@ -80,6 +82,11 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     private Timeline countdownTimeline;
     private boolean expiredHandled = false;
     private String currentAuctionId;
+
+    // Trạng thái auto-bid LOCAL (chỉ để hiển thị UI).
+    // Server vẫn là nguồn sự thật; field này chỉ phục vụ đổi text/visibility nút.
+    private boolean autoBidActive = false;
+    private long    autoBidMaxAmount = 0L;
 
     private static final Logger log = LoggerFactory.getLogger(AuctionDetailController.class);
 
@@ -460,7 +467,9 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
 
         RequestExecutor.send(
                 new SetAutoBidRequest(auctionId, bidderId, maxAmount, increment),
-                this::handleSetAutoBidResponse,
+                // Capture maxAmount để controller biết hiển thị trên nút sau khi set OK.
+                // (SetAutoBidResponse chỉ có success/message, không kèm maxAmount.)
+                response -> handleSetAutoBidResponse(response, maxAmount),
                 error -> {
                     AlertUtils.showError("Đấu giá tự động thất bại", error);
                     messageLabel.setText("");
@@ -468,11 +477,15 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         );
     }
 
-    private void handleSetAutoBidResponse(Object response) {
+    private void handleSetAutoBidResponse(Object response, long requestedMaxAmount) {
         if (response instanceof SetAutoBidResponse r) {
             if (r.success()) {
                 AlertUtils.showInfo("Thành công", r.message());
                 messageLabel.setText("Đã bật đấu giá tự động.");
+                // Cập nhật trạng thái UI: đổi text nút Cấu hình + hiện nút Tắt.
+                autoBidActive    = true;
+                autoBidMaxAmount = requestedMaxAmount;
+                refreshAutoBidButtons();
             } else {
                 AlertUtils.showError("Thất bại", r.message());
                 messageLabel.setText("");
@@ -481,6 +494,29 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             AlertUtils.showError("Lỗi",
                     "Phản hồi không hợp lệ từ server: " + response.getClass().getSimpleName());
             messageLabel.setText("");
+        }
+    }
+
+    /**
+     * Đồng bộ trạng thái 2 nút auto-bid theo {@link #autoBidActive}.
+     * - Khi đang bật: nút Cấu hình đổi text thành "Cập nhật Auto-Bid (max: X)";
+     *                 nút Tắt hiện ra.
+     * - Khi đã tắt:   nút Cấu hình về text gốc; nút Tắt ẩn (managed=false → không chiếm chỗ).
+     */
+    private void refreshAutoBidButtons() {
+        if (configAutoBidButton == null || disableAutoBidButton == null) {
+            return;
+        }
+        if (autoBidActive) {
+            configAutoBidButton.setText(
+                    "🤖  Cập nhật Auto-Bid (max: "
+                            + MoneyFormatter.formatVnd(autoBidMaxAmount) + ")");
+            disableAutoBidButton.setVisible(true);
+            disableAutoBidButton.setManaged(true);
+        } else {
+            configAutoBidButton.setText("🤖  Đấu giá tự động");
+            disableAutoBidButton.setVisible(false);
+            disableAutoBidButton.setManaged(false);
         }
     }
     public void onDisableAutoBidClicked() {
@@ -514,6 +550,12 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             // success=true: đã tắt; success=false: không có config (vẫn báo nhẹ nhàng)
             AlertUtils.showInfo(r.success() ? "Thành công" : "Thông báo", r.message());
             messageLabel.setText(r.success() ? "Đã tắt đấu giá tự động." : "");
+            if (r.success()) {
+                // Reset trạng thái UI: nút Cấu hình về text gốc, ẩn nút Tắt.
+                autoBidActive    = false;
+                autoBidMaxAmount = 0L;
+                refreshAutoBidButtons();
+            }
         } else {
             AlertUtils.showError("Lỗi",
                     "Phản hồi không hợp lệ: " + response.getClass().getSimpleName());
