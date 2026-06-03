@@ -256,8 +256,11 @@ public class ClientHandler implements Runnable, EventReceiver {
                     req.sellerId(), req.name(), req.description(),
                     req.startPrice(), req.type());
 
-            // Auction theo giờ seller chọn (null + endTime>startTime đã được record check)
-            long minIncrement = item.suggestedMinIncrement(req.startPrice());
+            // Bước giá: ưu tiên giá trị seller nhập; nếu không thì dùng polymorphism
+            // (Electronics 100k / Vehicle 1M / Art 5% giá khởi điểm)
+            long minIncrement = req.customMinIncrement() != null
+                    ? req.customMinIncrement()
+                    : item.suggestedMinIncrement(req.startPrice());
             Auction auction = auctionService.createAuction(
                     req.sellerId(), item.getId(),
                     req.startPrice(), minIncrement,
