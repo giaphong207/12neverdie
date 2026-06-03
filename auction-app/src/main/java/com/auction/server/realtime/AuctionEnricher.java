@@ -1,12 +1,16 @@
 package com.auction.server.realtime;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.auction.server.dao.ItemDao;
 import com.auction.server.dao.UserDao;
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.Bid;
-
-import java.util.HashMap;
-import java.util.Map;
+import com.auction.shared.model.item.ArtItem;
+import com.auction.shared.model.item.ElectronicsItem;
+import com.auction.shared.model.item.ItemType;
+import com.auction.shared.model.item.VehicleItem;
 
 /**
  * Fill các display field (itemName, itemDescription, sellerName, highestBidderName,
@@ -29,6 +33,11 @@ public class AuctionEnricher {
         itemDao.findById(auction.getItemId()).ifPresent(item -> {
             auction.setItemName(item.getName());
             auction.setItemDescription(item.getDescription());
+            auction.setItemType(switch (item) {
+                case ElectronicsItem e -> ItemType.ELECTRONICS;
+                case ArtItem a -> ItemType.ART;
+                case VehicleItem v -> ItemType.VEHICLE;
+            });
         });
 
         userDao.findById(auction.getSellerId()).ifPresent(u ->

@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.item.ItemType;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -46,7 +47,7 @@ public final class AuctionCardBuilder {
 
         // 1. Hàng đầu: icon chip (trái) + badge trạng thái (phải)
         //    (Auction chưa có ItemType nên dùng icon chung)
-        Label iconChip = new Label("▣");
+        Label iconChip = new Label(iconFor(auction.getItemType()));
         iconChip.getStyleClass().add("card-icon-chip");
 
         Label badge = new Label(EnumFormatter.auctionStatusVi(status));
@@ -156,5 +157,17 @@ public final class AuctionCardBuilder {
     private static String shortId(String id) {
         if (id == null) return "---";
         return id.length() > 6 ? id.substring(0, 6).toUpperCase() : id.toUpperCase();
+    }
+
+    /** Chọn icon đại diện cho từng loại sản phẩm (loại trống → ô vuông mặc định). */
+    private static String iconFor(ItemType type) {
+        if (type == null) {
+            return "▣";
+        }
+        return switch (type) {
+            case ELECTRONICS -> "📱";
+            case ART -> "🎨";
+            case VEHICLE -> "🚗";
+        };
     }
 }
