@@ -154,7 +154,8 @@
                                     onAction="#onPlaceBidClicked"
                                     maxWidth="Infinity"/>
 
-                            <Button text="🤖  Đấu giá tự động"
+                            <Button fx:id="configureAutoBidButton"
+                                    text="🤖  Đấu giá tự động"
                                     styleClass="btn-outline"
                                     onAction="#onConfigureAutoBidClicked"
                                     maxWidth="Infinity"/>
