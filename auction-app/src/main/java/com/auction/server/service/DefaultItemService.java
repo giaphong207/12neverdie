@@ -69,6 +69,18 @@ public class DefaultItemService implements ItemService {
             throw new InvalidItemException("Bạn không có quyền sửa sản phẩm này");
         }
 
+        // Chốt trạng thái (authoritative, soi gương quy tắc client):
+        // chỉ sửa được khi sản phẩm CHƯA có phiên, hoặc phiên đang "Sắp mở" (OPEN).
+        // RUNNING/FINISHED/PAID/CANCELED -> chặn, tránh đổi giá/mô tả khi người ta
+        // đang đấu hoặc phiên đã chốt.
+        boolean lockedByAuction = auctionDao.findAll().stream()
+                .anyMatch(a -> itemId.equals(a.getItemId())
+                        && a.getStatus() != AuctionStatus.OPEN);
+        if (lockedByAuction) {
+            throw new InvalidItemException(
+                    "Chỉ sửa được sản phẩm khi phiên đấu giá chưa mở (Sắp mở).");
+        }
+
         // Item immutable → re-create với cùng ID (UPSERT)
         Item updated = ItemFactory.createItem(type, itemId, sellerId, name, description, startPrice);
         itemDao.save(updated);
