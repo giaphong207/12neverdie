@@ -39,19 +39,34 @@
                 <Label text="Sản phẩm của tôi" styleClass="title-large"/>
 
                 <TableView fx:id="tblItems" VBox.vgrow="ALWAYS">
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS"/>
+                    </columnResizePolicy>
+                    <placeholder>
+                        <Label text="Chưa có sản phẩm nào. Thêm sản phẩm ở khung bên phải."
+                               styleClass="text-secondary"/>
+                    </placeholder>
                     <columns>
-                        <TableColumn fx:id="colName" 
-                                     text="Tên sản phẩm" 
-                                     prefWidth="220"/>
-                        <TableColumn fx:id="colDescription" 
-                                     text="Mô tả" 
-                                     prefWidth="260"/>
-                        <TableColumn fx:id="colStartingPrice" 
-                                     text="Giá khởi điểm" 
-                                     prefWidth="160"/>
-                        <TableColumn fx:id="colType" 
-                                     text="Loại" 
-                                     prefWidth="140"/>
+                        <TableColumn fx:id="colName"
+                                     text="Tên sản phẩm"
+                                     prefWidth="200"/>
+                        <TableColumn fx:id="colDescription"
+                                     text="Mô tả"
+                                     prefWidth="300"/>
+                        <TableColumn fx:id="colStartingPrice"
+                                     text="Giá khởi điểm"
+                                     prefWidth="150"
+                                     minWidth="120"
+                                     style="-fx-alignment: CENTER-RIGHT;"/>
+                        <TableColumn fx:id="colType"
+                                     text="Loại"
+                                     prefWidth="130"
+                                     style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colAuctionStatus"
+                                     text="Trạng thái phiên"
+                                     prefWidth="160"
+                                     minWidth="120"
+                                     style="-fx-alignment: CENTER;"/>
                     </columns>
                 </TableView>
             </VBox>

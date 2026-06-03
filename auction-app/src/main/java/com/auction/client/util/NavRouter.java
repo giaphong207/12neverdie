@@ -21,7 +21,6 @@ public final class NavRouter {
             case BIDDER_HOME -> SceneNavigator.switchScene("/fxml/BidderDashboard.fxml");
             case BIDDER_LIVE -> SceneNavigator.switchScene("/fxml/AuctionList.fxml");
             case BIDDER_MINE -> SceneNavigator.switchScene("/fxml/MyAuctions.fxml");
-            case BIDDER_WON -> SceneNavigator.switchScene("/fxml/WonAuctions.fxml");
             case BIDDER_SETTINGS -> SceneNavigator.switchScene("/fxml/Help.fxml");
 
             // ===== Seller =====

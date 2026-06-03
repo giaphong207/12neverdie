@@ -21,7 +21,7 @@ public final class SidebarBuilder {
 
     public enum NavKey {
         // Bidder
-        BIDDER_HOME, BIDDER_LIVE, BIDDER_MINE, BIDDER_WON, BIDDER_SETTINGS,
+        BIDDER_HOME, BIDDER_LIVE, BIDDER_MINE, BIDDER_SETTINGS,
         // Seller
         SELLER_OVERVIEW, SELLER_PRODUCTS, SELLER_AUCTIONS, SELLER_SOLD, SELLER_SETTINGS,
         // Admin
@@ -115,7 +115,6 @@ public final class SidebarBuilder {
                     new NavItem(NavKey.BIDDER_HOME, "Trang chủ"),
                     new NavItem(NavKey.BIDDER_LIVE, "Phiên đang diễn ra"),
                     new NavItem(NavKey.BIDDER_MINE, "Phiên của tôi"),
-                    new NavItem(NavKey.BIDDER_WON, "Đã thắng"),
                     new NavItem(NavKey.BIDDER_SETTINGS, "Cài đặt")
             );
             case SELLER -> java.util.List.of(

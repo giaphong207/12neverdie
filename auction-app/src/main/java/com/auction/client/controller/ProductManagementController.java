@@ -1,7 +1,11 @@
 package com.auction.client.controller;
 
 import com.auction.client.context.ClientSession;
+import com.auction.client.network.ServerConnection;
+import com.auction.client.realtime.AuctionEventBus;
+import com.auction.client.realtime.AuctionEventObserver;
 import com.auction.client.util.AlertUtils;
+import com.auction.client.util.Disposable;
 import com.auction.client.util.EnumFormatter;
 import com.auction.client.util.MoneyFormatter;
 import com.auction.client.util.NavRouter;
@@ -10,9 +14,11 @@ import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.SidebarBuilder.NavKey;
 import com.auction.client.util.TopbarBuilder;
 import com.auction.shared.factory.ItemFactory;
+import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.item.ItemType;
 import com.auction.shared.model.user.User;
+import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Requests.AddItemRequest;
 import com.auction.shared.networkMessage.Requests.GetSellerItemsRequest;
@@ -22,10 +28,13 @@ import com.auction.shared.networkMessage.Results.AddItemResult;
 import com.auction.shared.networkMessage.Results.GetSellerItemsResult;
 import com.auction.shared.networkMessage.Results.UpdateItemResult;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
@@ -33,13 +42,21 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 
-public class ProductManagementController {
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ProductManagementController implements AuctionEventObserver, Disposable {
 
     @FXML private TableView<Item> tblItems;
     @FXML private TableColumn<Item, String> colName;
     @FXML private TableColumn<Item, String> colDescription;
     @FXML private TableColumn<Item, String> colStartingPrice;
     @FXML private TableColumn<Item, String> colType;
+    @FXML private TableColumn<Item, String> colAuctionStatus;
+
+    /** Phiên đấu giá mới nhất theo itemId — dùng để tra trạng thái phiên cho mỗi sản phẩm. */
+    private final Map<String, Auction> auctionByItemId = new HashMap<>();
 
     @FXML private TextField txtName;
     @FXML private TextArea txtDescription;
@@ -102,6 +119,35 @@ public class ProductManagementController {
                     new javafx.beans.property.SimpleStringProperty(
                             EnumFormatter.itemTypeVi(ItemFactory.toItemType(c.getValue()))));
         }
+        if (colAuctionStatus != null) {
+            colAuctionStatus.setCellValueFactory(c -> {
+                Auction a = auctionByItemId.get(c.getValue().getId());
+                return new javafx.beans.property.SimpleStringProperty(
+                        a == null ? "Chưa có phiên" : EnumFormatter.auctionStatusVi(a.getStatus()));
+            });
+            // Hiển thị dạng badge màu theo trạng thái (giống bảng Tổng quan)
+            colAuctionStatus.setCellFactory(col -> new TableCell<>() {
+                @Override protected void updateItem(String text, boolean empty) {
+                    super.updateItem(text, empty);
+                    if (empty || text == null || getIndex() >= getTableView().getItems().size()) {
+                        setGraphic(null);
+                        return;
+                    }
+                    Item row = getTableView().getItems().get(getIndex());
+                    Auction a = auctionByItemId.get(row.getId());
+                    if (a == null) {
+                        Label none = new Label(text);
+                        none.getStyleClass().add("text-secondary");
+                        setGraphic(none);
+                        return;
+                    }
+                    Label badge = new Label(text);
+                    badge.getStyleClass().addAll("badge",
+                            EnumFormatter.auctionStatusBadgeClass(a.getStatus()));
+                    setGraphic(badge);
+                }
+            });
+        }
 
         tblItems.getSelectionModel().selectedItemProperty()
                 .addListener((obs, oldItem, newItem) -> {
@@ -114,6 +160,32 @@ public class ProductManagementController {
         applyDefaultSchedule();
 
         loadSellerProducts();
+
+        // Theo dõi phiên đấu giá để hiển thị trạng thái phiên cho từng sản phẩm
+        AuctionEventBus.getInstance().addObserver(this);
+        try {
+            ServerConnection.getInstance().send(new SubscribeAuctionListRequest());
+        } catch (IOException e) {
+            AlertUtils.showError("Lỗi kết nối", "Không tải được trạng thái phiên: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void onAuctionEvent(AuctionEvent event) {
+        Auction updated = event.getAuction();
+        Platform.runLater(() -> {
+            String sellerId = ClientSession.getCurrentUser() == null
+                    ? null : ClientSession.getCurrentUser().getId();
+            // chỉ giữ phiên của chính seller này
+            if (sellerId == null || !sellerId.equals(updated.getSellerId())) return;
+            auctionByItemId.put(updated.getItemId(), updated);
+            tblItems.refresh();
+        });
+    }
+
+    @Override
+    public void dispose() {
+        AuctionEventBus.getInstance().removeObserver(this);
     }
 
     /** Gợi ý giá trị mặc định cho 4 control (user có thể sửa tùy ý trước khi bấm Thêm). */

@@ -43,7 +43,7 @@
                     <TableView fx:id="recentAuctionsTable" prefHeight="320">
                         <columns>
                             <TableColumn fx:id="colLot"
-                                         text="Mã phiên"
+                                         text="Tên sản phẩm"
                                          prefWidth="160"/>
                             <TableColumn fx:id="colCurrentPrice" 
                                          text="Giá hiện tại" 

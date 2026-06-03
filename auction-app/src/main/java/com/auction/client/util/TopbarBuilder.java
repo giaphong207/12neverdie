@@ -253,7 +253,6 @@ public final class TopbarBuilder {
                     new NavItem(NavKey.BIDDER_HOME, "Trang chủ"),
                     new NavItem(NavKey.BIDDER_LIVE, "Phiên đang diễn ra"),
                     new NavItem(NavKey.BIDDER_MINE, "Phiên của tôi"),
-                    new NavItem(NavKey.BIDDER_WON, "Đã thắng"),
                     new NavItem(NavKey.BIDDER_SETTINGS, "Hướng dẫn")
             );
             case SELLER -> java.util.List.of(
