@@ -1,7 +1,10 @@
 package com.auction.client.main;
 
-import com.auction.client.network.ServerMessageListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.auction.client.network.ServerConnection;
+import com.auction.client.network.ServerMessageListener;
 import com.auction.client.realtime.AuctionEventBus;
 import com.auction.client.util.AlertUtils;
 import com.auction.client.util.SceneNavigator;
@@ -12,9 +15,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ClientApp extends Application {
 
@@ -43,7 +43,8 @@ public class ClientApp extends Application {
             initNetwork();
 
             stage.setOnCloseRequest(event -> {
-                log.info("Đang đóng ứng dụng...");                if (listener != null) {
+                log.info("Đang đóng ứng dụng...");                
+                    if (listener != null) {
                     listener.stop();
                 }
                 ServerConnection.getInstance().close();
@@ -51,7 +52,7 @@ public class ClientApp extends Application {
             stage.show();
 
         } catch (Exception e) {
-            log.error("Lỗi khởi động ứng dụng", e);            e.printStackTrace();
+            log.error("Lỗi khởi động ứng dụng", e);            
         }
     }
 

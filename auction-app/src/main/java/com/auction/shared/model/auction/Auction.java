@@ -1,13 +1,14 @@
 package com.auction.shared.model.auction;
 
-import com.auction.shared.model.bid.Bid;
-import com.auction.shared.exception.AppExceptions.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import com.auction.shared.exception.AppExceptions.InvalidBidException;
+import com.auction.shared.model.bid.Bid;
 
 public class Auction implements Serializable {
     private final String id;
@@ -47,8 +48,8 @@ public class Auction implements Serializable {
         if (sellerId == null || sellerId.isBlank()) {
             throw new IllegalArgumentException("Seller id không được rỗng");
         }
-        if (startPrice < 0) {
-            throw new IllegalArgumentException("Start price không được âm");
+        if (startPrice <= 0) {
+            throw new IllegalArgumentException("Giá khởi điểm phải lớn hơn 0");
         }
         if (minIncrement <= 0) {
             throw new IllegalArgumentException("Min increment phải lớn hơn 0");
@@ -164,7 +165,7 @@ public class Auction implements Serializable {
     public String getHighestBidderName() { return highestBidderName; }
     public void setHighestBidderName(String n) { this.highestBidderName = n; }
 
-    // ─────────── Nhóm câu hỏi nghiệp vụ — chỉ đọc, không sửa state ───────────
+    // Nhóm câu hỏi nghiệp vụ — chỉ đọc, không sửa state
     public boolean isRunning() {
         return status == AuctionStatus.RUNNING;
     }
@@ -199,12 +200,6 @@ public class Auction implements Serializable {
         currentPrice = bid.getAmount();
         highestBidderId = bid.getBidderId();
     }
-    /**
-     * Chuyển auction OPEN → RUNNING.
-     * Gọi bởi LifecycleService khi scheduler fire đúng startTime.
-     *
-     * @throws IllegalStateException nếu auction không ở trạng thái OPEN
-     */
     public void start() {
         if (status != AuctionStatus.OPEN) {
             throw new IllegalStateException(
@@ -213,13 +208,6 @@ public class Auction implements Serializable {
         this.status = AuctionStatus.RUNNING;
     }
 
-    /**
-     * Chuyển auction RUNNING → FINISHED và chốt người thắng.
-     * winnerBidderId được copy từ highestBidderId tại thời điểm này.
-     * Nếu chưa có bid nào, winnerBidderId vẫn null (auction không người thắng).
-     *
-     * @throws IllegalStateException nếu auction không ở trạng thái RUNNING
-     */
     public void finish() {
         if (status != AuctionStatus.RUNNING) {
             throw new IllegalStateException(
@@ -228,11 +216,7 @@ public class Auction implements Serializable {
         this.status = AuctionStatus.FINISHED;
         this.winnerBidderId = this.highestBidderId;
     }
-    /**
-     * Hủy auction. Không cho hủy nếu đã FINISHED hoặc PAID.
-     *
-     * @throws IllegalStateException nếu auction đã kết thúc hoặc đã thanh toán
-     */
+    //Hủy auction. Không cho hủy nếu đã FINISHED hoặc PAID.
     public void cancel() {
         if (status == AuctionStatus.FINISHED || status == AuctionStatus.PAID) {
             throw new IllegalStateException(
@@ -240,32 +224,14 @@ public class Auction implements Serializable {
         }
         this.status = AuctionStatus.CANCELED;
     }
-    /**
-     * Đánh dấu auction đã thanh toán.
-     *
-     * @throws IllegalStateException nếu auction chưa FINISHED
-     */
-    public void markPaid() {
+        public void markPaid() {
         if (status != AuctionStatus.FINISHED) {
             throw new IllegalStateException(
                     "Chỉ có thể đánh dấu PAID cho auction đã FINISHED, hiện tại: " + status);
         }
         this.status = AuctionStatus.PAID;
     }
-    /**
-     * Gia hạn thời gian kết thúc phiên đấu giá (cho anti-sniping).
-     *
-     * Chỉ áp dụng được khi auction đang RUNNING.
-     *
-     * ⚠️ LƯU Ý cho caller:
-     * Sau khi gọi method này, PHẢI gọi {@code lifecycleService.rescheduleClose(auction)}
-     * để scheduler fire đúng theo endTime mới. Nếu không, scheduler vẫn close
-     * auction theo endTime cũ.
-     *
-     * @param seconds số giây muốn cộng thêm (phải dương)
-     * @throws IllegalArgumentException nếu seconds <= 0
-     * @throws IllegalStateException    nếu auction không ở trạng thái RUNNING
-     */
+
     public void extendEndTime(long seconds) {
         if (seconds <= 0) {
             throw new IllegalArgumentException("Số giây gia hạn phải dương");

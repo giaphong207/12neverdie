@@ -1,10 +1,16 @@
 package com.auction.server.seed;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.mindrot.jbcrypt.BCrypt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.auction.server.dao.AuctionDao;
 import com.auction.server.dao.ItemDao;
 import com.auction.server.dao.UserDao;
 import com.auction.shared.factory.ItemFactory;
-
 import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.item.Item;
@@ -13,10 +19,6 @@ import com.auction.shared.model.user.Admin;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
-import org.mindrot.jbcrypt.BCrypt;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * Seed data demo khi DB trống.
@@ -24,6 +26,8 @@ import java.util.UUID;
  */
 public class DatabaseSeeder {
 
+    private static final Logger log = LoggerFactory.getLogger(DatabaseSeeder.class);
+    
     private final UserDao userDao;
     private final ItemDao itemDao;
     private final AuctionDao auctionDao;
@@ -36,10 +40,10 @@ public class DatabaseSeeder {
 
     public void seedIfEmpty() {
         if (!userDao.findAll().isEmpty()) {
-            System.out.println("[Seeder] DB đã có user, bỏ qua seed.");
+            log.info("[Seeder] DB đã có user, bỏ qua seed.");
             return;
         }
-        System.out.println("[Seeder] Seed demo data...");
+        log.info("[Seeder] Seed demo data...");
 
         // Users (password được BCrypt hash)
         Admin admin = new Admin(uuid(), "admin", hash("admin123"));
@@ -70,8 +74,8 @@ public class DatabaseSeeder {
                 AuctionStatus.OPEN, now.plusMinutes(30), now.plusHours(3));
         for (Auction a : new Auction[]{a1, a2, a3}) auctionDao.save(a);
 
-        System.out.println("[Seeder] Seed xong: 4 users, 3 items, 3 auctions");
-        System.out.println("[Seeder] Login demo: admin/admin123, seller1/seller123, bidder1/bid123, bidder2/bid123");
+        log.info("[Seeder] Seed xong: 4 users, 3 items, 3 auctions");
+        log.info("[Seeder] Login demo: admin/admin123, seller1/seller123, bidder1/bid123, bidder2/bid123");
     }
 
     private static String uuid() { return UUID.randomUUID().toString(); }

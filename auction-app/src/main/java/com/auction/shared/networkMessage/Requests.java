@@ -82,8 +82,8 @@ public class Requests {
             if (description == null || description.isBlank()) {
                 throw new InvalidItemException("Mô tả không được rỗng");
             }
-            if (startPrice < 0) {
-                throw new InvalidItemException("Giá khởi điểm không được âm");
+            if (startPrice <= 0) {
+                throw new InvalidItemException("Giá khởi điểm phải lớn hơn 0");
             }
             if (type == null) {
                 throw new InvalidItemException("Loại sản phẩm không được rỗng");
