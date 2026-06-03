@@ -68,7 +68,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
+
 public class AuctionDetailController implements AuctionEventObserver, Disposable {
 
     @FXML private Label itemNameLabel;
@@ -90,6 +92,13 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     @FXML private ListView<Bid> bidHistoryListView;
     @FXML private StackPane topbarContainer;
 
+    /**
+     * Container bọc toàn bộ khu vực đặt giá (bid panel).
+     * Được ẩn hoàn toàn khi user không phải BIDDER (SELLER hoặc ADMIN).
+     * fx:id="bidPanel" trong AuctionDetail.fxml.
+     */
+    @FXML private VBox bidPanel;
+
     private Auction currentAuction;
     private Timeline countdownTimeline;
     private boolean expiredHandled = false;
@@ -104,12 +113,10 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     private static final String AUTO_COLOR   = "#378ADD"; // xanh — tự động
 
     public void initialize() {
-        // Build sidebar theo role
+        // Build topbar theo role
         if (topbarContainer != null && ClientSession.getCurrentUser() != null) {
             var user = ClientSession.getCurrentUser();
-            NavKey activeKey = UserFactory.toRole(user) == Role.BIDDER
-                    ? NavKey.BIDDER_LIVE
-                    : NavKey.SELLER_AUCTIONS;
+            NavKey activeKey = resolveActiveNavKey(user);
             var topbar = TopbarBuilder.build(
                     user,
                     activeKey,
@@ -118,6 +125,9 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             );
             topbarContainer.getChildren().add(topbar);
         }
+
+        // Ẩn/hiện bidPanel ngay từ đầu theo role — không cần đợi auction load
+        setupRoleBasedUI();
 
         // Cấu hình list lịch sử: mỗi dòng = tên (trái) + nhãn AUTO + số tiền (phải)
         if (bidHistoryListView != null) {
@@ -157,22 +167,47 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             });
         }
 
-
         AuctionEventBus.getInstance().addObserver(this);
 
         String auctionId = ClientSession.getSelectedAuctionId();
         if (auctionId == null || auctionId.isBlank()) {
-            messageLabel.setText("Không có auction được chọn.");
-            placeBidButton.setDisable(true);
-            remainingTimeLabel.setText("Không có dữ liệu");
+            if (messageLabel != null) messageLabel.setText("Không có auction được chọn.");
+            if (placeBidButton != null) placeBidButton.setDisable(true);
+            if (remainingTimeLabel != null) remainingTimeLabel.setText("Không có dữ liệu");
             return;
         }
 
         loadAuction(auctionId);
     }
 
+    /**
+     * Ẩn hoàn toàn bidPanel nếu user là SELLER hoặc ADMIN.
+     * Chỉ BIDDER mới thấy khu vực đặt giá.
+     *
+     * Gọi một lần trong initialize() — không cần gọi lại mỗi khi renderAuction()
+     * vì role không thay đổi trong suốt session.
+     */
+    private void setupRoleBasedUI() {
+        if (bidPanel == null) return;
+        User user = ClientSession.getCurrentUser();
+        boolean isBidder = (user != null) && (UserFactory.toRole(user) == Role.BIDDER);
+        bidPanel.setVisible(isBidder);
+        bidPanel.setManaged(isBidder);
+    }
+
+    /**
+     * Chọn NavKey active phù hợp theo role.
+     * BIDDER → BIDDER_LIVE, SELLER → SELLER_AUCTIONS, ADMIN → ADMIN_AUCTIONS.
+     */
+    private NavKey resolveActiveNavKey(User user) {
+        return switch (UserFactory.toRole(user)) {
+            case BIDDER -> NavKey.BIDDER_LIVE;
+            case SELLER -> NavKey.SELLER_AUCTIONS;
+            case ADMIN  -> NavKey.ADMIN_AUCTIONS;
+        };
+    }
+
     private void handleNavClick(NavKey key) {
-        // Trang chi tiết không phải mục nav nào → luôn điều hướng theo mục được bấm.
         NavRouter.route(key);
     }
 
@@ -185,9 +220,9 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
                     .send(new SubscribeAuctionRequest(auctionId));
         } catch (IOException e) {
             currentAuction = null;
-            messageLabel.setText("Không thể tải chi tiết auction.");
-            remainingTimeLabel.setText("Lỗi");
-            placeBidButton.setDisable(true);
+            if (messageLabel != null) messageLabel.setText("Không thể tải chi tiết auction.");
+            if (remainingTimeLabel != null) remainingTimeLabel.setText("Lỗi");
+            if (placeBidButton != null) placeBidButton.setDisable(true);
             AlertUtils.showError("Lỗi", "Không gửi được yêu cầu theo dõi auction: " + e.getMessage());
         }
     }
@@ -247,19 +282,23 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         }
 
         if (auction.isFinished()) {
-            remainingTimeLabel.setText("Đã kết thúc");
-            placeBidButton.setDisable(true);
-            if (auction.getWinnerBidderId() != null) {
-                messageLabel.setText("Người thắng: " + leaderDisplay);
-            } else {
-                messageLabel.setText("Phiên đã kết thúc — chưa có người thắng");
+            if (remainingTimeLabel != null) remainingTimeLabel.setText("Đã kết thúc");
+            if (placeBidButton != null) placeBidButton.setDisable(true);
+            if (messageLabel != null) {
+                if (auction.getWinnerBidderId() != null) {
+                    messageLabel.setText("Người thắng: " + leaderDisplay);
+                } else {
+                    messageLabel.setText("Phiên đã kết thúc — chưa có người thắng");
+                }
             }
         } else {
-            placeBidButton.setDisable(!isRunning);
-            if (auction.getHighestBidderId() != null) {
-                messageLabel.setText("Đang dẫn đầu: " + leaderDisplay);
-            } else {
-                messageLabel.setText("Chưa có ai đặt giá");
+            if (placeBidButton != null) placeBidButton.setDisable(!isRunning);
+            if (messageLabel != null) {
+                if (auction.getHighestBidderId() != null) {
+                    messageLabel.setText("Đang dẫn đầu: " + leaderDisplay);
+                } else {
+                    messageLabel.setText("Chưa có ai đặt giá");
+                }
             }
         }
 
@@ -280,11 +319,13 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         updateCancelButtonVisibility(auction);
     }
 
-    /** Chỉ admin mới thấy nút Hủy, và chỉ khi phiên chưa ở trạng thái cuối. */
+    /**
+     * Nút Hủy chỉ hiển thị khi user có canManage() = true (admin / seller chủ phiên)
+     * VÀ phiên đang ở trạng thái có thể hủy (OPEN hoặc RUNNING).
+     */
     private void updateCancelButtonVisibility(Auction auction) {
         if (cancelAuctionButton == null) return;
         User user = ClientSession.getCurrentUser();
-        // canManage: admin -> mọi phiên; seller -> phiên của chính mình; bidder -> false
         boolean canManage = user != null && user.canManage(auction);
         boolean cancelable = auction.getStatus() == AuctionStatus.OPEN
                 || auction.getStatus() == AuctionStatus.RUNNING;
@@ -302,8 +343,8 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         stopCountdown();
 
         if (currentAuction == null || currentAuction.isFinished()) {
-            remainingTimeLabel.setText("Đã kết thúc");
-            placeBidButton.setDisable(true);
+            if (remainingTimeLabel != null) remainingTimeLabel.setText("Đã kết thúc");
+            if (placeBidButton != null) placeBidButton.setDisable(true);
             return;
         }
 
@@ -318,13 +359,11 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
 
     private void updateRemainingTime() {
         if (currentAuction == null) {
-            remainingTimeLabel.setText("Không có dữ liệu");
-            placeBidButton.setDisable(true);
+            if (remainingTimeLabel != null) remainingTimeLabel.setText("Không có dữ liệu");
+            if (placeBidButton != null) placeBidButton.setDisable(true);
             return;
         }
 
-        // Phiên OPEN (chưa bắt đầu): đếm tới startTime, label "BẮT ĐẦU SAU"
-        // Phiên RUNNING: đếm tới endTime, label "KẾT THÚC SAU"
         boolean notStartedYet = currentAuction.getStatus() == AuctionStatus.OPEN;
         LocalDateTime target = notStartedYet
                 ? currentAuction.getStartTime()
@@ -338,40 +377,36 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
 
         if (remaining.isZero() || remaining.isNegative()) {
             if (notStartedYet) {
-                // Tới giờ start nhưng server chưa kịp gửi event chuyển RUNNING
-                remainingTimeLabel.setText("Đang bắt đầu...");
+                if (remainingTimeLabel != null) remainingTimeLabel.setText("Đang bắt đầu...");
                 return;
             }
             handleAuctionExpired();
             return;
         }
 
-        remainingTimeLabel.setText(CountdownUtil.formatRemaining(remaining));
+        if (remainingTimeLabel != null) remainingTimeLabel.setText(CountdownUtil.formatRemaining(remaining));
 
-        // Đổi màu theo trạng thái: bình thường / cảnh báo / khẩn cấp
-        remainingTimeLabel.getStyleClass().removeAll(
-                "countdown-normal", "countdown-warning", "countdown-emergency");
-        long totalSec = remaining.getSeconds();
-        if (totalSec < 60) {
-            remainingTimeLabel.getStyleClass().add("countdown-emergency");
-        } else if (totalSec < 300) {
-            remainingTimeLabel.getStyleClass().add("countdown-warning");
-        } else {
-            remainingTimeLabel.getStyleClass().add("countdown-normal");
+        if (remainingTimeLabel != null) {
+            remainingTimeLabel.getStyleClass().removeAll(
+                    "countdown-normal", "countdown-warning", "countdown-emergency");
+            long totalSec = remaining.getSeconds();
+            if (totalSec < 60) {
+                remainingTimeLabel.getStyleClass().add("countdown-emergency");
+            } else if (totalSec < 300) {
+                remainingTimeLabel.getStyleClass().add("countdown-warning");
+            } else {
+                remainingTimeLabel.getStyleClass().add("countdown-normal");
+            }
         }
     }
 
     private void handleAuctionExpired() {
-        if (expiredHandled || currentAuction == null) {
-            return;
-        }
-
+        if (expiredHandled || currentAuction == null) return;
         expiredHandled = true;
         stopCountdown();
-
-        remainingTimeLabel.setText("Đã kết thúc");
-        placeBidButton.setDisable(true);
-        messageLabel.setText("Phiên đấu giá đã hết thời gian. Đang chờ server cập nhật trạng thái...");
+        if (remainingTimeLabel != null) remainingTimeLabel.setText("Đã kết thúc");
+        if (placeBidButton != null) placeBidButton.setDisable(true);
+        if (messageLabel != null) messageLabel.setText("Phiên đấu giá đã hết thời gian. Đang chờ server cập nhật trạng thái...");
     }
 
     private void stopCountdown() {
@@ -391,7 +426,6 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             return;
         }
 
-        // === Phần 1: Validate đồng bộ (chạy trên FX thread) ===
         final long amount;
         final User currentUser;
         try {
@@ -412,11 +446,9 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             return;
         }
 
-        // === Phần 2: Update UI báo "đang chờ" ===
         bidAmountField.clear();
-        messageLabel.setText("Đã gửi yêu cầu đặt giá. Đang chờ server xử lý...");
+        if (messageLabel != null) messageLabel.setText("Đã gửi yêu cầu đặt giá. Đang chờ server xử lý...");
 
-        // === Phần 3: Gửi request qua RequestExecutor ===
         final String auctionId = currentAuction.getId();
         final String bidderId = currentUser.getId();
 
@@ -425,7 +457,7 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
                 response -> handleBidResult(response),
                 error -> {
                     AlertUtils.showError("Đặt giá thất bại", error);
-                    messageLabel.setText("");
+                    if (messageLabel != null) messageLabel.setText("");
                 }
         );
     }
@@ -434,26 +466,25 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         if (response instanceof BidResult result) {
             switch (result) {
                 case BidResult.Success s -> {
-                    messageLabel.setText("Đặt giá thành công!");
-                    // UI sẽ tự update qua AuctionUpdatedEvent (broadcast)
+                    if (messageLabel != null) messageLabel.setText("Đặt giá thành công!");
                 }
                 case BidResult.Failure f -> {
                     AlertUtils.showError("Đặt giá thất bại", f.reason());
-                    messageLabel.setText("");
+                    if (messageLabel != null) messageLabel.setText("");
                 }
             }
         } else {
             AlertUtils.showError("Lỗi", "Phản hồi không hợp lệ từ server: " + response.getClass().getSimpleName());
-            messageLabel.setText("");
+            if (messageLabel != null) messageLabel.setText("");
         }
     }
+
     public void onConfigureAutoBidClicked() {
         if (currentAuction == null) {
             AlertUtils.showWarning("Thông báo", "Không có auction để cấu hình.");
             return;
         }
 
-        // === Phần 1: Validate (giữ nguyên) ===
         User currentUser = ClientSession.getCurrentUser();
         if (currentUser == null) {
             AlertUtils.showWarning("Chưa đăng nhập", "Vui lòng đăng nhập để dùng đấu giá tự động.");
@@ -464,26 +495,22 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
             return;
         }
 
-        // === Phần 2: Mở dialog, nếu Cancel thì dừng (giữ nguyên) ===
         var result = AutoBidDialogFactory.showDialog();
-        if (result.isEmpty()) {
-            return;
-        }
+        if (result.isEmpty()) return;
+
         final long maxAmount = result.get().maxAmount;
         final long increment = result.get().increment;
-
         final String auctionId = currentAuction.getId();
         final String bidderId  = currentUser.getId();
 
-        // === Phần 3: Báo "đang chờ" + gửi qua RequestExecutor ===
-        messageLabel.setText("Đang thiết lập đấu giá tự động...");
+        if (messageLabel != null) messageLabel.setText("Đang thiết lập đấu giá tự động...");
 
         RequestExecutor.send(
                 new SetAutoBidRequest(auctionId, bidderId, maxAmount, increment),
                 this::handleSetAutoBidResponse,
                 error -> {
                     AlertUtils.showError("Đấu giá tự động thất bại", error);
-                    messageLabel.setText("");
+                    if (messageLabel != null) messageLabel.setText("");
                 }
         );
     }
@@ -492,17 +519,18 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         if (response instanceof SetAutoBidResponse r) {
             if (r.success()) {
                 AlertUtils.showInfo("Thành công", r.message());
-                messageLabel.setText("Đã bật đấu giá tự động.");
+                if (messageLabel != null) messageLabel.setText("Đã bật đấu giá tự động.");
             } else {
                 AlertUtils.showError("Thất bại", r.message());
-                messageLabel.setText("");
+                if (messageLabel != null) messageLabel.setText("");
             }
         } else {
             AlertUtils.showError("Lỗi",
                     "Phản hồi không hợp lệ từ server: " + response.getClass().getSimpleName());
-            messageLabel.setText("");
+            if (messageLabel != null) messageLabel.setText("");
         }
     }
+
     public void onDisableAutoBidClicked() {
         if (currentAuction == null) {
             AlertUtils.showWarning("Thông báo", "Không có phiên.");
@@ -523,23 +551,23 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
                 this::handleDisableAutoBidResponse,
                 error -> {
                     AlertUtils.showError("Tắt đấu giá tự động thất bại", error);
-                    messageLabel.setText("");
+                    if (messageLabel != null) messageLabel.setText("");
                 }
         );
-        messageLabel.setText("Đang tắt đấu giá tự động...");
+        if (messageLabel != null) messageLabel.setText("Đang tắt đấu giá tự động...");
     }
 
     private void handleDisableAutoBidResponse(Object response) {
         if (response instanceof SetAutoBidResponse r) {
-            // success=true: đã tắt; success=false: không có config (vẫn báo nhẹ nhàng)
             AlertUtils.showInfo(r.success() ? "Thành công" : "Thông báo", r.message());
-            messageLabel.setText(r.success() ? "Đã tắt đấu giá tự động." : "");
+            if (messageLabel != null) messageLabel.setText(r.success() ? "Đã tắt đấu giá tự động." : "");
         } else {
             AlertUtils.showError("Lỗi",
                     "Phản hồi không hợp lệ: " + response.getClass().getSimpleName());
-            messageLabel.setText("");
+            if (messageLabel != null) messageLabel.setText("");
         }
     }
+
     public void onCancelAuctionClicked() {
         if (currentAuction == null) {
             AlertUtils.showWarning("Thông báo", "Không có phiên để hủy.");
@@ -556,14 +584,14 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         if (!ok) return;
 
         final String auctionId = currentAuction.getId();
-        messageLabel.setText("Đang gửi yêu cầu hủy phiên...");
+        if (messageLabel != null) messageLabel.setText("Đang gửi yêu cầu hủy phiên...");
 
         RequestExecutor.send(
                 new CancelAuctionRequest(auctionId),
                 this::handleCancelResult,
                 error -> {
                     AlertUtils.showError("Hủy phiên thất bại", error);
-                    messageLabel.setText("");
+                    if (messageLabel != null) messageLabel.setText("");
                 }
         );
     }
@@ -572,58 +600,46 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
         if (response instanceof CancelAuctionResult result) {
             switch (result) {
                 case CancelAuctionResult.Success s ->
-                    AlertUtils.showInfo("Thành công", "Đã hủy phiên đấu giá.");
+                        AlertUtils.showInfo("Thành công", "Đã hủy phiên đấu giá.");
                 case CancelAuctionResult.Failure f -> {
                     AlertUtils.showError("Hủy phiên thất bại", f.reason());
-                    messageLabel.setText("");
+                    if (messageLabel != null) messageLabel.setText("");
                 }
             }
         } else {
             AlertUtils.showError("Lỗi",
                     "Phản hồi không hợp lệ từ server: " + response.getClass().getSimpleName());
-            messageLabel.setText("");
+            if (messageLabel != null) messageLabel.setText("");
         }
     }
 
-    /**
-     * Được AuctionEventBus gọi khi server broadcast AuctionUpdateEvent.
-     * Xảy ra khi: có bid mới, anti-sniping gia hạn thời gian, auto-bid chạy,
-     * HOẶC khi vừa subscribe (server gửi snapshot lần đầu).
-     */
     @Override
     public void onAuctionEvent(AuctionEvent event) {
         Auction updated = event.getAuction();
 
-        // Chỉ xử lý nếu đây đúng auction mình đang xem
-        // (so sánh với currentAuctionId, KHÔNG phải currentAuction vì lần đầu nó null)
         if (currentAuctionId == null || !updated.getId().equals(currentAuctionId)) {
             return;
         }
 
-        // Wrap trong Platform.runLater để đảm bảo update UI trên FX Thread
         javafx.application.Platform.runLater(() -> {
             log.debug("[Detail] Nhận update auction: {} | endTime: {} | giá: {}",
                     updated.getId(), updated.getEndTime(), updated.getCurrentPrice());
 
-            // Cập nhật object auction trong bộ nhớ
             currentAuction = updated;
             expiredHandled = false;
 
-            // Cập nhật toàn bộ UI
             renderAuction(updated);
-
-            // Render biểu đồ bid history
             renderBidHistoryChart(updated);
-
-            // Khởi động countdown (tự pick startTime hoặc endTime tùy status)
             startCountdown();
+
             if (event instanceof AuctionExtendedEvent ext) {
-                messageLabel.setText("Phiên được gia hạn thêm " + ext.getExtendedSeconds()
-                        + " giây do có người đấu giá phút chót!");
+                if (messageLabel != null) messageLabel.setText(
+                        "Phiên được gia hạn thêm " + ext.getExtendedSeconds()
+                                + " giây do có người đấu giá phút chót!");
             } else if (event instanceof AuctionCancelledEvent cancelEvent) {
                 Role byRole = cancelEvent.getCancelledByRole();
                 String byText = (byRole != null) ? " bởi " + EnumFormatter.roleVi(byRole) : "";
-                messageLabel.setText("⚠ Phiên đấu giá đã bị huỷ" + byText + ".");
+                if (messageLabel != null) messageLabel.setText("⚠ Phiên đấu giá đã bị huỷ" + byText + ".");
                 AlertUtils.showWarning("Phiên bị huỷ",
                         "Phiên đấu giá này đã bị huỷ" + byText + ". Bạn không thể đặt giá nữa.");
             } else if (event instanceof AuctionEndedEvent) {
@@ -631,10 +647,10 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
                 String msg = (winner != null && !winner.isBlank())
                         ? "Phiên đã kết thúc. Người thắng: " + winner
                         : "Phiên đã kết thúc. Không có người thắng.";
-                messageLabel.setText(msg);
+                if (messageLabel != null) messageLabel.setText(msg);
                 AlertUtils.showInfo("Phiên kết thúc", msg);
             } else if (event instanceof AuctionPaidEvent) {
-                messageLabel.setText("✓ Phiên đã thanh toán xong.");
+                if (messageLabel != null) messageLabel.setText("✓ Phiên đã thanh toán xong.");
             }
         });
     }
@@ -651,43 +667,39 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     }
 
     private void renderBidHistoryChart(Auction auction) {
-        if (bidHistoryChart == null) {
-            return;
-        }
+        if (bidHistoryChart == null) return;
         bidHistoryChart.getData().clear();
 
-        if (auction == null || auction.getBidHistory() == null || auction.getBidHistory().isEmpty()) {
-            return;
+        List<Bid> bids = auction.getBidHistory();
+        if (bids == null || bids.isEmpty()) return;
+
+        XYChart.Series<String, Number> manualSeries = BidHistorySeriesBuilder.buildSeries(
+                bids, BidSource.MANUAL);
+        XYChart.Series<String, Number> autoSeries = BidHistorySeriesBuilder.buildSeries(
+                bids, BidSource.AUTO);
+
+        if (!manualSeries.getData().isEmpty()) {
+            bidHistoryChart.getData().add(manualSeries);
+            applySeriesColor(manualSeries, MANUAL_COLOR);
         }
-
-        XYChart.Series<String, Number> series = BidHistorySeriesBuilder.buildSeries(auction.getBidHistory());
-        bidHistoryChart.getData().add(series);
-
-        for (XYChart.Data<String, Number> data : series.getData()) {
-            if (!(data.getExtraValue() instanceof Bid bid)) {
-                continue;
-            }
-            // Node của symbol có thể chưa được tạo ngay sau khi add -> chờ qua nodeProperty.
-            if (data.getNode() != null) {
-                decoratePoint(data.getNode(), bid);
-            } else {
-                data.nodeProperty().addListener((obs, oldNode, newNode) -> {
-                    if (newNode != null) {
-                        decoratePoint(newNode, bid);
-                    }
-                });
-            }
+        if (!autoSeries.getData().isEmpty()) {
+            bidHistoryChart.getData().add(autoSeries);
+            applySeriesColor(autoSeries, AUTO_COLOR);
         }
     }
 
-    private void decoratePoint(Node node, Bid bid) {
-        boolean isAuto = bid.getSource() == BidSource.AUTO;
-        node.setStyle("-fx-background-color: " + (isAuto ? AUTO_COLOR : MANUAL_COLOR) + ", white;");
-
-        String name = (bid.getBidderName() != null && !bid.getBidderName().isBlank())
-                ? bid.getBidderName() : bid.getBidderId();
-        String kind = isAuto ? "Tự động" : "Thủ công";
-        Tooltip.install(node, new Tooltip(
-                name + "\n" + MoneyFormatter.formatVnd(bid.getAmount()) + "\n" + kind));
+    private void applySeriesColor(XYChart.Series<String, Number> series, String color) {
+        Node line = series.getNode().lookup(".chart-series-line");
+        if (line != null) {
+            line.setStyle("-fx-stroke: " + color + "; -fx-stroke-width: 2px;");
+        }
+        for (XYChart.Data<String, Number> data : series.getData()) {
+            Node symbol = data.getNode();
+            if (symbol != null) {
+                symbol.setStyle("-fx-background-color: " + color + ", white;");
+                Tooltip.install(symbol, new Tooltip(
+                        data.getXValue() + "\n" + MoneyFormatter.formatVnd(data.getYValue().longValue())));
+            }
+        }
     }
 }

@@ -39,10 +39,10 @@
 
                 <!-- === BREADCRUMB + BACK BUTTON === -->
                 <HBox spacing="8" alignment="CENTER_LEFT">
-                    <Button text="← Quay lại" 
-                            styleClass="btn-text" 
+                    <Button text="← Quay lại"
+                            styleClass="btn-text"
                             onAction="#onBackClicked"/>
-                    <Label text="PHIÊN ĐẤU GIÁ › ĐANG DIỄN RA" 
+                    <Label text="PHIÊN ĐẤU GIÁ › CHI TIẾT"
                            styleClass="label-caption"/>
                 </HBox>
 
@@ -73,14 +73,14 @@
                             <HBox spacing="24">
                                 <VBox spacing="4">
                                     <Label text="NGƯỜI BÁN" styleClass="label-caption"/>
-                                    <Label fx:id="sellerLabel" 
-                                           text="—" 
+                                    <Label fx:id="sellerLabel"
+                                           text="—"
                                            styleClass="text-body"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="TRẠNG THÁI" styleClass="label-caption"/>
-                                    <Label fx:id="statusLabel" 
-                                           text="—" 
+                                    <Label fx:id="statusLabel"
+                                           text="—"
                                            styleClass="badge-running"/>
                                 </VBox>
                             </HBox>
@@ -109,10 +109,18 @@
                         </TabPane>
                     </VBox>
 
-                    <!-- === CỘT PHẢI: Countdown + Đặt giá === -->
-                    <VBox spacing="16" prefWidth="380" minWidth="340" maxWidth="420">
+                    <!-- ============================================================ -->
+                    <!-- === CỘT PHẢI: Countdown + Giá + (Bid panel nếu là bidder) == -->
+                    <!-- ============================================================ -->
+                    <!--
+                        prefWidth="380" cố định cho mọi role.
+                        Khi bidPanel bị ẩn (visible=false, managed=false),
+                        cột phải sẽ chỉ còn card countdown + giá + cancelButton (nếu có).
+                        Cột trái (HBox.hgrow=ALWAYS) sẽ tự giãn ra lấy phần không gian còn lại.
+                    -->
+                    <VBox spacing="16" prefWidth="380" minWidth="320" maxWidth="420">
 
-                        <!-- Card countdown + giá -->
+                        <!-- Card 1: Countdown + Giá hiện tại — hiển thị cho MỌI role -->
                         <VBox styleClass="card" spacing="14">
                             <Label fx:id="countdownCaptionLabel"
                                    text="KẾT THÚC SAU"
@@ -133,8 +141,10 @@
                                    styleClass="text-muted"/>
                         </VBox>
 
-                        <!-- Card đặt giá -->
-                        <VBox styleClass="card" spacing="14">
+                        <!-- Card 2: Đặt giá — CHỈ hiển thị cho BIDDER.             -->
+                        <!--          Controller sẽ set visible=false, managed=false  -->
+                        <!--          cho VBox này nếu user là SELLER hoặc ADMIN.      -->
+                        <VBox fx:id="bidPanel" styleClass="card" spacing="14">
                             <Label text="GIÁ BẠN MUỐN ĐẶT (VND)"
                                    styleClass="label-caption"/>
                             <Label fx:id="minBidLabel"
@@ -164,15 +174,20 @@
                                     styleClass="btn-outline"
                                     onAction="#onDisableAutoBidClicked"
                                     maxWidth="Infinity"/>
-
-                            <Button fx:id="cancelAuctionButton"
-                                    text="Hủy phiên"
-                                    styleClass="btn-danger"
-                                    onAction="#onCancelAuctionClicked"
-                                    visible="false"
-                                    managed="false"
-                                    maxWidth="Infinity"/>
                         </VBox>
+
+                        <!-- Nút Hủy phiên — NẰM NGOÀI bidPanel.                    -->
+                        <!-- Dùng cho ADMIN và SELLER (canManage() = true).           -->
+                        <!-- Controller tự set visible/managed qua                   -->
+                        <!-- updateCancelButtonVisibility() mỗi khi renderAuction(). -->
+                        <Button fx:id="cancelAuctionButton"
+                                text="Hủy phiên"
+                                styleClass="btn-danger"
+                                onAction="#onCancelAuctionClicked"
+                                visible="false"
+                                managed="false"
+                                maxWidth="Infinity"/>
+
                     </VBox>
                 </HBox>
             </VBox>

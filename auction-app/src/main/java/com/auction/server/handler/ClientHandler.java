@@ -73,6 +73,7 @@ import com.auction.shared.networkMessage.Results.RegisterResult;
 import com.auction.shared.networkMessage.Results.SetAutoBidResponse;
 import com.auction.shared.networkMessage.Results.UpdateItemResult;
 import com.auction.shared.networkMessage.Results.UserRow;
+
 public class ClientHandler implements Runnable, EventReceiver {
     private final Socket socket;
     private final BidService bidService;
@@ -91,6 +92,7 @@ public class ClientHandler implements Runnable, EventReceiver {
     private ObjectInputStream in;
 
     private static final Logger log = LoggerFactory.getLogger(ClientHandler.class);
+
     public ClientHandler(Socket socket,
                          BidService bidService,
                          AuthService authService,
@@ -112,7 +114,7 @@ public class ClientHandler implements Runnable, EventReceiver {
         this.subscriptionManager = subscriptionManager;
         this.broadcaster = broadcaster;
         this.enricher = enricher;
-        this.lifecycleService = lifecycleService;  
+        this.lifecycleService = lifecycleService;
     }
 
     @Override
@@ -134,7 +136,7 @@ public class ClientHandler implements Runnable, EventReceiver {
                     case AddItemRequest req             -> handleAddItemRequest(req);
                     case UpdateItemRequest req          -> handleUpdateItemRequest(req);
                     case GetSellerItemsRequest req      -> handleGetSellerItemsRequest(req);
-                    case GetAllUsersRequest _            -> handleGetAllUsersRequest();
+                    case GetAllUsersRequest _           -> handleGetAllUsersRequest();
                     case GetAllItemsRequest _           -> handleGetAllItemsRequest();
                     case GetAdminStatsRequest _         -> handleGetAdminStatsRequest();
                     case GetBalanceRequest req          -> handleGetBalanceRequest(req);
@@ -212,8 +214,16 @@ public class ClientHandler implements Runnable, EventReceiver {
         }
     }
 
+    // ===== BID =====
+    // Thêm requireLogin() + role-check: chỉ BIDDER mới được đặt giá.
+    // Đây là chốt chặn ở server — UI đã ẩn nút rồi nhưng phòng bypass qua API trực tiếp.
     private void handleBidRequest(BidRequest request) {
         try {
+            requireLogin();
+            if (roleOf(currentUser) != Role.BIDDER) {
+                send(new BidResult.Failure("Chỉ tài khoản Người đấu giá mới được đặt giá"));
+                return;
+            }
             BidOutcome result = bidService.placeBid(
                     request.auctionId(),
                     request.bidderId(),
@@ -232,13 +242,13 @@ public class ClientHandler implements Runnable, EventReceiver {
 
         } catch (AppException ex) {
             send(new BidResult.Failure(ex.getMessage()));
-        }catch (Exception ex) {
-        send(new ErrorMessage("Lỗi server khi xử lý bid: " + ex.getMessage()));
-        log.error("Lỗi server khi xử lý bid", ex);
+        } catch (Exception ex) {
+            send(new ErrorMessage("Lỗi server khi xử lý bid: " + ex.getMessage()));
+            log.error("Lỗi server khi xử lý bid", ex);
         }
     }
 
-    // ===== ITEM MANAGEMENT (MỚI) =====
+    // ===== ITEM MANAGEMENT =====
 
     private void handleAddItemRequest(AddItemRequest req) {
         try {
@@ -302,6 +312,7 @@ public class ClientHandler implements Runnable, EventReceiver {
             send(new GetSellerItemsResult.Failure("Lỗi server: " + e.getMessage()));
         }
     }
+
     private void handleGetAllUsersRequest() {
         try {
             requireLogin();
@@ -337,7 +348,7 @@ public class ClientHandler implements Runnable, EventReceiver {
                     .map(it -> new ItemRow(
                             it.getId(),
                             it.getName(),
-                            idToName.getOrDefault(it.getSellerId(), it.getSellerId()), // không thấy thì hiện id
+                            idToName.getOrDefault(it.getSellerId(), it.getSellerId()),
                             ItemFactory.toItemType(it).name()))
                     .toList();
 
@@ -431,10 +442,10 @@ public class ClientHandler implements Runnable, EventReceiver {
         }
     }
 
-    // ===== ADMIN: GỠ SẢN PHẨM VI PHẠM  =====
+    // ===== ADMIN: GỠ SẢN PHẨM VI PHẠM =====
     private void handleAdminDeleteItemRequest(AdminDeleteItemRequest req) {
         try {
-            requireLogin(); //chỉ admin mới được quyền gỡ, ko lquan đến chủ sở hữu nên ko dùng canManage
+            requireLogin(); // chỉ admin mới được quyền gỡ, ko lquan đến chủ sở hữu nên ko dùng canManage
             if (roleOf(currentUser) != Role.ADMIN) {
                 throw new AuthenticationException("Chỉ quản trị viên mới được gỡ sản phẩm");
             }
@@ -457,6 +468,7 @@ public class ClientHandler implements Runnable, EventReceiver {
             case Bidder b -> Role.BIDDER;
         };
     }
+
     // ===== WALLET =====
 
     private void handleGetBalanceRequest(GetBalanceRequest req) {
@@ -479,13 +491,22 @@ public class ClientHandler implements Runnable, EventReceiver {
         }
     }
 
+    // ===== AUTO-BID =====
+    // Cả setup lẫn disable đều thêm role-check: chỉ BIDDER mới được dùng auto-bid.
+
     private void handleSetAutoBidRequest(SetAutoBidRequest req) {
         try {
+            requireLogin();
+            if (roleOf(currentUser) != Role.BIDDER) {
+                send(new SetAutoBidResponse(false,
+                        "Chỉ tài khoản Người đấu giá mới được dùng đấu giá tự động"));
+                return;
+            }
             Optional<BidOutcome> opening = bidService.setupAutoBid(
                     req.auctionId(), req.bidderId(),
                     req.maxAmount(), req.increment());
 
-            // Có auto-bid mở màn → broadcast như cú bid thường (việc transport)
+            // Có auto-bid mở màn → broadcast như cú bid thường
             opening.ifPresent(o ->
                     broadcaster.broadcast(new BidPlacedEvent(o.auction(), o.bid())));
 
@@ -498,9 +519,15 @@ public class ClientHandler implements Runnable, EventReceiver {
             send(new SetAutoBidResponse(false, "Lỗi server: " + e.getMessage()));
         }
     }
+
     private void handleDisableAutoBidRequest(DisableAutoBidRequest req) {
         try {
             requireLogin();
+            if (roleOf(currentUser) != Role.BIDDER) {
+                send(new SetAutoBidResponse(false,
+                        "Chỉ tài khoản Người đấu giá mới được dùng đấu giá tự động"));
+                return;
+            }
             boolean off = autoBidService.disableConfig(req.auctionId(), req.bidderId());
             send(new SetAutoBidResponse(off,
                     off ? "Đã tắt đấu giá tự động"
@@ -512,6 +539,7 @@ public class ClientHandler implements Runnable, EventReceiver {
             send(new SetAutoBidResponse(false, "Lỗi server: " + e.getMessage()));
         }
     }
+
     @Override
     public synchronized void send(Object message) {
         try {
