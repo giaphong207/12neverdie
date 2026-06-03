@@ -1,6 +1,5 @@
 /* =====================================================
-   PHIÊN ĐẤU GIÁ — APP STYLES
-   Nhóm 12neverdie | Học kỳ II, 2025-2026
+   APP STYLES
    ===================================================== */
 
 /* === 1. DESIGN TOKENS (biến CSS) ===
@@ -37,6 +36,10 @@
 
     /* Nền tổng */
     -fx-background-color: -app-bg-soft;
+
+    /* Bỏ viền focus xanh mặc định của JavaFX trên mọi nút/tab */
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
 }
 
 /* === STATUS DOT (chấm trạng thái) === */
@@ -1366,4 +1369,15 @@
 }
 .app-dialog .button:focused {
     -fx-border-color: -app-accent;
+}
+/* === Bỏ viền focus xanh trong popup tài khoản (nút "Đăng xuất") === */
+.account-menu {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.account-menu .menu-item,
+.account-menu .menu-item:focused,
+.account-menu .menu-item:hover,
+.account-menu .menu-item:selected {
+    -fx-background-color: transparent;
 }
