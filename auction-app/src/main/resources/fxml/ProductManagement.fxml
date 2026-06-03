@@ -49,22 +49,35 @@
                     <columns>
                         <TableColumn fx:id="colName"
                                      text="Tên sản phẩm"
-                                     prefWidth="200"/>
+                                     prefWidth="140"
+                                     minWidth="100"/>
                         <TableColumn fx:id="colDescription"
                                      text="Mô tả"
-                                     prefWidth="300"/>
+                                     prefWidth="150"
+                                     minWidth="90"/>
                         <TableColumn fx:id="colStartingPrice"
                                      text="Giá khởi điểm"
-                                     prefWidth="150"
-                                     minWidth="120"
+                                     prefWidth="110"
+                                     minWidth="100"
                                      style="-fx-alignment: CENTER-RIGHT;"/>
                         <TableColumn fx:id="colType"
                                      text="Loại"
-                                     prefWidth="130"
+                                     prefWidth="90"
+                                     minWidth="70"
+                                     style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colStartTime"
+                                     text="Bắt đầu"
+                                     prefWidth="140"
+                                     minWidth="138"
+                                     style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colEndTime"
+                                     text="Kết thúc"
+                                     prefWidth="140"
+                                     minWidth="138"
                                      style="-fx-alignment: CENTER;"/>
                         <TableColumn fx:id="colAuctionStatus"
                                      text="Trạng thái phiên"
-                                     prefWidth="160"
+                                     prefWidth="130"
                                      minWidth="120"
                                      style="-fx-alignment: CENTER;"/>
                     </columns>
@@ -135,10 +148,12 @@
                             maxWidth="Infinity"
                             HBox.hgrow="ALWAYS"
                             onAction="#onAddClicked"/>
-                    <Button text="Cập nhật" 
+                    <Button fx:id="btnUpdate"
+                            text="Cập nhật"
                             styleClass="btn-primary"
                             maxWidth="Infinity"
-                            HBox.hgrow="ALWAYS" 
+                            disable="true"
+                            HBox.hgrow="ALWAYS"
                             onAction="#onUpdateClicked"/>
                 </HBox>
 

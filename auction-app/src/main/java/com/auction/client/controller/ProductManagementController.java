@@ -31,6 +31,7 @@ import com.auction.shared.networkMessage.Results.UpdateItemResult;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -53,7 +54,10 @@ public class ProductManagementController implements AuctionEventObserver, Dispos
     @FXML private TableColumn<Item, String> colDescription;
     @FXML private TableColumn<Item, String> colStartingPrice;
     @FXML private TableColumn<Item, String> colType;
+    @FXML private TableColumn<Item, String> colStartTime;
+    @FXML private TableColumn<Item, String> colEndTime;
     @FXML private TableColumn<Item, String> colAuctionStatus;
+    @FXML private Button btnUpdate;
 
     /** Phiên đấu giá mới nhất theo itemId — dùng để tra trạng thái phiên cho mỗi sản phẩm. */
     private final Map<String, Auction> auctionByItemId = new HashMap<>();
@@ -119,6 +123,22 @@ public class ProductManagementController implements AuctionEventObserver, Dispos
                     new javafx.beans.property.SimpleStringProperty(
                             EnumFormatter.itemTypeVi(ItemFactory.toItemType(c.getValue()))));
         }
+        if (colStartTime != null) {
+            colStartTime.setCellValueFactory(c -> {
+                Auction a = auctionByItemId.get(c.getValue().getId());
+                return new javafx.beans.property.SimpleStringProperty(
+                        a == null ? "—" : formatDateTime(a.getStartTime()));
+            });
+        }
+        if (colEndTime != null) {
+            // Hiển thị endTime hiện tại của phiên — đã bao gồm gia hạn anti-sniping
+            // (server broadcast endTime mới sau mỗi lần gia hạn nên luôn cập nhật).
+            colEndTime.setCellValueFactory(c -> {
+                Auction a = auctionByItemId.get(c.getValue().getId());
+                return new javafx.beans.property.SimpleStringProperty(
+                        a == null ? "—" : formatDateTime(a.getEndTime()));
+            });
+        }
         if (colAuctionStatus != null) {
             colAuctionStatus.setCellValueFactory(c -> {
                 Auction a = auctionByItemId.get(c.getValue().getId());
@@ -155,6 +175,7 @@ public class ProductManagementController implements AuctionEventObserver, Dispos
                     if (newItem != null) {
                         fillForm(newItem);
                     }
+                    updateButtonState();
                 });
 
         applyDefaultSchedule();
@@ -180,6 +201,10 @@ public class ProductManagementController implements AuctionEventObserver, Dispos
             if (sellerId == null || !sellerId.equals(updated.getSellerId())) return;
             auctionByItemId.put(updated.getItemId(), updated);
             tblItems.refresh();
+            // Phiên vừa đổi trạng thái có thể là sản phẩm đang chọn → cập nhật nút.
+            if (selectedItem != null && updated.getItemId().equals(selectedItem.getId())) {
+                updateButtonState();
+            }
         });
     }
 
@@ -352,6 +377,12 @@ public class ProductManagementController implements AuctionEventObserver, Dispos
             AlertUtils.showWarning("Chưa chọn sản phẩm", "Chọn sản phẩm để sửa");
             return;
         }
+        // Chỉ cho sửa khi phiên chưa mở (sắp mở). RUNNING/FINISHED/PAID/CANCELED → chặn.
+        if (!isUpdatable(selectedItem)) {
+            AlertUtils.showWarning("Không thể cập nhật",
+                    "Chỉ sửa được sản phẩm khi phiên đấu giá chưa mở (Sắp mở).");
+            return;
+        }
 
         User currentUser = ClientSession.getCurrentUser();
         String name = txtName.getText().trim();
@@ -416,6 +447,26 @@ public class ProductManagementController implements AuctionEventObserver, Dispos
         if (txtMinIncrement != null) txtMinIncrement.clear();
         cbItemType.setValue(null);
         applyDefaultSchedule();
+        updateButtonState();
+    }
+
+    /** Chỉ sửa được khi phiên chưa mở (Sắp mở = OPEN). Chưa có phiên cũng cho sửa. */
+    private boolean isUpdatable(Item item) {
+        if (item == null) return false;
+        Auction a = auctionByItemId.get(item.getId());
+        return a == null || a.getStatus() == com.auction.shared.model.auction.AuctionStatus.OPEN;
+    }
+
+    /** Bật nút "Cập nhật" chỉ khi có sản phẩm được chọn và phiên của nó còn sửa được. */
+    private void updateButtonState() {
+        if (btnUpdate == null) return;
+        btnUpdate.setDisable(selectedItem == null || !isUpdatable(selectedItem));
+    }
+
+    /** Format thời gian phiên cho cột bảng: "dd/MM/yyyy HH:mm". */
+    private static String formatDateTime(java.time.LocalDateTime dt) {
+        if (dt == null) return "—";
+        return dt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
     }
 
     /**
