@@ -27,6 +27,7 @@ class AutoBidServiceTest {
     private FakeAutoBidDao autoBidDao;
     private AuctionLockManager lockManager;
     private DefaultAutoBidService service;
+    private static final java.util.function.ToLongFunction<String> UNLIMITED = id -> Long.MAX_VALUE;
 
     @BeforeEach
     void setUp() {
@@ -158,7 +159,7 @@ class AutoBidServiceTest {
             Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
             int sizeBefore = auction.getBidHistory().size();
 
-            boolean result = service.resolveAutoBids(auction);
+            boolean result = service.resolveAutoBids(auction,UNLIMITED);
 
             assertFalse(result);
             assertEquals(sizeBefore, auction.getBidHistory().size());
@@ -173,7 +174,7 @@ class AutoBidServiceTest {
             cfg.disable();
             autoBidDao.save(cfg);
 
-            boolean result = service.resolveAutoBids(auction);
+            boolean result = service.resolveAutoBids(auction,UNLIMITED);
 
             assertFalse(result);
             assertEquals(0, auction.getBidHistory().size());
@@ -186,7 +187,7 @@ class AutoBidServiceTest {
             autoBidDao.save(TestDataFactory.autoBidConfig(
                     auction.getId(), "bidder-A", 7_000_000L, 100_000L));
 
-            boolean result = service.resolveAutoBids(auction);
+            boolean result = service.resolveAutoBids(auction,UNLIMITED);
 
             assertTrue(result);
             assertEquals(1, auction.getBidHistory().size());
@@ -208,7 +209,7 @@ class AutoBidServiceTest {
             autoBidDao.save(s.configA);
             autoBidDao.save(s.configB);
 
-            boolean result = service.resolveAutoBids(s.auction);
+            boolean result = service.resolveAutoBids(s.auction,UNLIMITED);
 
             assertTrue(result);
             assertEquals(s.expectedWinner, s.auction.getHighestBidderId());
@@ -228,7 +229,7 @@ class AutoBidServiceTest {
             autoBidDao.save(s.configEarly);
             autoBidDao.save(s.configLate);
 
-            boolean result = service.resolveAutoBids(s.auction);
+            boolean result = service.resolveAutoBids(s.auction,UNLIMITED);
 
             assertTrue(result);
             assertEquals(s.expectedWinner, s.auction.getHighestBidderId());
@@ -246,7 +247,7 @@ class AutoBidServiceTest {
             autoBidDao.save(TestDataFactory.autoBidConfig(
                     auction.getId(), "bidder-high", 6_500_000L, 100_000L));
 
-            boolean result = service.resolveAutoBids(auction);
+            boolean result = service.resolveAutoBids(auction,UNLIMITED);
 
             assertTrue(result);
             assertEquals("bidder-high", auction.getHighestBidderId());
@@ -264,7 +265,7 @@ class AutoBidServiceTest {
                     auction.getId(), "bidder-A", 7_000_000L, 100_000L));
 
             int sizeBefore = auction.getBidHistory().size();
-            service.resolveAutoBids(auction);
+            service.resolveAutoBids(auction,UNLIMITED);
 
             assertEquals(sizeBefore, auction.getBidHistory().size());
             assertEquals("bidder-A", auction.getHighestBidderId());
@@ -277,7 +278,7 @@ class AutoBidServiceTest {
             autoBidDao.save(TestDataFactory.autoBidConfig(
                     auction.getId(), "bidder-too-low", 5_000_000L, 100_000L));
 
-            boolean result = service.resolveAutoBids(auction);
+            boolean result = service.resolveAutoBids(auction,UNLIMITED);
 
             assertFalse(result);
             assertEquals(0, auction.getBidHistory().size());
@@ -290,9 +291,27 @@ class AutoBidServiceTest {
             autoBidDao.save(TestDataFactory.autoBidConfig(
                     auction.getId(), "bidder-A", 7_000_000L, 100_000L));
 
-            service.resolveAutoBids(auction);
+            service.resolveAutoBids(auction,UNLIMITED);
 
             assertEquals(BidSource.AUTO, auction.getBidHistory().get(0).getSource());
+        }
+        @Test
+        @DisplayName("#1 trần hiệu dụng: trần khai cao nhưng ví thấp → bị giới hạn theo ví")
+        void effective_ceiling_limits_by_balance() {
+            Auction auction = TestDataFactory.runningAuction(5_000_000L, 100_000L, 300);
+            auction.addBid(TestDataFactory.bid(auction.getId(), "trigger", 5_100_000L));
+
+            autoBidDao.save(TestDataFactory.autoBidConfig(auction.getId(), "An",   6_000_000L, 100_000L));
+            autoBidDao.save(TestDataFactory.autoBidConfig(auction.getId(), "Binh", 9_000_000L, 100_000L));
+
+            Map<String, Long> balance = Map.of("An", 6_000_000L, "Binh", 5_500_000L);
+
+            boolean result = service.resolveAutoBids(auction, id -> balance.getOrDefault(id, 0L));
+
+            assertTrue(result);
+            // Binh trần khai 9M nhưng ví 5.5M → eff 5.5M < An 6M → An thắng
+            assertEquals("An", auction.getHighestBidderId());
+            assertEquals(5_600_000L, auction.getCurrentPrice());   // runnerUp eff 5.5M + 1 bước
         }
     }
 

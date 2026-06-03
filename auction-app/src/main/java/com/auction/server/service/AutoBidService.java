@@ -4,6 +4,7 @@ import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.AutoBidConfig;
 
 import java.util.List;
+import java.util.function.ToLongFunction;
 
 /**
  * Service xử lý logic Auto-Bidding (TV4 sở hữu - Contract 1 tuần 5).
@@ -28,12 +29,12 @@ public interface AutoBidService {
 
     /**
      * Resolve toàn bộ chuỗi auto-bid sau khi có một bid hợp lệ vừa được chấp nhận.
+     * PHẢI gọi BÊN TRONG cùng một lock của auction với manual bid.
      *
-     * Trả về:
-     *   true  - có ít nhất 1 auto-bid được tạo
-     *   false - không có gì thay đổi
-     *
-     * Method KHÔNG tự save auction xuống DAO; caller chịu trách nhiệm save.
+     * @param balanceOf hàm tra số dư ví hiện tại của bidder. Cascade dùng trần
+     *                  hiệu dụng = min(maxAmount, balanceOf(bidderId)) để không
+     *                  bao giờ đặt auto-bid vượt số dư THẬT (Fix #1).
+     * @return true nếu có ≥1 auto-bid được tạo. KHÔNG tự save; caller lo save.
      */
-    boolean resolveAutoBids(Auction auction);
+    boolean resolveAutoBids(Auction auction, ToLongFunction<String> balanceOf);
 }

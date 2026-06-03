@@ -13,6 +13,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.ToLongFunction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,9 +108,18 @@ public class DefaultAutoBidService implements AutoBidService {
     // ==================== Cascade resolve ====================
 
     @Override
-    public boolean resolveAutoBids(Auction auction) {
+    public boolean resolveAutoBids(Auction auction, ToLongFunction<String> balanceOf) {
         List<AutoBidConfig> configs = autoBidDao.findByAuctionId(auction.getId());
         if (configs.isEmpty()) return false;
+
+        // Fix #1: trần hiệu dụng = min(maxAmount, số dư). Đọc số dư MỘT lần cho mỗi
+        // config — cascade chỉ ĐẶT bid (không TRỪ tiền) nên số dư là hằng số trong
+        // suốt một lần resolve.
+        Map<String, Long> ceilingByConfigId = new HashMap<>();
+        for (AutoBidConfig c : configs) {
+            long balance = balanceOf.applyAsLong(c.getBidderId());
+            ceilingByConfigId.put(c.getId(), c.effectiveCeiling(balance));
+        }
 
         boolean anyAutoBidPlaced = false;
         int iterations = 0;
@@ -117,38 +129,35 @@ public class DefaultAutoBidService implements AutoBidService {
             String currentLeaderId = auction.getHighestBidderId();
             long minIncrement = auction.getMinIncrement();
 
-            // Filter + sort
+            // Filter + sort — đều theo TRẦN HIỆU DỤNG, không phải maxAmount thô.
             List<AutoBidConfig> candidates = configs.stream()
-                    .filter(c -> c.canOutbid(currentPrice, currentLeaderId, minIncrement))
-                    .sorted(Comparator.comparingLong(AutoBidConfig::getMaxAmount).reversed()
+                    .filter(c -> c.canOutbid(currentPrice, currentLeaderId, minIncrement,
+                            ceilingByConfigId.get(c.getId())))
+                    .sorted(Comparator.comparingLong(
+                                    (AutoBidConfig c) -> ceilingByConfigId.get(c.getId()))
+                            .reversed()
                             .thenComparing(AutoBidConfig::getCreatedAt))
                     .toList();
 
             if (candidates.isEmpty()) break;
 
-            // Pick chosen + runner-up
             AutoBidConfig chosen = candidates.get(0);
-            long runnerUpMaxAmount = candidates.size() > 1
-                    ? candidates.get(1).getMaxAmount()
+            long runnerUpCeiling = candidates.size() > 1
+                    ? ceilingByConfigId.get(candidates.get(1).getId())
                     : currentPrice;
 
-            // Calculate + place bid
-            long nextAmount = chosen.calculateNextAmount(currentPrice, runnerUpMaxAmount, minIncrement);
+            long nextAmount = chosen.calculateNextAmount(
+                    currentPrice, runnerUpCeiling, minIncrement,
+                    ceilingByConfigId.get(chosen.getId()));
 
-            Bid autoBid = Bid.createNew(
-                    auction.getId(),
-                    chosen.getBidderId(),
-                    nextAmount,
-                    BidSource.AUTO
-            );
-            auction.addBid(autoBid);
+            auction.addBid(Bid.createNew(
+                    auction.getId(), chosen.getBidderId(), nextAmount, BidSource.AUTO));
             anyAutoBidPlaced = true;
         }
 
         if (iterations >= MAX_CASCADE_ITERATIONS) {
             log.warn("Cascade reached MAX_CASCADE_ITERATIONS for auction {}", auction.getId());
         }
-
         return anyAutoBidPlaced;
     }
 }

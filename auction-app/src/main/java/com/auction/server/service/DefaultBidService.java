@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.ToLongFunction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,7 +124,7 @@ public class DefaultBidService implements BidService {
             }
 
             // ⑩ AutoBid cascade — TRONG CÙNG LOCK
-            autoBidService.resolveAutoBids(auction);
+            autoBidService.resolveAutoBids(auction, balanceOf());
 
             // ⑪ Persist trong 1 transaction
             persistNewBids(auction, sizeBefore);
@@ -143,17 +144,61 @@ public class DefaultBidService implements BidService {
             lock.unlock();
         }
     }
-        /**
-     * Chạy cascade auto-bid cho 1 phiên rồi LƯU nếu có bid mới.
-     * Dùng cho tình huống "vừa thiết lập auto-bid → đặt giá mở màn ngay".
-     * Trả Optional.of(outcome) nếu có ≥1 auto-bid được đặt (cần broadcast),
-     * Optional.empty() nếu không đặt gì.
-     */
+
+    @Override
+    public Optional<BidOutcome> setupAutoBid(String auctionId, String bidderId,
+                                             long maxAmount, long increment) {
+        // ① Validate input
+        if (auctionId == null || auctionId.isBlank()) throw new InvalidBidException("auctionId rỗng");
+        if (bidderId == null || bidderId.isBlank())   throw new InvalidBidException("bidderId rỗng");
+        if (maxAmount <= 0 || increment <= 0)
+            throw new InvalidBidException("Mức tối đa và bước giá phải lớn hơn 0");
+
+        // ② Lock per-auction (reentrant → upsertConfig + cascade lồng bên trong dùng lại được)
+        ReentrantLock lock = lockManager.getLock(auctionId);
+        boolean acquired;
+        try {
+            acquired = lock.tryLock(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new InvalidBidException("Bị gián đoạn khi chờ lock", e);
+        }
+        if (!acquired) throw new InvalidBidException("Hệ thống đang bận, vui lòng thử lại");
+
+        try {
+            Auction auction = lifecycleService.syncByTime(auctionId);
+
+            // ③ Chỉ thiết lập khi phiên ĐANG diễn ra
+            if (!auction.isRunning()) {
+                throw new AuctionClosedException(
+                        "Chỉ thiết lập đấu giá tự động khi phiên đang diễn ra (trạng thái: "
+                                + auction.getStatus() + ")");
+            }
+            // ④ Người bán không được auto-bid sản phẩm của mình
+            if (auction.getSellerId().equals(bidderId)) {
+                throw new InvalidBidException("Người bán không được đấu giá sản phẩm của mình");
+            }
+            // ⑤ maxAmount không được vượt số dư hiện có
+            User bidder = userDao.findById(bidderId).orElseThrow(() ->
+                    new InvalidBidException("Không tìm thấy người dùng"));
+            if (maxAmount > bidder.getBalance()) {
+                throw new InvalidBidException(
+                        "Mức tối đa vượt số dư ví. Ví hiện có " + bidder.getBalance() + " VNĐ");
+            }
+
+            // ⑥ Lưu config — vẫn trong lock
+            autoBidService.upsertConfig(auctionId, bidderId, maxAmount, increment);
+
+            // ⑦ Đặt "giá mở màn" ngay nếu có ai outbid được (kể cả người vừa set)
+            return runCascadeAndPersist(auction);
+        } finally {
+            lock.unlock();
+        }
+    }
+
     @Override
     public Optional<BidOutcome> triggerAutoBids(String auctionId) {
-        if (auctionId == null || auctionId.isBlank()) {
-            return Optional.empty();
-        }
+        if (auctionId == null || auctionId.isBlank()) return Optional.empty();
 
         ReentrantLock lock = lockManager.getLock(auctionId);   // CÙNG lock với placeBid
         boolean acquired;
@@ -170,33 +215,39 @@ public class DefaultBidService implements BidService {
 
         try {
             Auction auction = lifecycleService.syncByTime(auctionId);
-
-            // Chốt an toàn phòng race: chỉ đặt được khi đang RUNNING
-            if (!auction.isRunning()) {
-                return Optional.empty();
-            }
-
-            int sizeBefore = auction.getBidHistory().size();
-
-            autoBidService.resolveAutoBids(auction);
-
-            // Không có auto-bid nào đủ điều kiện → khỏi lưu/broadcast thừa
-            if (auction.getBidHistory().size() == sizeBefore) {
-                return Optional.empty();
-            }
-
-            persistNewBids(auction, sizeBefore);
-
-            List<Bid> history = auction.getBidHistory();
-            Bid lastBid = history.get(history.size() - 1);
-            log.info("Auto-bid mở màn: auction {} → giá {} (bidder {})",
-                    auction.getId(), lastBid.getAmount(), lastBid.getBidderId());
-
-            return Optional.of(new BidOutcome(auction, lastBid, 0L));
-
+            if (!auction.isRunning()) return Optional.empty();
+            return runCascadeAndPersist(auction);
         } finally {
             lock.unlock();
         }
+    }
+
+    /**
+     * Chạy cascade trên auction đang giữ trong RAM rồi LƯU nếu có bid mới.
+     * PHẢI gọi BÊN TRONG lock của auction (setupAutoBid lẫn triggerAutoBids đều đã giữ).
+     */
+    private Optional<BidOutcome> runCascadeAndPersist(Auction auction) {
+        int sizeBefore = auction.getBidHistory().size();
+
+        autoBidService.resolveAutoBids(auction, balanceOf());
+
+        if (auction.getBidHistory().size() == sizeBefore) {
+            return Optional.empty();   // không auto-bid nào đủ điều kiện
+        }
+
+        persistNewBids(auction, sizeBefore);
+
+        List<Bid> history = auction.getBidHistory();
+        Bid lastBid = history.get(history.size() - 1);
+        log.info("Auto-bid mở màn: auction {} → giá {} (bidder {})",
+                auction.getId(), lastBid.getAmount(), lastBid.getBidderId());
+
+        return Optional.of(new BidOutcome(auction, lastBid, 0L));
+    }
+
+    /** Tra số dư ví hiện tại của một bidder (0 nếu không thấy) — cho cascade (Fix #1). */
+    private ToLongFunction<String> balanceOf() {
+        return id -> userDao.findById(id).map(User::getBalance).orElse(0L);
     }
 
     /**

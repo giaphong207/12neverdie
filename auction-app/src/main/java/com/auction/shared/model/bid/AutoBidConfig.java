@@ -75,17 +75,34 @@ public class AutoBidConfig implements Serializable {
      *            && bidderId != currentHighestBidderId
      *            && maxAmount >= currentPrice + increment
      */
-    public boolean canOutbid(long currentPrice, String currentHighestBidderId, long minIncrement) {
+    /**
+     * Trần HIỆU DỤNG = min(maxAmount, số dư ví hiện có).
+     * Fix #1 (TOCTOU): cascade phải tôn trọng số dư THẬT tại thời điểm đặt bid,
+     * không chỉ con số maxAmount đã khai lúc set config.
+     */
+    public long effectiveCeiling(long balance) {
+        return Math.min(this.maxAmount, balance);
+    }
+
+    /**
+     * Rule tuần 5, nhưng đo bằng TRẦN HIỆU DỤNG (ceiling) thay cho maxAmount thô:
+     *   canOutbid = enabled
+     *            && bidderId != currentHighestBidderId
+     *            && ceiling >= currentPrice + step
+     */
+    public boolean canOutbid(long currentPrice, String currentHighestBidderId,
+                             long minIncrement, long ceiling) {
         if (!enabled) return false;
         if (bidderId.equals(currentHighestBidderId)) return false;
         long step = Math.max(this.increment, minIncrement);
-        return maxAmount >= currentPrice + step;
+        return ceiling >= currentPrice + step;
     }
 
-    public long calculateNextAmount(long currentPrice, long runnerUpMaxAmount, long minIncrement) {
+    public long calculateNextAmount(long currentPrice, long runnerUpCeiling,
+                                    long minIncrement, long ceiling) {
         long step = Math.max(this.increment, minIncrement);
-        long target = Math.max(currentPrice + step, runnerUpMaxAmount + step);
-        return Math.min(target, this.maxAmount);
+        long target = Math.max(currentPrice + step, runnerUpCeiling + step);
+        return Math.min(target, ceiling);
     }
 
     public void disable() { this.enabled = false; }

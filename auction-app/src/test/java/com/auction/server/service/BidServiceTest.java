@@ -34,6 +34,7 @@ class BidServiceTest {
     private static final String AUCTION_ID = "auction-test-1";
     private static final String SELLER_ID = "seller-1";
     private static final String BIDDER_ID = "bidder-1";
+    private static final java.util.function.ToLongFunction<String> UNLIMITED = id -> Long.MAX_VALUE;
 
     private Database db;
     private FakeAuctionDao auctionDao;
@@ -612,9 +613,47 @@ class BidServiceTest {
         @Override public java.util.List<com.auction.shared.model.bid.AutoBidConfig>
                         getConfigsByAuction(String auctionId) { return java.util.List.of(); }
         @Override public boolean disableConfig(String auctionId, String bidderId) { return false; }
-        @Override public boolean resolveAutoBids(Auction auction) {
+        @Override public boolean resolveAutoBids(Auction auction,
+                                                 java.util.function.ToLongFunction<String> balanceOf) {
             resolveCount.incrementAndGet();
             return cascadeBehavior.apply(auction);
+        }
+    }
+    @Nested
+    @DisplayName("setupAutoBid — validate ở service, handler chỉ gọi")
+    class SetupAutoBid {
+
+        @Test @DisplayName("Phiên FINISHED → AuctionClosedException")
+        void setup_on_finished_throws() {
+            auction.finish(); auctionDao.save(auction);
+            assertThrows(AuctionClosedException.class,
+                    () -> bidService.setupAutoBid(AUCTION_ID, BIDDER_ID, 6_000_000L, 100_000L));
+        }
+
+        @Test @DisplayName("maxAmount vượt số dư ví → InvalidBidException")
+        void setup_exceeding_balance_throws() {   // BIDDER_ID ví 10M
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.setupAutoBid(AUCTION_ID, BIDDER_ID, 20_000_000L, 100_000L));
+        }
+
+        @Test @DisplayName("maxAmount <= 0 → InvalidBidException")
+        void setup_non_positive_throws() {
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.setupAutoBid(AUCTION_ID, BIDDER_ID, 0L, 100_000L));
+        }
+
+        @Test @DisplayName("Người bán tự set → InvalidBidException")
+        void setup_by_seller_throws() {
+            assertThrows(InvalidBidException.class,
+                    () -> bidService.setupAutoBid(AUCTION_ID, SELLER_ID, 6_000_000L, 100_000L));
+        }
+
+        @Test @DisplayName("Hợp lệ → không ném, cascade được gọi 1 lần")
+        void setup_valid_runs_cascade() {
+            Optional<BidOutcome> opening =
+                    bidService.setupAutoBid(AUCTION_ID, BIDDER_ID, 6_000_000L, 100_000L);
+            assertTrue(opening.isEmpty());            // fake cascade trả false
+            assertEquals(1, autoBidService.resolveCount());
         }
     }
 }
