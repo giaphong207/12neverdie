@@ -8,6 +8,8 @@ import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.item.ItemType;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -97,26 +99,12 @@ public final class AuctionCardBuilder {
         infoRow.setAlignment(Pos.CENTER_LEFT);
         Label info = new Label();
         if (status == AuctionStatus.OPEN) {
-            Duration toStart = Duration.between(LocalDateTime.now(), auction.getStartTime());
-            if (toStart.isNegative() || toStart.isZero()) {
-                info.setText("⏱  Đang bắt đầu...");
-                info.getStyleClass().add("countdown-warning");
-            } else {
-                info.setText("⏱  Mở sau " + CountdownUtil.formatRemaining(toStart));
-                info.getStyleClass().add("countdown-normal-text");
-            }
+            // Đồng hồ tự cập nhật mỗi giây (đếm tới giờ mở phiên)
+            attachCountdown(card, info, () -> updateOpenCountdown(info, auction.getStartTime()));
             infoRow.getChildren().add(info);
         } else if (status == AuctionStatus.RUNNING) {
-            Duration remaining = Duration.between(LocalDateTime.now(), auction.getEndTime());
-            info.setText("⏱  " + CountdownUtil.formatRemaining(remaining));
-            long totalSec = remaining.getSeconds();
-            if (totalSec < 60) {
-                info.getStyleClass().add("countdown-urgent");
-            } else if (totalSec < 300) {
-                info.getStyleClass().add("countdown-warning");
-            } else {
-                info.getStyleClass().add("countdown-normal-text");
-            }
+            // Đồng hồ tự cập nhật mỗi giây (đếm tới giờ kết thúc)
+            attachCountdown(card, info, () -> updateRunningCountdown(info, auction.getEndTime()));
             Region g = new Region();
             HBox.setHgrow(g, Priority.ALWAYS);
             Label step = new Label("+" + MoneyFormatter.formatVndShort(auction.getMinIncrement()) + "/bước");
@@ -152,6 +140,56 @@ public final class AuctionCardBuilder {
         );
 
         return card;
+    }
+
+    private static final String[] COUNTDOWN_CLASSES =
+            {"countdown-normal-text", "countdown-warning", "countdown-urgent"};
+
+    /**
+     * Gắn 1 Timeline tick mỗi giây để label đồng hồ tự đếm ngược, không cần reload.
+     * Timeline tự chạy khi card vào scene và tự dừng khi card rời scene
+     * (đổi filter, refresh, chuyển trang) nên không bị rò rỉ.
+     */
+    private static void attachCountdown(VBox card, Label info, Runnable tick) {
+        tick.run(); // vẽ ngay giá trị đầu tiên
+
+        Timeline timeline = new Timeline(
+                new KeyFrame(javafx.util.Duration.seconds(1), e -> tick.run()));
+        timeline.setCycleCount(Timeline.INDEFINITE);
+
+        card.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene == null) {
+                timeline.stop();
+            } else {
+                timeline.play();
+            }
+        });
+    }
+
+    private static void updateOpenCountdown(Label info, LocalDateTime startTime) {
+        Duration toStart = Duration.between(LocalDateTime.now(), startTime);
+        info.getStyleClass().removeAll(COUNTDOWN_CLASSES);
+        if (toStart.isNegative() || toStart.isZero()) {
+            info.setText("⏱  Đang bắt đầu...");
+            info.getStyleClass().add("countdown-warning");
+        } else {
+            info.setText("⏱  Mở sau " + CountdownUtil.formatRemaining(toStart));
+            info.getStyleClass().add("countdown-normal-text");
+        }
+    }
+
+    private static void updateRunningCountdown(Label info, LocalDateTime endTime) {
+        Duration remaining = Duration.between(LocalDateTime.now(), endTime);
+        info.setText("⏱  " + CountdownUtil.formatRemaining(remaining));
+        long totalSec = remaining.getSeconds();
+        info.getStyleClass().removeAll(COUNTDOWN_CLASSES);
+        if (remaining.isNegative() || remaining.isZero() || totalSec < 60) {
+            info.getStyleClass().add("countdown-urgent");
+        } else if (totalSec < 300) {
+            info.getStyleClass().add("countdown-warning");
+        } else {
+            info.getStyleClass().add("countdown-normal-text");
+        }
     }
 
     private static String shortId(String id) {
