@@ -9,6 +9,7 @@ import java.util.Optional;
 
 import com.auction.shared.exception.AppExceptions.InvalidBidException;
 import com.auction.shared.model.bid.Bid;
+import com.auction.shared.model.item.ItemType;
 
 public class Auction implements Serializable {
     private final String id;
@@ -27,6 +28,7 @@ public class Auction implements Serializable {
 
     // Display fields — server fill trước khi gửi qua wire để client khỏi phải lookup
     private String itemName;
+    private ItemType itemType;
     private String itemDescription;
     private String sellerName;
     private String highestBidderName;
@@ -158,6 +160,8 @@ public class Auction implements Serializable {
     // ── Display fields (set ở server) ──
     public String getItemName() { return itemName; }
     public void setItemName(String itemName) { this.itemName = itemName; }
+    public ItemType getItemType() { return itemType; }
+    public void setItemType(ItemType itemType) { this.itemType = itemType; }
     public String getItemDescription() { return itemDescription; }
     public void setItemDescription(String d) { this.itemDescription = d; }
     public String getSellerName() { return sellerName; }
