@@ -251,7 +251,7 @@ public final class TopbarBuilder {
         return switch (UserFactory.toRole(user)) {
             case BIDDER -> java.util.List.of(
                     new NavItem(NavKey.BIDDER_HOME, "Trang chủ"),
-                    new NavItem(NavKey.BIDDER_LIVE, "Phiên đang diễn ra"),
+                    new NavItem(NavKey.BIDDER_LIVE, "Phiên đấu giá"),
                     new NavItem(NavKey.BIDDER_MINE, "Phiên của tôi"),
                     new NavItem(NavKey.BIDDER_SETTINGS, "Hướng dẫn")
             );
