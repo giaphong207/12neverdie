@@ -80,8 +80,14 @@
 
                 <VBox spacing="6">
                     <Label text="GIÁ KHỞI ĐIỂM (VND)" styleClass="label-caption"/>
-                    <TextField fx:id="txtStartingPrice" 
+                    <TextField fx:id="txtStartingPrice"
                                promptText="Nhập giá khởi điểm"/>
+                </VBox>
+
+                <VBox spacing="6">
+                    <Label text="BƯỚC GIÁ (VND, tùy chọn)" styleClass="label-caption"/>
+                    <TextField fx:id="txtMinIncrement"
+                               promptText="Để trống = 5% giá khởi điểm"/>
                 </VBox>
 
                 <VBox spacing="6">
