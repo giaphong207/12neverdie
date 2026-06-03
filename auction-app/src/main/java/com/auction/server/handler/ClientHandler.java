@@ -35,11 +35,9 @@ import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
-import com.auction.shared.networkMessage.AuctionEvents.*;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionExtendedEvent;
 import com.auction.shared.networkMessage.AuctionEvents.AuctionUpdatedEvent;
 import com.auction.shared.networkMessage.AuctionEvents.BidPlacedEvent;
-import com.auction.shared.networkMessage.Requests.*;
 import com.auction.shared.networkMessage.Requests.AddItemRequest;
 import com.auction.shared.networkMessage.Requests.AdminDeleteItemRequest;
 import com.auction.shared.networkMessage.Requests.BidRequest;
@@ -57,7 +55,6 @@ import com.auction.shared.networkMessage.Requests.SetAutoBidRequest;
 import com.auction.shared.networkMessage.Requests.SubscribeAuctionListRequest;
 import com.auction.shared.networkMessage.Requests.SubscribeAuctionRequest;
 import com.auction.shared.networkMessage.Requests.UpdateItemRequest;
-import com.auction.shared.networkMessage.Results.*;
 import com.auction.shared.networkMessage.Results.AddItemResult;
 import com.auction.shared.networkMessage.Results.AdminDeleteItemResult;
 import com.auction.shared.networkMessage.Results.AdminStats;
@@ -490,6 +487,15 @@ public class ClientHandler implements Runnable, EventReceiver {
                 return;
             }
 
+            // Chỉ cho thiết lập auto-bid khi phiên ĐANG diễn ra (RUNNING).
+            // Chốt chặn authoritative phía server — không tin mỗi client.
+            Auction auction = auctionService.getAuctionById(req.auctionId()).orElse(null);
+            if (auction == null || !auction.isRunning()) {
+                send(new SetAutoBidResponse(false,
+                        "Chỉ thiết lập đấu giá tự động khi phiên đang diễn ra"));
+                return;
+            }
+
             // Fix #3 — check ví: không cho auto-bid vượt số dư hiện có.
             //   (Check tại thời điểm set; nếu sau này ví tụt thì không đảm bảo tuyệt đối,
             //    nhưng đủ để không tự bid hộ user quá số tiền họ từng có.)
@@ -503,6 +509,13 @@ public class ClientHandler implements Runnable, EventReceiver {
             autoBidService.upsertConfig(
                     req.auctionId(), req.bidderId(),
                     req.maxAmount(), req.increment());
+
+            // Đặt "giá mở màn" ngay nếu phiên chưa ai dẫn / còn dư địa.
+            // Có auto-bid phát sinh → broadcast như một cú bid thường để mọi client
+            // thấy giá + người dẫn + biểu đồ cập nhật.
+            bidService.triggerAutoBids(req.auctionId())
+                    .ifPresent(outcome ->
+                            broadcaster.broadcast(new BidPlacedEvent(outcome.auction(), outcome.bid())));
 
             send(new SetAutoBidResponse(true, "Đã thiết lập đấu giá tự động"));
 

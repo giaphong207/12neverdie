@@ -10,10 +10,10 @@ import com.auction.shared.model.auction.Auction;
 import com.auction.shared.model.bid.Bid;
 import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.user.User;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -126,24 +126,7 @@ public class DefaultBidService implements BidService {
             autoBidService.resolveAutoBids(auction);
 
             // ⑪ Persist trong 1 transaction
-            List<Bid> newBids = auction.getBidHistory()
-                    .subList(sizeBefore, auction.getBidHistory().size());
-
-            try (Connection conn = db.getConnection()) {
-                conn.setAutoCommit(false);
-                try {
-                    for (Bid b : newBids) {
-                        bidDao.save(conn, b);
-                    }
-                    auctionDao.update(conn, auction);
-                    conn.commit();
-                } catch (Exception ex) {
-                    try { conn.rollback(); } catch (SQLException ignore) {}
-                    throw new DataAccessException("Lưu bid thất bại", ex);
-                }
-            } catch (SQLException e) {
-                throw new DataAccessException("Không lấy được connection", e);
-            }
+            persistNewBids(auction, sizeBefore);
 
             // ⑫ Side-effect NGOÀI transaction: chỉ reschedule SAU khi commit thành công.
             //    Nếu transaction lỗi → đã ném exception ở trên → không chạy tới đây →
@@ -158,6 +141,87 @@ public class DefaultBidService implements BidService {
 
         } finally {
             lock.unlock();
+        }
+    }
+        /**
+     * Chạy cascade auto-bid cho 1 phiên rồi LƯU nếu có bid mới.
+     * Dùng cho tình huống "vừa thiết lập auto-bid → đặt giá mở màn ngay".
+     * Trả Optional.of(outcome) nếu có ≥1 auto-bid được đặt (cần broadcast),
+     * Optional.empty() nếu không đặt gì.
+     */
+    @Override
+    public Optional<BidOutcome> triggerAutoBids(String auctionId) {
+        if (auctionId == null || auctionId.isBlank()) {
+            return Optional.empty();
+        }
+
+        ReentrantLock lock = lockManager.getLock(auctionId);   // CÙNG lock với placeBid
+        boolean acquired;
+        try {
+            acquired = lock.tryLock(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return Optional.empty();
+        }
+        if (!acquired) {
+            log.warn("triggerAutoBids: không lấy được lock cho auction {} — bỏ qua giá mở màn", auctionId);
+            return Optional.empty();
+        }
+
+        try {
+            Auction auction = lifecycleService.syncByTime(auctionId);
+
+            // Chốt an toàn phòng race: chỉ đặt được khi đang RUNNING
+            if (!auction.isRunning()) {
+                return Optional.empty();
+            }
+
+            int sizeBefore = auction.getBidHistory().size();
+
+            autoBidService.resolveAutoBids(auction);
+
+            // Không có auto-bid nào đủ điều kiện → khỏi lưu/broadcast thừa
+            if (auction.getBidHistory().size() == sizeBefore) {
+                return Optional.empty();
+            }
+
+            persistNewBids(auction, sizeBefore);
+
+            List<Bid> history = auction.getBidHistory();
+            Bid lastBid = history.get(history.size() - 1);
+            log.info("Auto-bid mở màn: auction {} → giá {} (bidder {})",
+                    auction.getId(), lastBid.getAmount(), lastBid.getBidderId());
+
+            return Optional.of(new BidOutcome(auction, lastBid, 0L));
+
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Lưu mọi bid mới (từ chỉ số sizeBefore trở đi) + cập nhật auction trong CÙNG
+     * MỘT transaction. Lỗi giữa chừng → rollback hết.
+     * Phải gọi BÊN TRONG lock của auction (cả placeBid lẫn triggerAutoBids đều đã giữ lock).
+     */
+    private void persistNewBids(Auction auction, int sizeBefore) {
+        List<Bid> newBids = auction.getBidHistory()
+                .subList(sizeBefore, auction.getBidHistory().size());
+
+        try (Connection conn = db.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                for (Bid b : newBids) {
+                    bidDao.save(conn, b);
+                }
+                auctionDao.update(conn, auction);
+                conn.commit();
+            } catch (Exception ex) {
+                try { conn.rollback(); } catch (SQLException ignore) {}
+                throw new DataAccessException("Lưu bid thất bại", ex);
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Không lấy được connection", e);
         }
     }
 }

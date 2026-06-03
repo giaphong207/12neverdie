@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.auction.client.chart.BidHistorySeriesBuilder;
 import com.auction.client.context.ClientSession;
 import com.auction.client.network.ServerConnection;
@@ -30,13 +33,27 @@ import com.auction.shared.model.bid.BidSource;
 import com.auction.shared.model.user.Role;
 import com.auction.shared.model.user.User;
 import com.auction.shared.networkMessage.AuctionEvents.*;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionCancelledEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionEndedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionExtendedEvent;
+import com.auction.shared.networkMessage.AuctionEvents.AuctionPaidEvent;
 import com.auction.shared.networkMessage.Requests.*;
+import com.auction.shared.networkMessage.Requests.BidRequest;
+import com.auction.shared.networkMessage.Requests.CancelAuctionRequest;
+import com.auction.shared.networkMessage.Requests.DisableAutoBidRequest;
+import com.auction.shared.networkMessage.Requests.SetAutoBidRequest;
+import com.auction.shared.networkMessage.Requests.SubscribeAuctionRequest;
 import com.auction.shared.networkMessage.Results.*;
+import com.auction.shared.networkMessage.Results.BidResult;
+import com.auction.shared.networkMessage.Results.CancelAuctionResult;
+import com.auction.shared.networkMessage.Results.SetAutoBidResponse;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
@@ -46,16 +63,12 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
-import javafx.scene.Node;
-import javafx.scene.control.Tooltip;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 public class AuctionDetailController implements AuctionEventObserver, Disposable {
 
     @FXML private Label itemNameLabel;
@@ -68,6 +81,7 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     @FXML private Label countdownCaptionLabel;
     @FXML private Label messageLabel;
     @FXML private Button placeBidButton;
+    @FXML private Button configureAutoBidButton;
     @FXML private Button cancelAuctionButton;
 
     @FXML private TextField bidAmountField;
@@ -226,6 +240,12 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
                 ? leaderName
                 : auction.getHighestBidderId();
 
+        // Auto-bid CHỈ cho phép khi RUNNING — đồng bộ với chốt chặn ở server.
+        boolean isRunning = auction.getStatus() == AuctionStatus.RUNNING;
+        if (configureAutoBidButton != null) {
+            configureAutoBidButton.setDisable(!isRunning);
+        }
+
         if (auction.isFinished()) {
             remainingTimeLabel.setText("Đã kết thúc");
             placeBidButton.setDisable(true);
@@ -235,7 +255,7 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
                 messageLabel.setText("Phiên đã kết thúc — chưa có người thắng");
             }
         } else {
-            placeBidButton.setDisable(auction.getStatus() != AuctionStatus.RUNNING);
+            placeBidButton.setDisable(!isRunning);
             if (auction.getHighestBidderId() != null) {
                 messageLabel.setText("Đang dẫn đầu: " + leaderDisplay);
             } else {
