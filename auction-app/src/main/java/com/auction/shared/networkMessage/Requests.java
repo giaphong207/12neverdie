@@ -40,9 +40,14 @@ public class Requests {
         }
     }
 
+    /**
+     * @param customMinIncrement bước giá seller tự đặt; nếu null → server sẽ tự tính
+     *                           dựa trên loại sản phẩm (Item.suggestedMinIncrement).
+     */
     public static record AddItemRequest(String name, String description, long startPrice,
                                         ItemType type, String sellerId,
-                                        LocalDateTime startTime, LocalDateTime endTime) implements Serializable {
+                                        LocalDateTime startTime, LocalDateTime endTime,
+                                        Long customMinIncrement) implements Serializable {
         public AddItemRequest {
             if (name == null || name.isBlank()) {
                 throw new InvalidItemException("Tên sản phẩm không được rỗng");
@@ -67,6 +72,19 @@ public class Requests {
             }
             if (!endTime.isAfter(startTime)) {
                 throw new InvalidItemException("Thời gian kết thúc phải sau thời gian bắt đầu");
+            }
+            // null = dùng polymorphism Item.suggestedMinIncrement (mặc định 5% giá khởi điểm).
+            // Nếu có giá trị: phải >= 5% giá khởi điểm (cùng sàn với default).
+            if (customMinIncrement != null) {
+                if (customMinIncrement <= 0) {
+                    throw new InvalidItemException("Bước giá phải lớn hơn 0");
+                }
+                long minAllowed = Math.max(1L, Math.round(startPrice * 0.05));
+                if (customMinIncrement < minAllowed) {
+                    throw new InvalidItemException(
+                            "Bước giá tối thiểu phải bằng 5% giá khởi điểm ("
+                                    + minAllowed + " VNĐ)");
+                }
             }
         }
     }
