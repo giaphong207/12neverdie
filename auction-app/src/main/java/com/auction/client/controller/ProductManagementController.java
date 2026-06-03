@@ -44,6 +44,7 @@ public class ProductManagementController {
     @FXML private TextField txtName;
     @FXML private TextArea txtDescription;
     @FXML private TextField txtStartingPrice;
+    @FXML private TextField txtMinIncrement;     // tùy chọn — null = polymorphism default
     @FXML private ComboBox<ItemType> cbItemType;
     @FXML private DatePicker dpStartDate;
     @FXML private TextField txtStartTime;
@@ -199,6 +200,32 @@ public class ProductManagementController {
             return;
         }
 
+        // Bước giá tùy chọn: để trống = polymorphism, có giá trị = dùng giá trị seller chọn
+        Long customMinIncrement;
+        try {
+            customMinIncrement = parseCustomMinIncrement();
+        } catch (IllegalArgumentException ex) {
+            AlertUtils.showError("Lỗi nhập liệu", ex.getMessage());
+            return;
+        }
+        if (customMinIncrement != null) {
+            if (customMinIncrement <= 0) {
+                AlertUtils.showWarning("Lỗi", "Bước giá phải lớn hơn 0");
+                return;
+            }
+            long minAllowed = Math.max(1L, Math.round(startPrice * 0.05));
+            if (customMinIncrement < minAllowed) {
+                AlertUtils.showWarning("Lỗi",
+                        "Bước giá tối thiểu phải bằng 5% giá khởi điểm ("
+                                + MoneyFormatter.formatVnd(minAllowed) + ")");
+                return;
+            }
+            if (customMinIncrement >= startPrice) {
+                AlertUtils.showWarning("Lỗi", "Bước giá phải nhỏ hơn giá khởi điểm");
+                return;
+            }
+        }
+
         java.time.LocalDateTime startTime = combineDateTime(dpStartDate, txtStartTime);
         if (startTime == null) {
             AlertUtils.showWarning("Lỗi", "Thời gian bắt đầu không hợp lệ (định dạng HH:mm)");
@@ -223,7 +250,8 @@ public class ProductManagementController {
 
         RequestExecutor.send(
                 new AddItemRequest(name, description, startPrice, type,
-                        currentUser.getId(), startTime, endTime),
+                        currentUser.getId(), startTime, endTime,
+                        customMinIncrement),
                 this::handleAddItemResult,
                 error -> AlertUtils.showError("Lỗi mạng", "Không gửi được: " + error)
         );
@@ -313,8 +341,28 @@ public class ProductManagementController {
         txtName.clear();
         txtDescription.clear();
         txtStartingPrice.clear();
+        if (txtMinIncrement != null) txtMinIncrement.clear();
         cbItemType.setValue(null);
         applyDefaultSchedule();
+    }
+
+    /**
+     * Parse ô "Bước giá":
+     *   - Trống → null (server sẽ dùng polymorphism Item.suggestedMinIncrement)
+     *   - Có số → Long value (server dùng giá trị seller chọn)
+     *   - Không phải số → throw IllegalArgumentException để caller hiển thị lỗi
+     */
+    private Long parseCustomMinIncrement() {
+        if (txtMinIncrement == null) return null;
+        String raw = txtMinIncrement.getText();
+        if (raw == null || raw.trim().isEmpty()) return null;
+        try {
+            // Chấp nhận user nhập "100.000" hoặc "100,000" — xóa dấu chấm/phẩy/khoảng trắng
+            String cleaned = raw.trim().replaceAll("[.,\\s]", "");
+            return Long.parseLong(cleaned);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Bước giá phải là số");
+        }
     }
 
     /** Format khoảng thời gian "dd/MM HH:mm → dd/MM HH:mm". */

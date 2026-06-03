@@ -178,14 +178,31 @@ class ItemFactoryTest {
         });
     }
     @Test
-    void suggestedMinIncrement_khacNhauTheoLoaiItem() {
+    void suggestedMinIncrement_giaTronThi3LoaiTraSame() {
+        // Khi startPrice là số tròn, 3 chiến lược làm tròn đều trả về cùng giá trị
+        // — đây là trường hợp đơn giản, kết quả = 5% chính xác.
         Item dienTu    = new ElectronicsItem("e1", "s1", "Laptop", "mô tả", 5_000_000L);
         Item ngheThuat = new ArtItem("a1", "s1", "Tranh", "mô tả", 5_000_000L);
         Item xe        = new VehicleItem("v1", "s1", "Xe máy", "mô tả", 5_000_000L);
 
-        // cùng currentPrice nhưng ba loại cho ba kết quả khác nhau
-        assertEquals(100_000L,   dienTu.suggestedMinIncrement(10_000_000L));    // hằng số nhỏ
-        assertEquals(500_000L,   ngheThuat.suggestedMinIncrement(10_000_000L)); // 5% = 500k
-        assertEquals(1_000_000L, xe.suggestedMinIncrement(10_000_000L));        // hằng số lớn
+        assertEquals(500_000L, dienTu.suggestedMinIncrement(10_000_000L));   // 5% = 500k đã tròn 10k
+        assertEquals(500_000L, ngheThuat.suggestedMinIncrement(10_000_000L));// 5% không làm tròn
+        assertEquals(500_000L, xe.suggestedMinIncrement(10_000_000L));       // 5% = 500k đã tròn 100k
+    }
+
+    @Test
+    void suggestedMinIncrement_giaLeChoThayChienLuocLamTronKhacNhau() {
+        // Khi startPrice là số lẻ, mỗi loại làm tròn khác nhau:
+        //   1.234.567 × 5% = 61.728
+        //   ElectronicsItem: làm tròn LÊN bội số 10k  → 70.000
+        //   ArtItem:         giữ nguyên               → 61.728
+        //   VehicleItem:     làm tròn LÊN bội số 100k → 100.000
+        Item dienTu    = new ElectronicsItem("e1", "s1", "Laptop", "mô tả", 1_234_567L);
+        Item ngheThuat = new ArtItem("a1", "s1", "Tranh", "mô tả", 1_234_567L);
+        Item xe        = new VehicleItem("v1", "s1", "Xe máy", "mô tả", 1_234_567L);
+
+        assertEquals( 70_000L, dienTu.suggestedMinIncrement(1_234_567L));
+        assertEquals( 61_728L, ngheThuat.suggestedMinIncrement(1_234_567L));
+        assertEquals(100_000L, xe.suggestedMinIncrement(1_234_567L));
     }
 }
