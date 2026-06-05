@@ -14,7 +14,7 @@ public final class MoneyFormatter {
 
     static {
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
-        symbols.setGroupingSeparator('.');
+        symbols.setGroupingSeparator(' ');
         VND_FORMATTER = new DecimalFormat("#,##0", symbols);
     }
 

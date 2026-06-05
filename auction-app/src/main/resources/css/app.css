@@ -825,8 +825,7 @@
 .topbar-wallet {
     -fx-font-size: 17px;
     -fx-font-weight: bold;
-    -fx-text-fill: -app-accent;
-    -fx-font-family: "Cambria", "Times New Roman", serif;
+    -fx-font-family: "Cambria", "Times New Roman";
 }
 
 /* Nút "+ Nạp tiền" — viền nhạt trung tính như mockup */

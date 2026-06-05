@@ -667,47 +667,43 @@ public class AuctionDetailController implements AuctionEventObserver, Disposable
     }
 
     private void renderBidHistoryChart(Auction auction) {
-        if (bidHistoryChart == null) return;
+        if (bidHistoryChart == null) {
+            return;
+        }
         bidHistoryChart.getData().clear();
 
-        List<Bid> bids = auction.getBidHistory();
-        if (bids == null || bids.isEmpty()) return;
-
-        // BidHistorySeriesBuilder.buildSeries() chỉ nhận List<Bid>.
-        // Filter thủ công để tách manual / auto trước khi build.
-        List<Bid> manualBids = bids.stream()
-                .filter(b -> b.getSource() == BidSource.MANUAL)
-                .toList();
-        List<Bid> autoBids = bids.stream()
-                .filter(b -> b.getSource() == BidSource.AUTO)
-                .toList();
-
-        if (!manualBids.isEmpty()) {
-            XYChart.Series<String, Number> manualSeries =
-                    BidHistorySeriesBuilder.buildSeries(manualBids);
-            bidHistoryChart.getData().add(manualSeries);
-            applySeriesColor(manualSeries, MANUAL_COLOR);
+        if (auction == null || auction.getBidHistory() == null || auction.getBidHistory().isEmpty()) {
+            return;
         }
-        if (!autoBids.isEmpty()) {
-            XYChart.Series<String, Number> autoSeries =
-                    BidHistorySeriesBuilder.buildSeries(autoBids);
-            bidHistoryChart.getData().add(autoSeries);
-            applySeriesColor(autoSeries, AUTO_COLOR);
+
+        XYChart.Series<String, Number> series = BidHistorySeriesBuilder.buildSeries(auction.getBidHistory());
+        bidHistoryChart.getData().add(series);
+
+        for (XYChart.Data<String, Number> data : series.getData()) {
+            if (!(data.getExtraValue() instanceof Bid bid)) {
+                continue;
+            }
+            // Node của symbol có thể chưa được tạo ngay sau khi add -> chờ qua nodeProperty.
+            if (data.getNode() != null) {
+                decoratePoint(data.getNode(), bid);
+            } else {
+                data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                    if (newNode != null) {
+                        decoratePoint(newNode, bid);
+                    }
+                });
+            }
         }
     }
 
-    private void applySeriesColor(XYChart.Series<String, Number> series, String color) {
-        Node line = series.getNode().lookup(".chart-series-line");
-        if (line != null) {
-            line.setStyle("-fx-stroke: " + color + "; -fx-stroke-width: 2px;");
-        }
-        for (XYChart.Data<String, Number> data : series.getData()) {
-            Node symbol = data.getNode();
-            if (symbol != null) {
-                symbol.setStyle("-fx-background-color: " + color + ", white;");
-                Tooltip.install(symbol, new Tooltip(
-                        data.getXValue() + "\n" + MoneyFormatter.formatVnd(data.getYValue().longValue())));
-            }
-        }
+    private void decoratePoint(Node node, Bid bid) {
+        boolean isAuto = bid.getSource() == BidSource.AUTO;
+        node.setStyle("-fx-background-color: " + (isAuto ? AUTO_COLOR : MANUAL_COLOR) + ", white;");
+
+        String name = (bid.getBidderName() != null && !bid.getBidderName().isBlank())
+                ? bid.getBidderName() : bid.getBidderId();
+        String kind = isAuto ? "Tự động" : "Thủ công";
+        Tooltip.install(node, new Tooltip(
+                name + "\n" + MoneyFormatter.formatVnd(bid.getAmount()) + "\n" + kind));
     }
 }
